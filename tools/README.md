@@ -1,4 +1,4 @@
-# 运行工具
+# 汉化与还原运行工具
 
 Apply-OfficialZH.ps1 为汉化及还原部署脚本，deployment-plan.json 为路径与文件校验清单。
 
