@@ -2,8 +2,8 @@
   "pack_title": "蓝色星原：旅谣 简体汉化",
   "author": "尔安",
   "build_id": "QUktR0VORVJBVEVEfOWwlOWuiXwyMDI2LTExLTI1",
-  "patch_revision": 1,
-  "built_at": "2026-11-25T01:50:15.835877+08:00",
+  "patch_revision": 3,
+  "built_at": "2026-11-25T04:50:20.011495+08:00",
   "games": [
     {
       "id": "tw_game",
@@ -220,6 +220,203 @@
         }
       ],
       "payload_dir": "tw_game"
+    },
+    {
+      "id": "jp_game",
+      "label": "日服游戏",
+      "version": "资源 3219598 / 内置 3075915",
+      "exe": "AzurPromiliaJP.exe",
+      "data_dir": "AzurPromiliaJP_Data",
+      "marker_dir": ".res/default_package/ManifestFiles",
+      "marker_filter": "0release_default_package_3219598.bytes",
+      "search_subpaths": [
+        "YostarGames/AZUPRO_JP",
+        "AZUPRO_JP"
+      ],
+      "registry_patterns": [
+        "アズールプロミリア*",
+        "bbbc3006-6fe5-52d1-8f2c-e554c31fefef"
+      ],
+      "process_names": [
+        "AzurPromiliaJP.exe"
+      ],
+      "backup_folder_name": ".zhcn-jp-3219598-backup",
+      "payload_dir": "jp_game",
+      "files": [
+        {
+          "relative_path": ".res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r",
+          "source_sha256": "99b8129d49586d26745630a76423609123ddcb1a7aad3e0a971886b13336a878",
+          "target_sha256": "fe6e0e5238cf5ceb34cb2b2746ea079af984faadd36d6cf0aca457236bace039",
+          "size": 139264966,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.bytes",
+          "source_sha256": "d4e93fdd9f06740e77f6bb6786ce545bc3226cebf3f760e9f1c003fde4941cf2",
+          "target_sha256": "c6e435bf1d858649f14fc663eacbb985ff2932337e9c0a31e8e809fb60232a5e",
+          "size": 3860,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.hash",
+          "source_sha256": "28bd189d4e038c0966ac2fa4e818435a2e671be1b9d4bb2b1ad69fed31623615",
+          "target_sha256": "3009eacf807955d4a674654c2fdeec62a1f3418ef39c0b922303f15a56125081",
+          "size": 32,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": ".res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
+          "source_sha256": "296c11b437e5817ae5144ecd6096e5884f4cf9c35b630a01aa9c33024839d599",
+          "target_sha256": "6cdb6fc279884e718a9ad7d9f8e8651e02c0aac5c78f9a3d33cbb34738240198",
+          "size": 28840170,
+          "previous_sha256": [
+            "409a93351cce44c7507a898c95e72ea58a24b959be9b48dd1be77e311d092a72"
+          ]
+        },
+        {
+          "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.bytes",
+          "source_sha256": "d962180d504e9c03f970f85d68815dcd0368db6d62a629b1af56e0d617bf86c4",
+          "target_sha256": "3137484681ceeddf5ec719c1e34135c5e8e203ba198eda5fb77118b0d8c90071",
+          "size": 3853129,
+          "previous_sha256": [
+            "fb47d3e1af86c1f0f6fda9bcfe9840bdd3947e584432676e4515e30b55ad11ab"
+          ]
+        },
+        {
+          "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.hash",
+          "source_sha256": "83208f16c0affccfb710ad128abe4d294c8336acc46562b2494cbb4084ddd449",
+          "target_sha256": "c28f1bef4b3d1670a16e0c5aff826c7f50d2c55379e0b866a22596724365c78e",
+          "size": 32,
+          "previous_sha256": [
+            "84fd11183e49c58bff247f91155584371c5d161b23b2bb69b8cc2913e0cd4156"
+          ]
+        },
+        {
+          "relative_path": "resources.assets",
+          "source_sha256": "df93ce7192d6a46b33350204349e66a45e410124e3057224ad1a17e6f24b115b",
+          "target_sha256": "0547e3754f60b6bc64df7caca9379789c9cde23f30dc2339a3626bd2d7d314dd",
+          "size": 48572312,
+          "previous_sha256": [
+            "9cb8a98dc49828c21a432cc7835e072d884707a06b596c2fcbfc0999d9bf0849"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/xlpsyuxnoz1cjmawi1wcxa.r",
+          "source_sha256": "0ce4b085050646728af0fd9cb42e1a01bc288cc1cb44d167095ada9f6ab284fb",
+          "target_sha256": "e1246fb0c71a26f3738641ce83df2bcbdeecf1a9b190d0a0b77e7c13f3fc51f3",
+          "size": 6136107,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/e5e4oijae8zliat91bgbw.r",
+          "source_sha256": "8b065f591f03318158900fead2c67e1cf46653b555c373c5ee256329a068454a",
+          "target_sha256": "f70bc19f2edd5a5da167fbc35ca0e01154a1d24b2d82163adde159b7ac311108",
+          "size": 6136148,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/awcxxitzquckttvmx0c5q.r",
+          "source_sha256": "2f191ae713e3b6193e757597f39158ae57950a1a975343da1f101c974c345a32",
+          "target_sha256": "4e3a73cb244115869b5dd344404092cd73fb8c44d42f918ac0b761d34c1712ea",
+          "size": 6137114,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/hqqoy0ojvzpggukcf5m85w.r",
+          "source_sha256": "a584d52f66f66a32dc2a2e9bfd7a119eed10290fc79795b6730896a5440d2a7f",
+          "target_sha256": "6d10041a9d79ad65e523f78f7c904f7e8b4e85206fe72c72a71e53d3f417fdc1",
+          "size": 6640651,
+          "previous_sha256": [
+            "1c0116876a9c41ab40ebbba2dfc4c3f3cab3dd28967c24ff399c17e10a88e320"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/rpgxilrqhjgj9am5g799fa.r",
+          "source_sha256": "56e681055ee745d10dbe9cecbc76a308eb4556e8ece328fc61d5cabc86b344bf",
+          "target_sha256": "add5611884b799083ccac911a79190a599fc330cfdfbd80e5e01d392a4a08973",
+          "size": 10896079,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": ".res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
+          "source_sha256": "701f04842f5156da177bd4946a1cf9b7c055f2a614003c2c13c8567fa14e0fc3",
+          "target_sha256": "ce0915a7e1650e149de30b23651ee9b1d2da91d1fcf9e73a2b54e80d132cf0e5",
+          "size": 4988242,
+          "previous_sha256": [
+            "97b1cf12f9d389119ab4d9f3086b389a71c4772de68690bb76fa6037514240f0"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/tqells6pca8ieju9qlbuw.r",
+          "source_sha256": "673cb783c35a8e1634cbd9c2c357c044b68eed96d5fb083590234f2ee8ea817d",
+          "target_sha256": "ce0915a7e1650e149de30b23651ee9b1d2da91d1fcf9e73a2b54e80d132cf0e5",
+          "size": 4988242,
+          "previous_sha256": [
+            "97b1cf12f9d389119ab4d9f3086b389a71c4772de68690bb76fa6037514240f0"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/static_package/6pq4a7hlp7zidu91dvvww.r",
+          "source_sha256": "c7c80b98b263f161583a2ab52a5b7039636acbabcac8c365f9f37224d11bc4b3",
+          "target_sha256": "a2923165a71fa0e1114e25e861ec674e36f42b760b41c150623a143bac1af4a6",
+          "size": 58916709,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3219598.bytes",
+          "source_sha256": "04c56291c844a923928332277943ddf40866a12276b5842bbc76fa659c999799",
+          "target_sha256": "cf5fee6dd3a51c1516ab7fa677c37dbf4013002390a79546ecb520bd431e1dff",
+          "size": 55588078,
+          "previous_sha256": [
+            "7c8d32d5eb3ebfd89146a621337bbc4fea037a52636adc92dd6a3be0e3aa9fb0",
+            "fe9aa4e033cc27e690a0eb10afb5466660e8cd163960a6773547200a74c2d869"
+          ]
+        },
+        {
+          "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3219598.hash",
+          "source_sha256": "d152ba5609d951ff77d9d06d0fe229b72350df03ff57b0f8c069519d54073bfb",
+          "target_sha256": "22d8a36d335edce7b1241f2114ff29e483ef71a683c05f8a9910db965de9f7df",
+          "size": 32,
+          "previous_sha256": [
+            "9a6b8d1eddb3b962a913eaa5aab163d607a2741af2b907526cc6f4671379b13b",
+            "dfff5e0d8a94ce1fc79aec9c262960cacfc7fb8e1dbb9cdcae81afa5ab437e0c"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.bytes",
+          "source_sha256": "7e900b3856690bf5b6c07e7ad66f8552f971893ec1105ac91309a12e18ed2457",
+          "target_sha256": "ca5b6c665634c5ac19555d9e93d181d263700fa6ecd6a7eb2ced5fef332d7c69",
+          "size": 53042390,
+          "previous_sha256": [
+            "066c7b2984bdf3fd66a8aa991672b0f162a9dea082173413b4f339a073590ab5",
+            "41e8a649a353dad41b279314fee621e519aa7f495c707b8bdefcd716c47d61fe"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.hash",
+          "source_sha256": "e576411e02d3f99a5fe1cf8e708dd24fc6403b34efefd0851490fc923892e274",
+          "target_sha256": "fb3aee88d4061e8c74b0b2075e94538198d2ad579b41a500e93063f1cdeb8322",
+          "size": 32,
+          "previous_sha256": [
+            "00e054956b969e2a1209a8787eac40a2f6dd2eff3748860a83bf107e88f32547",
+            "6084c074cfe7e87a0d0558f93013b553399132e8f7b490d6d4fca4a786070c09"
+          ]
+        },
+        {
+          "relative_path": "StreamingAssets/.res/static_package/0release_static_package_3075915.bytes",
+          "source_sha256": "deef7a8a95f2cd875c867bb59d7ab99bc11e55e7b6c2372a97b59204a8f5c69b",
+          "target_sha256": "8b60ea9b887d0a937370e90fa7874289d56f40efe60ebde2191ab137b6b4695c",
+          "size": 5993,
+          "previous_sha256": []
+        },
+        {
+          "relative_path": "StreamingAssets/.res/static_package/0release_static_package_3075915.hash",
+          "source_sha256": "52731b36637071fa18c07715f84a2e75784e649e916b31b079b3c3cc4ff99e22",
+          "target_sha256": "01fab40d6819518473d16c6177afab0503673bfe3f0107bada6bb44c46ca3668",
+          "size": 32,
+          "previous_sha256": []
+        }
+      ]
     }
   ],
   "launchers": [
@@ -254,8 +451,13 @@
       "relative_path": "resources/app.asar",
       "backup_suffix": ".before-zhcn-20261124.bak",
       "source_sha256": "4f013026736f6afa819a37f299caa9577140e88254ef4097b4d4589fa47f0818",
-      "target_sha256": "32e4bf1a78bba0c5ab910bcacc7580ff109d3cfdb68741474284e9a1e03a63b3",
-      "previous_sha256": [],
+      "target_sha256": "7d19fa7662c083f378651ff72ad22912810a1feaed64e5243e182180cb474015",
+      "previous_sha256": [
+        "0ee5086eb4dd7bb1531886f5b08b7a55fae2f0acb39d84f0950326c5de143fc3",
+        "12b42e10709a66d191222c89d5f7ced40009a0102182b7579bb6447094b917f9",
+        "32e4bf1a78bba0c5ab910bcacc7580ff109d3cfdb68741474284e9a1e03a63b3",
+        "4e4cf6c92463734bc33c617a0434e1031ac2c4e504862156caae4027c92a5042"
+      ],
       "search_subpaths": [
         "YostarGames/AZUPRO_JP_Gamelauncher",
         "AZUPRO_JP_Gamelauncher",
@@ -266,7 +468,50 @@
         "bbbc3006-6fe5-52d1-8f2c-e554c31fefef"
       ],
       "payload_dir": "jp_launcher",
-      "size": 71388278
+      "size": 71400986
     }
-  ]
+  ],
+  "jp_game_runtime_tested": false,
+  "jp_launcher_buttons": {
+    "text": [
+      "前往官网",
+      "开始游戏"
+    ],
+    "size": [
+      264,
+      72
+    ],
+    "normal_and_hover": true
+  },
+  "jp_runtime_checks": {
+    "date": "2026-11-25",
+    "game_launch_passed": true,
+    "title_screen_simplified": true,
+    "graphics_settings_simplified": true,
+    "audio_settings_simplified": true,
+    "language_settings_simplified": true,
+    "launcher_buttons_simplified": true,
+    "launcher_settings_simplified": true,
+    "sdk_login_dialog_tested": false,
+    "gameplay_story_tested": false,
+    "server_announcement_japanese_observed": true,
+    "server_notice_source": "AnnounceV1 confirmed by Player.log; remote HTML entry also present",
+    "anticheat_validation_performed": false,
+    "v3_checks": {
+      "title_original_jp_copyright_observed": true,
+      "graphics_settings_cn_font_observed": true,
+      "audio_language_settings_rechecked": false,
+      "computer_use_stopped_by_user_escape": true
+    },
+    "patch_revision": 3
+  },
+  "anticheat_check": {
+    "region": "jp",
+    "date": "2026-11-25",
+    "ace_components_official_crc64": 9,
+    "other_binaries_official_crc64": 71,
+    "modified_game_resources": 21,
+    "compatibility_verified": false,
+    "ace_service_and_driver_stopped_at_snapshot": true
+  }
 }
