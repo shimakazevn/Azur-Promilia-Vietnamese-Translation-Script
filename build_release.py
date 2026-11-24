@@ -1,4 +1,4 @@
-"""校验替换资源并构建发行包。"""
+"""校验替换资源并构建独立发行包。"""
 from __future__ import annotations
 
 import argparse
