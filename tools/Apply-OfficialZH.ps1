@@ -1,4 +1,4 @@
-﻿# 自动查找安装目录，备份、汉化及还原文件。
+﻿# 自动定位、备份、汉化与还原。
 param(
     [ValidateSet('Menu','Apply','Restore','Verify')][string]$Action = 'Menu',
     [string]$Select = '',
