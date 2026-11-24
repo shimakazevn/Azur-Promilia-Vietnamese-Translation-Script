@@ -1,4 +1,4 @@
-"""Package the final runtime source with a verified payload directory."""
+"""校验替换资源并构建发行包。"""
 from __future__ import annotations
 
 import argparse
@@ -44,7 +44,7 @@ def main() -> None:
         raise ValueError("Invalid release version")
     files = list(payload_files(plan, args.payload))
     replacement_count = len(files)
-    for relative in ("双击运行-汉化或还原.bat", "使用说明.txt",
+    for relative in ("双击运行-汉化-还原.bat", "使用说明.txt",
                      "tools/Apply-OfficialZH.ps1", "tools/deployment-plan.json"):
         source = ROOT / relative
         if not source.is_file():

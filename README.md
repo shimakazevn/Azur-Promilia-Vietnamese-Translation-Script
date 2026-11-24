@@ -6,7 +6,7 @@
 
 ## 下载与使用
 
-前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/latest)，下载 `AzurPromilia-Localization-Full-v2.zip` 并完整解压。关闭游戏及启动器（包括托盘图标），双击 `双击运行-汉化或还原.bat`。
+前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/latest)，下载 `AzurPromilia-Localization-Full-v2.zip` 并完整解压。关闭游戏及启动器（包括托盘图标），双击 `双击运行-汉化-还原.bat`。
 
 - 输入 `1` 回车：全部汉化；输入 `2` 回车：全部还原。
 - 只处理部分项目：选择 `3` 汉化或 `4` 还原，再输入项目编号。
@@ -21,7 +21,7 @@
 
 | 文件 | 用途 |
 |---|---|
-| `双击运行-汉化或还原.bat` | 双击运行入口 |
+| `双击运行-汉化-还原.bat` | 双击运行入口 |
 | `tools/Apply-OfficialZH.ps1` | 自动定位、校验、备份、汉化和还原 |
 | `tools/deployment-plan.json` | 版本、替换路径和 SHA-256 校验清单 |
 | `build_release.py` | 校验替换资源并构建独立发行包 |
