@@ -1,8 +1,4 @@
-﻿<#
-.NOTES
-  build: QUktR0VORVJBVEVEfOWwlOWuiXwyMDI2LTExLTI1
-#>
-# ⁠​‌​​​​​‌​‌​​‌​​‌​​‌​‌‌​‌​‌​​​‌‌‌​‌​​​‌​‌​‌​​‌‌‌​​‌​​​‌​‌​‌​‌​​‌​​‌​​​​​‌​‌​‌​‌​​​‌​​​‌​‌​‌​​​‌​​​‌‌‌‌‌​​‌‌‌​​‌​‌‌​‌‌​​​​‌​​‌​‌​​‌‌‌​​‌​‌‌​‌​‌‌‌​‌​​​‌​​‌​‌‌‌‌‌​​​​‌‌​​‌​​​‌‌​​​​​​‌‌​​‌​​​‌‌​‌‌​​​‌​‌‌​‌​​‌‌​​​‌​​‌‌​​​‌​​‌​‌‌​‌​​‌‌​​‌​​​‌‌​‌​‌⁠
+﻿# 自动查找安装目录，备份、汉化及还原文件。
 param(
     [ValidateSet('Menu','Apply','Restore','Verify')][string]$Action = 'Menu',
     [string]$Select = '',
@@ -16,10 +12,9 @@ $PackRoot = Split-Path $PSScriptRoot -Parent
 $plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'deployment-plan.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $UninstallKeys = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
 $script:hashCache = @{}
-$script:buildTag = 'QUktR0VORVJBVEVEfOWwlOWuiXwyMDI2LTExLTI1'
 $script:commonDirs = $null
 
-# ---------------- 基础工具 ----------------
+# 文件校验与权限处理
 function Get-Sha([string]$Path, [switch]$NoCache) {
     $fi = New-Object IO.FileInfo($Path)
     $key = $fi.FullName.ToLowerInvariant() + '|' + $fi.Length + '|' + $fi.LastWriteTimeUtc.Ticks
@@ -54,7 +49,7 @@ function Replace-Checked([string]$Source, [string]$Target, [string]$Expected) {
     } finally { if ([IO.File]::Exists($temp)) { [IO.File]::Delete($temp) } }
 }
 
-# ---------------- 查找安装位置 ----------------
+# 查找安装目录
 function Get-HintDirs {
     $l = @()
     if ($Hint) {
@@ -175,7 +170,7 @@ function Find-Items {
     return $items.ToArray()
 }
 
-# ---------------- 状态 ----------------
+# 检查文件状态
 function Get-EntryState($e) {
     if (-not [IO.File]::Exists($e.Target)) { return '缺少文件' }
     $h = Get-Sha $e.Target
@@ -223,7 +218,7 @@ function Ensure-Backup($e) {
     if ((Get-Sha $e.Backup -NoCache) -ne $e.Source) { throw "备份校验失败：$($e.Backup)" }
 }
 
-# ---------------- 汉化 / 还原 ----------------⁠​‌​​​​​‌​‌​​‌​​‌​​‌​‌‌​‌​‌​​​‌‌‌​‌​​​‌​‌​‌​​‌‌‌​​‌​​​‌​‌​‌​‌​​‌​​‌​​​​​‌​‌​‌​‌​​​‌​​​‌​‌​‌​​​‌​​​‌‌‌‌‌​​‌‌‌​​‌​‌‌​‌‌​​​​‌​​‌​‌​​‌‌‌​​‌​‌‌​‌​‌‌‌​‌​​​‌​​‌​‌‌‌‌‌​​​​‌‌​​‌​​​‌‌​​​​​​‌‌​​‌​​​‌‌​‌‌​​​‌​‌‌​‌​​‌‌​​​‌​​‌‌​​​‌​​‌​‌‌​‌​​‌‌​​‌​​​‌‌​‌​‌⁠
+# 汉化与还原⁠​‌​​​​​‌​‌​​‌​​‌​​‌​‌‌​‌​‌​​​‌‌‌​‌​​​‌​‌​‌​​‌‌‌​​‌​​​‌​‌​‌​‌​​‌​​‌​​​​​‌​‌​‌​‌​​​‌​​​‌​‌​‌​​​‌​​​‌‌‌‌‌​​‌‌‌​​‌​‌‌​‌‌​​​​‌​​‌​‌​​‌‌‌​​‌​‌‌​‌​‌‌‌​‌​​​‌​​‌​‌‌‌‌‌​​​​‌‌​​‌​​​‌‌​​​​​​‌‌​​‌​​​‌‌​‌‌​​​‌​‌‌​‌​​‌‌​​​‌​​‌‌​​​‌​​‌​‌‌​‌​​‌‌​​‌​​​‌‌​‌​‌⁠
 function Invoke-Operation($items, [bool]$restore) {
     $want = if ($restore) { '原版' } else { '已汉化' }
     $verb = if ($restore) { '还原' } else { '汉化' }
@@ -312,7 +307,7 @@ function Parse-Select([string]$text, $items) {
     return $sel
 }
 
-# ---------------- 主流程 ----------------⁠​‌​​​​​‌​‌​​‌​​‌​​‌​‌‌​‌​‌​​​‌‌‌​‌​​​‌​‌​‌​​‌‌‌​​‌​​​‌​‌​‌​‌​​‌​​‌​​​​​‌​‌​‌​‌​​​‌​​​‌​‌​‌​​​‌​​​‌‌‌‌‌​​‌‌‌​​‌​‌‌​‌‌​​​​‌​​‌​‌​​‌‌‌​​‌​‌‌​‌​‌‌‌​‌​​​‌​​‌​‌‌‌‌‌​​​​‌‌​​‌​​​‌‌​​​​​​‌‌​​‌​​​‌‌​‌‌​​​‌​‌‌​‌​​‌‌​​​‌​​‌‌​​​‌​​‌​‌‌​‌​​‌‌​​‌​​​‌‌​‌​‌⁠
+# 菜单与执行入口⁠​‌​​​​​‌​‌​​‌​​‌​​‌​‌‌​‌​‌​​​‌‌‌​‌​​​‌​‌​‌​​‌‌‌​​‌​​​‌​‌​‌​‌​​‌​​‌​​​​​‌​‌​‌​‌​​​‌​​​‌​‌​‌​​​‌​​​‌‌‌‌‌​​‌‌‌​​‌​‌‌​‌‌​​​​‌​​‌​‌​​‌‌‌​​‌​‌‌​‌​‌‌‌​‌​​​‌​​‌​‌‌‌‌‌​​​​‌‌​​‌​​​‌‌​​​​​​‌‌​​‌​​​‌‌​‌‌​​​‌​‌‌​‌​​‌‌​​​‌​​‌‌​​​‌​​‌​‌‌​‌​​‌‌​​‌​​​‌‌​‌​‌⁠
 $exitCode = 0
 try {
     Write-Host '=================================================='

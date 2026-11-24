@@ -223,6 +223,7 @@
     },
     {
       "id": "jp_game",
+      "build_id": "QUktR0VORVJBVEVEfOWwlOWuiXwyMDI2LTExLTI1fGpwX2dhbWU=",
       "label": "日服游戏",
       "version": "资源 3219598 / 内置 3075915",
       "exe": "AzurPromiliaJP.exe",
@@ -445,6 +446,7 @@
     },
     {
       "id": "jp_launcher",
+      "build_id": "QUktR0VORVJBVEVEfOWwlOWuiXwyMDI2LTExLTI1fGpwX2xhdW5jaGVy",
       "label": "日服启动器",
       "version": "1.8.1",
       "exe": "AZUPRO_JP_Gamelauncher.exe",
