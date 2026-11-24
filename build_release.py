@@ -36,10 +36,14 @@ def main() -> None:
     parser.add_argument("--payload", type=Path, required=True,
                         help="payload directory from the complete release package")
     parser.add_argument("--output", type=Path, default=ROOT / "dist")
+    parser.add_argument("--version", default="v2", help="GitHub release tag, independent of payload patch_revision")
     args = parser.parse_args()
     plan = json.loads((ROOT / "tools/deployment-plan.json").read_text("utf-8-sig"))
-    version = f"v{int(plan['patch_revision'])}"
+    version = args.version
+    if not version or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in version):
+        raise ValueError("Invalid release version")
     files = list(payload_files(plan, args.payload))
+    replacement_count = len(files)
     for relative in ("双击运行-汉化或还原.bat", "使用说明.txt",
                      "tools/Apply-OfficialZH.ps1", "tools/deployment-plan.json"):
         source = ROOT / relative
@@ -59,7 +63,7 @@ def main() -> None:
     digest = sha256(archive)
     checksums = output / "SHA256SUMS.txt"
     checksums.write_text(f"{digest}  {archive.name}\n", encoding="ascii")
-    print(f"{archive}\n{digest}\nVerified replacement files: {len(files) - 4}")
+    print(f"{archive}\n{digest}\nVerified replacement files: {replacement_count}")
 
 
 if __name__ == "__main__":

@@ -8,4 +8,5 @@ if "%~1"=="" (
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\Apply-OfficialZH.ps1" -Hint "%~1"
 )
 echo.
-pause
+echo 按任意键继续……
+pause >nul
