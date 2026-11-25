@@ -1,5 +1,4 @@
-﻿# 日服游戏资源的备份、替换、校验与还原。
-param(
+﻿param(
     [ValidateSet('Menu','Apply','Restore','Verify','ValidatePayload')][string]$Action = 'Menu',
     [string]$Hint = ''
 )
@@ -196,6 +195,7 @@ try {
         }
         $todo.Add([PSCustomObject]@{Entry=$e;Target=$p;Source=$src;Expected=$exp;Before=$h;Snap=$null})
     }
+    # Snapshot every target before the first replacement, so restore is also transactional.
     $snapdir=Join-Path $backup ('transactions\'+[Guid]::NewGuid().ToString('N'))
     foreach ($w in $todo) {
         $sp=Resolve-Child $snapdir $w.Entry.relative_path
