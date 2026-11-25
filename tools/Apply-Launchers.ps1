@@ -1,5 +1,4 @@
-﻿# 台服和日服启动器的备份、汉化与还原。
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
  [Parameter(Mandatory=$true)][ValidateSet('Apply','Restore','Verify','ValidatePayload')][string]$Action,
  [Parameter(Mandatory=$true)][ValidateSet('tw_launcher','jp_launcher')][string]$Target,
@@ -83,6 +82,7 @@ try {
  if ($Action -eq 'Apply' -and $state -eq 'CURRENT') {Write-Output "ALREADY_CURRENT $Target";exit 0}
  $desired=$payload;$expected=$entry.target_sha256
  if ($Action -eq 'Restore') {$desired=$backup;$expected=$entry.source_sha256}
+ # Stage and rollback files are transient siblings needed for atomic NTFS replacement.
  $stage=$file+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
  $rollback=$file+'.'+[Guid]::NewGuid().ToString('N')+'.rollback'
  $replaced=$false;$preserveRollback=$false
