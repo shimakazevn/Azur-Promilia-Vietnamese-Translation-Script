@@ -1,5 +1,4 @@
-﻿# 汉化与还原菜单、项目选择和操作日志。
-param(
+﻿param(
     [ValidateSet('Menu','Apply','Restore','Verify','ValidatePayload','CheckPackage')][string]$Action='Menu',
     [ValidateSet('All','TW','JP','Launchers','Games','tw_game','jp_game','tw_launcher','jp_launcher')][string]$Target='All',
     [string]$Hint='',
@@ -144,6 +143,7 @@ function Run-Modules([string]$Operation,[string]$Scope,[string[]]$Ids,[hashtable
                 }
             }
             if ($moduleHint) { $arguments+=@('-Hint',$moduleHint) }
+            # Capture native stderr too; do not let its ErrorRecord abort capture under PS 5.1.
             $savedPreference=$ErrorActionPreference
             try {
                 $ErrorActionPreference='Continue'
@@ -260,6 +260,7 @@ function Find-MenuLocations([hashtable]$ConfiguredPaths,[string]$Folder) {
         $roots.Add($p)
         $parent=Split-Path $p -Parent
         if ($parent) { $roots.Add($parent) }
+        # Bounded search, including launcher version folders beside the game.
         foreach ($base in @($p,$parent)) {
             if ($base -and [IO.Directory]::Exists($base)) {
                 foreach ($child in @(Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue)) {
@@ -270,9 +271,11 @@ function Find-MenuLocations([hashtable]$ConfiguredPaths,[string]$Folder) {
     }
     $resolved=@{}
     foreach ($d in $Definitions) {
+        # Explicit path configuration remains authoritative, including invalid paths.
         if ($ConfiguredPaths.ContainsKey($d.Id) -and $ConfiguredPaths[$d.Id]) {
             $single=Find-InstallLocations @($d) $ConfiguredPaths -SearchRoots @()
         } else {
+            # A directly supplied installation is displayed even if its version is unknown.
             $probe=[pscustomobject]@{Id=$d.Id;Label=$d.Label}
             $single=Find-InstallLocations @($probe) @{} -SearchRoots @($roots.ToArray())
             if ($single[$d.Id].State -eq 'missing' -and -not $OnlyHint) {
@@ -337,6 +340,7 @@ function Invoke-MenuOperation([string]$Operation,$Items,[hashtable]$Locations) {
     if ($needAdmin) {
         if ($Elevated) { throw '已使用管理员权限，仍无法写入目标目录。' }
         Write-Host '写入目标目录需要管理员权限，正在请求……' -ForegroundColor Yellow
+        # Pin the selected IDs and resolved roots: never repeat discovery after UAC.
         $dir=Child ('tools/logs/elevation-'+[Guid]::NewGuid().ToString('N'))
         [IO.Directory]::CreateDirectory($dir) | Out-Null
         $paths=Join-Path $dir 'paths.json'
@@ -360,6 +364,7 @@ try {
         $d | Add-Member -NotePropertyName AllowedHashes -NotePropertyValue (@($entry[0].source_sha256,$entry[0].target_sha256)+@($entry[0].previous_sha256))
     }
     if ($Action -ne 'Menu') {
+        # -File accepts a comma-separated scalar, not a PowerShell array expression.
         if ($ModuleIds.Count -eq 1 -and $ModuleIds[0].Contains(',')) { $ModuleIds=$ModuleIds[0].Split(',') }
         foreach ($id in $ModuleIds) { if ($id -notin @($Definitions.Id)) { throw ('无效模块：'+$id) } }
         exit (Run-Modules $Action $Target $ModuleIds $null $Quiet.IsPresent)
