@@ -1,4 +1,4 @@
-﻿# 查找台服、日服游戏和启动器的安装位置。
+﻿# Read-only installation discovery. No game processes are started or stopped.
 function Test-InstallRoot([string]$Id,[string]$Path) {
     if (-not [IO.Path]::IsPathRooted($Path)) { return $false }
     Assert-NoReparse $Path
