@@ -1,28 +1,35 @@
 # 蓝色星原：旅谣 简体汉化
 
-台服游戏、日服游戏及两服启动器的简体中文汉化与还原工具。当前正式发布版本：**v2**。
+台服游戏、日服游戏及两服启动器的简体中文汉化与还原工具。当前正式发布版本：**v3**。
 
 > **开服后若登录异常请还原文件，此脚本未进行反作弊验证。**
 
 ## 下载与使用
 
-前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/latest)，下载 `AzurPromilia-Localization-Full-v2.zip` 并完整解压。关闭游戏及启动器（包括托盘图标），双击 `双击运行-汉化-还原.bat`。
+前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases/latest)，下载 `AzurPromilia-Localization-Full-v3.zip` 并完整解压。关闭游戏及启动器（包括托盘图标），双击 `双击运行.bat`。
 
 - 输入 `1` 回车：全部汉化；输入 `2` 回车：全部还原。
 - 只处理部分项目：选择 `3` 汉化或 `4` 还原，再输入项目编号。
+- 输入 `5` 回车：查看文件状态。
 - 自动识别台服游戏、日服游戏及两服启动器，没安装的会自动跳过。
 
-完整包包含全部 43 个替换资源文件，无需国服包体。找不到路径时，将安装文件夹拖到 BAT 图标上运行。
+完整包包含全部 21 个替换资源文件，无需国服包体。找不到路径时，将安装文件夹拖到 BAT 图标上运行。
 
 ## 最终版源码
 
-仓库及 Release 中的 `AzurPromilia-Localization-Source-v2.zip` 保留本版实际使用的部署源码及说明：
+仓库及 Release 中的 `AzurPromilia-Localization-Source-v3.zip` 保留本版实际使用的部署源码及说明：
 
 | 文件 | 用途 |
 |---|---|
-| `双击运行-汉化-还原.bat` | 双击运行入口 |
-| `tools/Apply-OfficialZH.ps1` | 自动定位、校验、备份、汉化和还原 |
-| `tools/deployment-plan.json` | 版本、替换路径和 SHA-256 校验清单 |
+| `双击运行.bat` | 双击运行入口 |
+| `tools/Manage-Localization.ps1` | 汉化与还原菜单、项目选择和操作日志 |
+| `tools/Locate-Installations.ps1` | 自动查找游戏和启动器安装位置 |
+| `tools/Apply-CRCZH.ps1` | 台服游戏备份、汉化和还原 |
+| `tools/Apply-JPCRCZH.ps1` | 日服游戏备份、汉化和还原 |
+| `tools/Apply-Launchers.ps1` | 两服启动器备份、汉化和还原 |
+| `tools/*-deployment.json` | 支持版本、替换路径和文件校验清单 |
+| `tools/package-files.json` | 安装包文件校验清单 |
+| `tools/安装路径.json` | 手动指定安装位置 |
 | `build_release.py` | 校验替换资源并构建独立发行包 |
 | `使用说明.txt` | 简明使用方法 |
 
