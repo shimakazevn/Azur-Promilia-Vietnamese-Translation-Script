@@ -1,0 +1,167 @@
+{
+  "format": 1,
+  "hash": "SHA256",
+  "editable_excluded": [
+    "tools/安装路径.json"
+  ],
+  "generated_excluded": [
+    "tools/logs/"
+  ],
+  "files": [
+    {
+      "path": "payload/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
+      "size": 4993892,
+      "sha256": "b5370a3923e57a32a44e971c794b449388ae9c26540f292aac61b521e174c403"
+    },
+    {
+      "path": "payload/jp_game/.res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r",
+      "size": 133622104,
+      "sha256": "71716a383a9e629fb67ff237fdf4e85640799bacfe5e49b51303eb009faf8e47"
+    },
+    {
+      "path": "payload/jp_game/.res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
+      "size": 28840170,
+      "sha256": "756df348092dd4669a51e1422d0a6c2caa09eda968a33d48e20599ee254a2c66"
+    },
+    {
+      "path": "payload/jp_game/resources.assets",
+      "size": 48578276,
+      "sha256": "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/awcxxitzquckttvmx0c5q.r",
+      "size": 4550495,
+      "sha256": "ad66779022dbe55bc0bcefc612cbbf64d682a869b71ac7b84d908dff5caf52ad"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/e5e4oijae8zliat91bgbw.r",
+      "size": 4517927,
+      "sha256": "8092a24f6a32194e80a9c063984efd6c39fa7898f9b7f984450ab01de3625c3f"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/hqqoy0ojvzpggukcf5m85w.r",
+      "size": 5109385,
+      "sha256": "a142dc9d21cb999720d04ce4684b3a6933231a10422595ebf91f462db8d13a01"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/rpgxilrqhjgj9am5g799fa.r",
+      "size": 11695789,
+      "sha256": "c97b76ae9041ff92f4cb313854e1cb92557a4447ca1ff74d94f5361171f1bc6d"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/tqells6pca8ieju9qlbuw.r",
+      "size": 4994161,
+      "sha256": "8a951720347c7d8aadb109e56543d4e9c1232f4ccb11978c769b40a1be9b27f4"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/default_package/xlpsyuxnoz1cjmawi1wcxa.r",
+      "size": 4517899,
+      "sha256": "4e7d11aa325aeb7566600b8e98bf22a4ddbafcb3310bafed1a9e50cf406184a5"
+    },
+    {
+      "path": "payload/jp_game/StreamingAssets/.res/static_package/6pq4a7hlp7zidu91dvvww.r",
+      "size": 58707878,
+      "sha256": "e186cb46f669fe19bf29dd30ecd21e4ce91bc527497368b7c7211659f16d4984"
+    },
+    {
+      "path": "payload/jp_launcher/resources/app.asar",
+      "size": 71397348,
+      "sha256": "4e4cf6c92463734bc33c617a0434e1031ac2c4e504862156caae4027c92a5042"
+    },
+    {
+      "path": "payload/tw_game/.res/default_package/BundleFiles/owmxh3bjdhcwjoabqv67q.r",
+      "size": 5045108,
+      "sha256": "6cd399da9632f3518652c176b214de8d8209a377f76b807008f3a78b78359e25"
+    },
+    {
+      "path": "payload/tw_game/.res/raw_base_package/BundleFiles/v0k2cafcxjxawklow6skg.r",
+      "size": 138942949,
+      "sha256": "ae50e943e04056132880f116fa6acf872fbc79e6244f153fa85634d7f5d7546d"
+    },
+    {
+      "path": "payload/tw_game/.res/raw_streaming_package/BundleFiles/3iffxeedh2grvnbn2iag.r",
+      "size": 37322073,
+      "sha256": "620cb1c8dfa18da467cc155577f8d03df0ca3a3617e2de8af4fe3ee7d2a94c7f"
+    },
+    {
+      "path": "payload/tw_game/resources.assets",
+      "size": 14235376,
+      "sha256": "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25"
+    },
+    {
+      "path": "payload/tw_game/StreamingAssets/.res/default_package/a66pm5ie1rrjguuzlsyq.r",
+      "size": 3114015,
+      "sha256": "0b9e1170f8aa432dc4fd12d2df4c6ce93ab94956badd919343542c7a9faacdfc"
+    },
+    {
+      "path": "payload/tw_game/StreamingAssets/.res/default_package/db0aboccfhk0ruhzeueydq.r",
+      "size": 6676697,
+      "sha256": "3c41ba87a94b8af3672ce3d97a0281758b8c737d07f69ee701c2445125e2d653"
+    },
+    {
+      "path": "payload/tw_game/StreamingAssets/.res/default_package/p4hifvtlpthiunufa1lslg.r",
+      "size": 6612549,
+      "sha256": "e68c5a89e2e7f7f15d9af221efcbdd180c3ab0286d7530a70b2e4a17154bb111"
+    },
+    {
+      "path": "payload/tw_game/StreamingAssets/.res/static_package/nkewfips4anrz2bqfjhpg.r",
+      "size": 65740185,
+      "sha256": "0ee7a720a92c3ca9924c128c63beaa83b5bd338a6ce50689e3e6a1bb1603e8f9"
+    },
+    {
+      "path": "payload/tw_launcher/resources/app.asar",
+      "size": 29481035,
+      "sha256": "42a6240ba33f793c247fb44cd5fdf211670a9256c09513366155277912393a47"
+    },
+    {
+      "path": "tools/Apply-CRCZH.ps1",
+      "size": 12469,
+      "sha256": "b0f9368c9c43ec2458c64907c235a2897a04e56847d39db121939c9d1ce8c6e1"
+    },
+    {
+      "path": "tools/Apply-JPCRCZH.ps1",
+      "size": 12442,
+      "sha256": "9f785e6f0934f4efae6aecff8ba55fba9db706cb3a05e588b0d250345817ad26"
+    },
+    {
+      "path": "tools/Apply-Launchers.ps1",
+      "size": 7058,
+      "sha256": "c8a93e3a833b8fc8eb1657ade640caa5c51d6ace40d0f3f1e11c1f38c433c557"
+    },
+    {
+      "path": "tools/jp-deployment.json",
+      "size": 55831,
+      "sha256": "d334d286834e5e17de939ae3bab5816a178e17db7d0fb9fbeb83eb0e61b60346"
+    },
+    {
+      "path": "tools/launcher-deployment.json",
+      "size": 1951,
+      "sha256": "432b65fd32982a043b1f0a73b1a789578f656ebb058e37521ee00f2243b30ed1"
+    },
+    {
+      "path": "tools/Locate-Installations.ps1",
+      "size": 6598,
+      "sha256": "ab6ce007f3c8c85a89a5cedfb14d260008416e8d75cf9c30c4309e6e8cb92b78"
+    },
+    {
+      "path": "tools/Manage-Localization.ps1",
+      "size": 23385,
+      "sha256": "837cbd7446d74a7d73d62b786068a57eb22f79ea1c209a0271347b6576a60799"
+    },
+    {
+      "path": "tools/tw-deployment.json",
+      "size": 13940,
+      "sha256": "a125eec73bbd1b72a7db035f2371ef7e9bf3cb7419c2742f03a368a51c64c34a"
+    },
+    {
+      "path": "使用说明.txt",
+      "size": 1281,
+      "sha256": "fd148a05239474f47f7546e579788f4ba6c3ca001fc1e0e51c796bfa7b1c99b6"
+    },
+    {
+      "path": "双击运行.bat",
+      "size": 465,
+      "sha256": "866e791091a163fd7ff20b3d70c68abef2766069ea31017909dbfff3c798447d"
+    }
+  ]
+}
