@@ -209,3 +209,4 @@ function Show-InstallLocations([hashtable]$Locations, $Definitions) {
     }
     Write-Host ''
 }
+
