@@ -1,13 +1,28 @@
-"""校验替换资源并构建完整包与源码包。"""
+"""校验替换资源、刷新清单并构建完整包与源码包。"""
 from pathlib import Path, PurePosixPath
 from zipfile import ZipFile, ZIP_DEFLATED
 import argparse
 import hashlib
 import json
 import re
+import sys
 
 ROOT = Path(__file__).resolve().parent
 PACKAGE = '蓝色星原简体汉化'
+
+CORE_NON_PAYLOAD_PATHS = [
+    'tools/Apply-CRCZH.ps1',
+    'tools/Apply-JPCRCZH.ps1',
+    'tools/Apply-Launchers.ps1',
+    'tools/Localization-Common.ps1',
+    'tools/jp-deployment.json',
+    'tools/launcher-deployment.json',
+    'tools/Locate-Installations.ps1',
+    'tools/Manage-Localization.ps1',
+    'tools/tw-deployment.json',
+    'README.md',
+    '双击运行.bat',
+]
 
 
 def sha256(path):
@@ -26,22 +41,142 @@ def child(root, relative):
     return path
 
 
+def check_text_encoding(path, relative):
+    data = path.read_bytes()
+    if relative.endswith('.ps1'):
+        if not data.startswith(b'\xef\xbb\xbf'):
+            raise ValueError(f'PowerShell 脚本缺少 UTF-8 BOM（PS 5.1 必需）：{relative}')
+        if b'\n' in data.replace(b'\r\n', b''):
+            raise ValueError(f'PowerShell 脚本包含 LF 行尾（应为 CRLF）：{relative}')
+    elif relative.endswith('.bat'):
+        if data.startswith(b'\xef\xbb\xbf'):
+            raise ValueError(f'批处理脚本禁止包含 UTF-8 BOM：{relative}')
+        if b'\n' in data.replace(b'\r\n', b''):
+            raise ValueError(f'批处理脚本包含 LF 行尾（应为 CRLF）：{relative}')
+
+
 def archive(path, entries, prefix):
-    with ZipFile(path, 'x', ZIP_DEFLATED, compresslevel=6) as package:
-        for source, relative in entries:
-            package.write(source, f'{prefix}/{relative}')
-    with ZipFile(path) as package:
-        damaged = package.testzip()
-        if damaged:
-            raise ValueError(f'压缩包校验失败：{damaged}')
+    tmp = path.with_name(path.name + '.tmp')
+    if tmp.exists():
+        tmp.unlink()
+    try:
+        with ZipFile(tmp, 'w', ZIP_DEFLATED, compresslevel=6) as package:
+            for source, relative in entries:
+                package.write(source, f'{prefix}/{relative}')
+        with ZipFile(tmp) as package:
+            damaged = package.testzip()
+            if damaged:
+                raise ValueError(f'压缩包校验失败：{damaged}')
+        tmp.replace(path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def refresh_manifest(payload_root=None):
+    manifest_path = ROOT / 'tools/package-files.json'
+    catalog = json.loads(manifest_path.read_text('utf-8-sig'))
+    if catalog.get('format') != 1 or catalog.get('hash') != 'SHA256':
+        raise ValueError('文件清单格式无效')
+
+    by_path = {}
+    for item in catalog['files']:
+        rel = item['path']
+        if rel in by_path:
+            raise ValueError(f'重复包内路径：{rel}')
+        by_path[rel] = dict(item)
+
+    for rel in CORE_NON_PAYLOAD_PATHS:
+        src = child(ROOT, rel)
+        check_text_encoding(src, rel)
+        by_path[rel] = {
+            'path': rel,
+            'size': src.stat().st_size,
+            'sha256': sha256(src),
+        }
+
+    # Drop legacy removed entries like 使用说明.txt if present while keeping payload entries intact.
+    for legacy in ('使用说明.txt',):
+        by_path.pop(legacy, None)
+
+    if payload_root is not None:
+        for rel, item in list(by_path.items()):
+            if rel.startswith('payload/'):
+                src = child(payload_root, rel[8:])
+                by_path[rel] = {
+                    'path': rel,
+                    'size': src.stat().st_size,
+                    'sha256': sha256(src),
+                }
+
+    catalog['files'] = [by_path[k] for k in sorted(by_path)]
+    text = json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'
+    manifest_path.write_bytes(text.replace('\r\n', '\n').replace('\n', '\r\n').encode('utf-8'))
+    return len(catalog['files']), len(CORE_NON_PAYLOAD_PATHS)
+
+
+def verify_repo():
+    catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
+    if catalog.get('format') != 1 or catalog.get('hash') != 'SHA256':
+        raise ValueError('文件清单格式无效')
+
+    seen = set()
+    non_payload_checked = 0
+    payload_count = 0
+    for item in catalog['files']:
+        rel = item['path']
+        if rel in seen:
+            raise ValueError(f'重复包内路径：{rel}')
+        seen.add(rel)
+        if rel.startswith('payload/'):
+            payload_count += 1
+            continue
+        src = child(ROOT, rel)
+        check_text_encoding(src, rel)
+        if src.stat().st_size != item['size'] or sha256(src) != item['sha256']:
+            raise ValueError(f'清单校验失败（请运行 python build_release.py --refresh-manifest）：{rel}')
+        non_payload_checked += 1
+
+    for req in CORE_NON_PAYLOAD_PATHS:
+        if req not in seen:
+            raise ValueError(f'缺少核心清单登记：{req}')
+
+    pairs = [
+        ('tools/Apply-CRCZH.ps1', 'CRC工具/crc/Apply-CRCZH.ps1'),
+        ('tools/Apply-JPCRCZH.ps1', 'CRC工具/jp_crc/Apply-JPCRCZH.ps1'),
+    ]
+    for a, b in pairs:
+        pa, pb = child(ROOT, a), child(ROOT, b)
+        if sha256(pa) != sha256(pb):
+            raise ValueError(f'脚本未同步：{a} != {b}')
+
+    return non_payload_checked, payload_count
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--payload', type=Path, required=True, help='完整包中的 payload 文件夹')
+    parser.add_argument('--payload', type=Path, help='完整包中的 payload 文件夹')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist')
     parser.add_argument('--version', default='v3')
+    parser.add_argument('--refresh-manifest', action='store_true', help='刷新 tools/package-files.json 中非 payload 条目')
+    parser.add_argument('--verify-repo', action='store_true', help='校验源码仓库清单、编码规则及 CRC 副本同步')
     args = parser.parse_args()
+
+    if args.refresh_manifest:
+        total, updated = refresh_manifest(args.payload)
+        print(json.dumps({'refreshed': True, 'total_entries': total, 'non_payload_entries': updated}, ensure_ascii=False))
+        if not args.verify_repo and args.payload is None:
+            return
+
+    if args.verify_repo:
+        non_payload, payload = verify_repo()
+        print(json.dumps({'repo_verified': True, 'non_payload_entries': non_payload, 'payload_entries': payload}, ensure_ascii=False))
+        if args.payload is None:
+            return
+
+    if args.payload is None:
+        parser.error('构建发布包需要指定 --payload（或使用 --verify-repo / --refresh-manifest）')
+
     if not re.fullmatch(r'[A-Za-z0-9._-]+', args.version):
         raise ValueError('版本名称无效')
     catalog = json.loads((ROOT / 'tools/package-files.json').read_text('utf-8-sig'))
@@ -53,14 +188,18 @@ def main():
         if relative in entries:
             raise ValueError(f'重复包内路径：{relative}')
         source = child(args.payload, relative[8:]) if relative.startswith('payload/') else child(ROOT, relative)
+        if not relative.startswith('payload/'):
+            check_text_encoding(source, relative)
         if source.stat().st_size != item['size'] or sha256(source) != item['sha256']:
             raise ValueError(f'文件校验失败：{relative}')
         entries[relative] = source
     for name in ('tools/package-files.json', 'tools/安装路径.json'):
         entries[name] = child(ROOT, name)
-    source_names = ['.gitignore', 'LICENSE', 'README.md', 'build_release.py', '使用说明.txt', '双击运行.bat']
+    source_names = ['.gitignore', 'LICENSE', 'README.md', 'build_release.py', '双击运行.bat']
+    if (ROOT / '.gitattributes').is_file():
+        source_names.append('.gitattributes')
     source_names += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'tools').iterdir()) if p.is_file()]
-    sources = [(child(ROOT, name), name) for name in source_names]
+    sources = [(child(ROOT, name), name) for name in sorted(set(source_names))]
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     full = output / f'AzurPromilia-Localization-Full-{args.version}.zip'
@@ -72,9 +211,12 @@ def main():
     archive(source, sources, PACKAGE + '-源码')
     checksums = ''.join(f'{sha256(path)}  {path.name}\n' for path in (full, source))
     (output / 'SHA256SUMS.txt').write_text(checksums, 'ascii')
-    print(json.dumps({'archives': [str(full), str(source)], 'package_files': len(entries),
-                      'replacement_files': sum(name.startswith('payload/') for name in entries),
-                      'source_files': len(sources)}, ensure_ascii=False))
+    print(json.dumps({
+        'archives': [str(full), str(source)],
+        'package_files': len(entries),
+        'replacement_files': sum(name.startswith('payload/') for name in entries),
+        'source_files': len(sources),
+    }, ensure_ascii=False))
 
 
 if __name__ == '__main__':

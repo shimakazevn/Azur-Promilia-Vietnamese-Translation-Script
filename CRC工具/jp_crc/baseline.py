@@ -1,10 +1,10 @@
 """Read-only inventory and verified original snapshot for JP CRC localization."""
 from pathlib import Path
-import hashlib,json,shutil,sys
+import hashlib,json,os,shutil,sys
 HERE=Path(__file__).resolve().parent
-OLD=Path(r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work')
+OLD=Path(os.environ.get('AZUR_WORK_DIR', r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work'))
 JP=OLD/'jp_localization'
-LIVE=Path(r'E:\YostarGames\AZUPRO_JP\AzurPromiliaJP_Data')
+LIVE=Path(os.environ.get('AZUR_JP_ROOT', r'E:\YostarGames\AZUPRO_JP'))/'AzurPromiliaJP_Data'
 BACK=LIVE.parent/'.zhcn-jp-3219598-backup'
 ORIG=HERE/'originals'
 PAY=JP/'game_candidate'

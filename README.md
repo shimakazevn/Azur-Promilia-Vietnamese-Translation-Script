@@ -28,6 +28,8 @@
 | 3 | 选择项目汉化 |
 | 4 | 选择项目还原 |
 | 5 | 查看文件状态 |
+| 6 | 完整校验（含分段与整包 CRC32） |
+| 7 | 手动添加/修改安装目录（支持保存至 `tools/安装路径.json`） |
 | Q | 退出 |
 
 选择部分项目时，可用逗号分隔多个编号，例如 `1,3`。
@@ -75,16 +77,26 @@
 ## 源码目录
 
 ```text
-├─ 双击运行.bat        # 运行入口
-├─ tools/              # 汉化菜单、路径查找、部署与还原
+├─ 双击运行.bat        # 运行入口（支持拖拽安装目录）
+├─ tools/              # 汉化菜单、路径查找、公共校验核心、部署与还原
 ├─ CRC工具/
 │  ├─ crc/             # 台服资源处理与校验工具
 │  └─ jp_crc/          # 日服资源处理与校验工具
-├─ build_release.py    # 发布包构建脚本
+├─ tests/              # 隔离自测套件（不触碰真实游戏目录）
+├─ build_release.py    # 清单校验/刷新与发布包构建脚本
 └─ README.md           # 项目说明
 ```
 
 CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚本依赖原始资源、外部库和本地路径，不能直接作为独立程序运行。
+
+### 开发者校验与自测
+
+```bash
+python build_release.py --verify-repo
+python tests/run_tests.py
+```
+
+修改 `tools/` 下脚本后，可运行 `python build_release.py --refresh-manifest` 更新 `tools/package-files.json` 中的非载荷文件校验值（不改动 `payload/` 哈希）。
 
 ## 问题反馈
 

@@ -1,8 +1,8 @@
 """Hash-only audit of excluded binaries and baseline files; never modify targets."""
 from pathlib import Path
-import hashlib,json,sys
+import hashlib,json,os,sys
 HERE=Path(__file__).resolve().parent
-ROOT=Path(r'E:\YostarGames\AZUPRO_JP')
+ROOT=Path(os.environ.get('AZUR_JP_ROOT', r'E:\YostarGames\AZUPRO_JP'))
 RECEIPT=HERE/'protected_original_sha256.json'
 def digest(p):
  with p.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
