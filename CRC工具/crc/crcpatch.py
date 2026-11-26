@@ -182,3 +182,4 @@ if __name__ == "__main__":
     c2 = zlib.crc32(d2) & 0xFFFFFFFF
     d2[100:110] = b"abcdefghij"
     print("中间配平:", patch_crc(d2, c2, 25000), (zlib.crc32(d2) & 0xFFFFFFFF) == c2)
+
