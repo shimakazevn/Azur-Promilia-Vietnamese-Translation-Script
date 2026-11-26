@@ -37,3 +37,4 @@ def main():
  (HERE/'baseline.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),'utf-8')
  print(json.dumps({'originals_verified':len(rows),'live_states':{s:sum(x['live_state']==s for x in rows) for s in ('original','old_localized','other')},'auxiliary':len(guards)},ensure_ascii=False))
 if __name__=='__main__':main()
+
