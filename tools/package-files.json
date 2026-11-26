@@ -10,8 +10,8 @@
   "files": [
     {
       "path": "README.md",
-      "size": 4380,
-      "sha256": "7a51001a8d5480d0415491f065a0e3fd9cf3ca32a4b3cb07272522177d26c3d6"
+      "size": 4575,
+      "sha256": "fe7598e0214ed9a0404571b412c9c3b49294b49a0250ffbf16f95ae3234886d0"
     },
     {
       "path": "payload/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
@@ -145,8 +145,8 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 32773,
-      "sha256": "220f1ae2ffd1fa0b69a27c458c6cd8770cb224efb88d5354e6ae7af384c5db8e"
+      "size": 33158,
+      "sha256": "831d97bbee2ccadd8f9f3e53c0f1d50c4c0724a66e5e0b762c83ed15892e4e97"
     },
     {
       "path": "tools/jp-deployment.json",
@@ -165,8 +165,8 @@
     },
     {
       "path": "双击运行.bat",
-      "size": 629,
-      "sha256": "6caccc9e278d9733bd59eb6f67f0eeabcce18d717731e1bcf0e1798da51da39c"
+      "size": 599,
+      "sha256": "849a0e34a290f807092488cdb2c1835b12a7e9a5c4d33f6177c799b24dcdac9b"
     }
   ]
 }

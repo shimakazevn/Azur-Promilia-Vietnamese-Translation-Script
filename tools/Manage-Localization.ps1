@@ -343,6 +343,9 @@ function Expand-FolderSearchRoots([string]$Folder) {
     if ($Folder) {
         $p = [IO.Path]::GetFullPath($Folder.Trim().Trim('"'))
         Assert-NoReparse $p
+        if (-not [IO.File]::Exists($p) -and -not [IO.Directory]::Exists($p)) {
+            throw ('目录不存在：' + $p)
+        }
         if ([IO.File]::Exists($p)) { $p = Split-Path $p -Parent }
         if ($seen.Add($p)) { $roots.Add($p) }
         $parent = Split-Path $p -Parent
@@ -558,35 +561,38 @@ try {
         Write-Host '请输入安装文件夹路径（也可以把文件夹拖进本窗口），直接回车退出：'
         $folder = Read-Host '路径'
         if ([string]::IsNullOrWhiteSpace($folder)) { exit 0 }
-        $menuLocations = Find-MenuLocations $configured $folder
+        try {
+            $menuLocations = Find-MenuLocations $configured $folder
+        } catch {
+            Write-Host $_.Exception.Message -ForegroundColor Yellow
+            continue
+        }
         $items = @($Definitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
     }
 
     $lastExitCode = 0
+    Write-Host '找到以下项目：'
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $d = $items[$i]; $location = $menuLocations[$d.Id]
+        Write-Host ('  {0}. [{1}] {2}   {3}' -f ($i + 1), $d.Label, (Get-ItemSummary $d $location.Path), $location.Path)
+    }
+    foreach ($d in $Definitions | Where-Object { $menuLocations[$_.Id].State -ne 'found' }) {
+        Write-Host ('     （未找到{0}）' -f $d.Label) -ForegroundColor DarkGray
+        if ($menuLocations[$d.Id].State -in @('invalid', 'ambiguous')) {
+            Write-Host ('     ' + $menuLocations[$d.Id].Problem) -ForegroundColor Yellow
+        }
+    }
+    Write-Host ''
+    Write-Host '  1. 全部汉化'
+    Write-Host '  2. 全部还原'
+    Write-Host '  3. 选择项目汉化'
+    Write-Host '  4. 选择项目还原'
+    Write-Host '  5. 查看文件状态'
+    Write-Host '  6. 完整校验（含分段与整包 CRC32）'
+    Write-Host '  7. 手动添加/修改安装目录'
+    Write-Host '  Q. 退出'
     while ($true) {
         $items = @($Definitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
-        Write-Host ''
-        Write-Host '正在扫描安装目录与文件状态……' -ForegroundColor DarkGray
-        Write-Host '找到以下项目：'
-        for ($i = 0; $i -lt $items.Count; $i++) {
-            $d = $items[$i]; $location = $menuLocations[$d.Id]
-            Write-Host ('  {0}. [{1}] {2}   {3}' -f ($i + 1), $d.Label, (Get-ItemSummary $d $location.Path), $location.Path)
-        }
-        foreach ($d in $Definitions | Where-Object { $menuLocations[$_.Id].State -ne 'found' }) {
-            Write-Host ('     （未找到{0}）' -f $d.Label) -ForegroundColor DarkGray
-            if ($menuLocations[$d.Id].State -in @('invalid', 'ambiguous')) {
-                Write-Host ('     ' + $menuLocations[$d.Id].Problem) -ForegroundColor Yellow
-            }
-        }
-        Write-Host ''
-        Write-Host '  1. 全部汉化'
-        Write-Host '  2. 全部还原'
-        Write-Host '  3. 选择项目汉化'
-        Write-Host '  4. 选择项目还原'
-        Write-Host '  5. 查看文件状态'
-        Write-Host '  6. 完整校验（含分段与整包 CRC32）'
-        Write-Host '  7. 手动添加/修改安装目录'
-        Write-Host '  Q. 退出'
         $rawChoice = Read-Host '请输入选项并按回车'
         if ($null -eq $rawChoice) { break }
         $choice = ([string]$rawChoice).Trim()
@@ -594,47 +600,52 @@ try {
 
         $ids = @($items.Id)
         $op = $null
-        switch ($choice) {
-            '1' { $op = 'Apply' }
-            '2' { $op = 'Restore' }
-            '3' { $op = 'Apply'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
-            '4' { $op = 'Restore'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
-            '5' { Show-FileStatus $items $menuLocations; continue }
-            '6' { $op = 'Verify' }
-            '7' {
-                $manual = Read-Host '请输入或拖入游戏/启动器目录（直接回车取消）'
-                if ([string]::IsNullOrWhiteSpace($manual)) { continue }
-                $folderRoots = Expand-FolderSearchRoots $manual
-                $updated = @()
-                foreach ($d in $Definitions) {
-                    $probe = if ($d.Launcher) {
-                        [pscustomobject]@{ Id = $d.Id; Label = $d.Label; Version = $d.Version; SearchSubpaths = $d.SearchSubpaths }
-                    } else {
-                        [pscustomobject]@{ Id = $d.Id; Label = $d.Label }
+        try {
+            switch ($choice) {
+                '1' { $op = 'Apply' }
+                '2' { $op = 'Restore' }
+                '3' { $op = 'Apply'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
+                '4' { $op = 'Restore'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
+                '5' { Show-FileStatus $items $menuLocations; continue }
+                '6' { $op = 'Verify' }
+                '7' {
+                    $manual = Read-Host '请输入或拖入游戏/启动器目录（直接回车取消）'
+                    if ([string]::IsNullOrWhiteSpace($manual)) { continue }
+                    $folderRoots = Expand-FolderSearchRoots $manual
+                    $updated = @()
+                    foreach ($d in $Definitions) {
+                        $probe = if ($d.Launcher) {
+                            [pscustomobject]@{ Id = $d.Id; Label = $d.Label; Version = $d.Version; SearchSubpaths = $d.SearchSubpaths }
+                        } else {
+                            [pscustomobject]@{ Id = $d.Id; Label = $d.Label }
+                        }
+                        $foundOne = (Find-InstallLocations @($probe) @{} -SearchRoots $folderRoots)[$d.Id]
+                        if ($foundOne.State -eq 'found') {
+                            $menuLocations[$d.Id] = $foundOne
+                            $configured[$d.Id] = $foundOne.Path
+                            $updated += ($d.Label + ': ' + $foundOne.Path)
+                        }
                     }
-                    $foundOne = (Find-InstallLocations @($probe) @{} -SearchRoots $folderRoots)[$d.Id]
-                    if ($foundOne.State -eq 'found') {
-                        $menuLocations[$d.Id] = $foundOne
-                        $configured[$d.Id] = $foundOne.Path
-                        $updated += ($d.Label + ': ' + $foundOne.Path)
+                    if (-not $updated.Count) {
+                        Write-Host '未在该目录中识别出支持的蓝色星原游戏或启动器目录。' -ForegroundColor Yellow
+                        continue
                     }
-                }
-                if (-not $updated.Count) {
-                    Write-Host '未在该目录中识别出支持的蓝色星原游戏或启动器目录。' -ForegroundColor Yellow
+                    foreach ($u in $updated) { Write-Host ('已更新 ' + $u) -ForegroundColor Green }
+                    $saveAns = ([string](Read-Host '是否保存到 tools/安装路径.json？(Y/N)')).Trim()
+                    if ($saveAns -in @('y', 'Y')) {
+                        Save-ConfiguredPaths $configured
+                        Write-Host '已保存到 tools/安装路径.json。' -ForegroundColor Green
+                    }
                     continue
                 }
-                foreach ($u in $updated) { Write-Host ('已更新 ' + $u) -ForegroundColor Green }
-                $saveAns = ([string](Read-Host '是否保存到 tools/安装路径.json？(Y/N)')).Trim()
-                if ($saveAns -in @('y', 'Y')) {
-                    Save-ConfiguredPaths $configured
-                    Write-Host '已保存到 tools/安装路径.json。' -ForegroundColor Green
+                default {
+                    Write-Host '无效选项，请重新输入。' -ForegroundColor Yellow
+                    continue
                 }
-                continue
             }
-            default {
-                Write-Host '无效选项，请重新输入。' -ForegroundColor Yellow
-                continue
-            }
+        } catch {
+            Write-Host $_.Exception.Message -ForegroundColor Yellow
+            continue
         }
         if (-not $op -or -not $ids.Count) { continue }
         $selected = @($items | Where-Object { $_.Id -in $ids })
