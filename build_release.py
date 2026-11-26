@@ -24,6 +24,19 @@ CORE_NON_PAYLOAD_PATHS = [
     '双击运行.bat',
 ]
 
+SOURCE_SUFFIXES = {'.py', '.ps1', '.json', '.md', '.txt'}
+SOURCE_CACHE_DIRS = {'__pycache__', '.pytest_cache', 'logs', 'release_test',
+                     'fixed_candidates', 'originals'}
+
+
+def source_tree_names(folder):
+    directory = ROOT / folder
+    if not directory.is_dir():
+        raise FileNotFoundError(directory)
+    return [p.relative_to(ROOT).as_posix() for p in sorted(directory.rglob('*'))
+            if p.is_file() and p.suffix.lower() in SOURCE_SUFFIXES
+            and not SOURCE_CACHE_DIRS.intersection(p.relative_to(directory).parts[:-1])]
+
 
 def sha256(path):
     with path.open('rb') as stream:
@@ -198,7 +211,8 @@ def main():
     source_names = ['.gitignore', 'LICENSE', 'README.md', 'build_release.py', '双击运行.bat']
     if (ROOT / '.gitattributes').is_file():
         source_names.append('.gitattributes')
-    source_names += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'tools').iterdir()) if p.is_file()]
+    for folder in ('tools', 'CRC工具', 'tests'):
+        source_names += source_tree_names(folder)
     sources = [(child(ROOT, name), name) for name in sorted(set(source_names))]
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
