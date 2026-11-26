@@ -396,7 +396,15 @@ try {
     }
     Write-Host '=================================================='
     Write-Host ('  Azur Promilia — Localization / Bản dịch: '+$script:LanguageLabel+' ('+$script:Language+')  [fork shimakazevn]') -ForegroundColor Cyan
-    if ($script:Language -ne 'zhcn') { Write-Host '  Lưu ý: payload VI/EN chưa có — Apply sẽ từ chối cho tới khi build xong payload. zhcn vẫn dùng được như bản gốc.' -ForegroundColor Yellow }
+    if ($script:Language -ne 'zhcn') {
+        $catStatus = ''
+        try { $catObj = Get-Content -LiteralPath (Child (Package-CatalogName)) -Raw -Encoding UTF8 | ConvertFrom-Json; $catStatus = $catObj.status } catch {}
+        if ($catStatus -eq 'placeholder-no-payload') {
+            Write-Host '  Lưu ý: payload VI/EN chưa có — Apply sẽ từ chối cho tới khi build xong payload. zhcn vẫn dùng được như bản gốc.' -ForegroundColor Yellow
+        } elseif ($script:Language -eq 'vi') {
+            Write-Host '  Gói Việt hóa (vi) cho JP Game & JP Launcher đã sẵn sàng (TW hiện dùng bản gốc).' -ForegroundColor Green
+        }
+    }
     Write-Host '  开服后若登录异常请还原文件，此脚本未进行反作弊验证' -ForegroundColor Red
     Write-Host '=================================================='
     Write-Host '正在查找游戏和启动器安装位置……'

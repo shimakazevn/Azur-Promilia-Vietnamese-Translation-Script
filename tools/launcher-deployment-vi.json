@@ -32,15 +32,14 @@
         "AZUPRO_JP_Gamelauncher",
         "YostarGames"
       ],
-      "target_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "target_sha256": "bfd088bf6e4fef4c16d13159a5ac1d42d97b939c24c3a766909ee67872a3ba5b",
       "previous_sha256": [],
       "payload_dir": "jp_launcher",
-      "size": 71397348,
-      "size_note": "ZH-CN target size kept here; update it when the VI/EN app.asar payload is built."
+      "size": 71391046
     }
   ],
   "language": "vi",
-  "status": "placeholder-no-payload",
+  "status": "ready",
   "payload_root": "payload-vi",
-  "target_note": "target_sha256 is 64 zeros on purpose: no VI/EN launcher payload exists yet."
+  "target_note": "jp_launcher VI payload is built and verified; tw_launcher remains placeholder until TW launcher payload is built."
 }

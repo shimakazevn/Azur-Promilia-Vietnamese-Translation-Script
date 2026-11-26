@@ -11,10 +11,10 @@ Fork của [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github
 | Ngôn ngữ | Trạng thái | Payload |
 | --- | --- | --- |
 | `zhcn` — 简体中文 | ✅ Dùng được như bản gốc | Có trong Release gốc (`AzurPromilia-Localization-Full-v3.zip`) |
-| `vi` — Tiếng Việt | 🛠️ Mới chỉ có khung chọn ngôn ngữ | ❌ **Chưa có** — `target_sha256` đang là 64 số 0, Apply sẽ từ chối |
+| `vi` — Tiếng Việt | ✅ Đã phát hành (JP Client `3219598` + Launcher `1.8.1`) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/releases) (`AzurPromilia-VI-Setup.exe` & `AzurPromilia-Localization-Full-vi-v1.0.0.zip`) |
 | `en` — English | 🛠️ Scaffolding only | ❌ **Not built yet** — `target_sha256` is 64 zeros, Apply refuses |
 
-**Nói rõ: fork này chưa dịch được game sang Việt/Anh.** Bản source trên GitHub vốn đã không chứa file dịch — file thay thế nằm trong gói Release. Muốn dịch thật, bước tiếp theo phải build bộ file VI/EN thay thế (dùng `CRC工具/` để dịch text trong các bundle `.r` / `resources.assets` / `app.asar`, giữ nguyên độ dài + CRC như bản Trung đã làm), rồi cập nhật `target_sha256` trong `tools/*-deployment-vi.json` / `*-en.json` và đổi `status` thành `ready`. Cho tới lúc đó, chạy Apply với `vi`/`en` sẽ báo lỗi rõ ràng chứ không ghi đè file game.
+Bản source Git nhỏ gọn không chứa file payload (~268 MB) — các file thay thế + bộ cài tự động cập nhật nằm tại mục **Releases**. (`tw_game` & `tw_launcher` ở bản VI vẫn giữ nguyên bản gốc).
 
 ## Chọn ngôn ngữ
 
@@ -32,15 +32,14 @@ Mỗi ngôn ngữ dùng bộ清单 riêng và thư mục riêng, để không l�
 - Backup: `.<lang>-crc-readonly-3221745-backup` (台服), `.<lang>-jp-crc-readonly-3219598-backup` (日服), launcher `resources/app.asar.before-<lang>-20261126.bak`
 - Đóng gói: `build_release.py --language vi|en|zhcn` (mặc định `zhcn`)
 
-## 下载 (chỉ zhcn mới có gói đầy đủ)
+## Tải về & Cài đặt nhanh (Tiếng Việt — Auto-Update)
 
-前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases) (bản gốc) 下载完整汉化包：
+Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/releases/latest):
 
-**`AzurPromilia-Localization-Full-v3.zip`**
+- **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~40 KB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa** (tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game).
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.0.zip`** (~256 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
-完整包包含运行脚本和替换资源，无需另行准备国服包体。
-
-**仓库源码不包含游戏替换资源，直接下载仓库 ZIP 无法完成汉化。** Fork này cũng vậy đối với VI/EN.
+**Lưu ý:** Repo mã nguồn không đính kèm file payload nhị phân; tải Source ZIP từ nút Code sẽ không có sẵn file thay thế. Để dùng bản Trung (`zhcn`) gốc, xem [Releases bản gốc](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases).
 
 ## 操作方法
 
@@ -120,7 +119,7 @@ CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚�
 
 ## 问题反馈
 
-请在 [Issues](https://github.com/shimakazevn/Azur-Promilia-Chinese-Translation-Script/issues) 中提供：
+请在 [Issues](https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/issues) 中提供：
 
 - 台服或日服，以及游戏或启动器版本。
 - 操作选项和完整报错。
@@ -130,6 +129,6 @@ CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚�
 
 ## 许可说明
 
-项目源码许可见 [LICENSE](https://github.com/shimakazevn/Azur-Promilia-Chinese-Translation-Script/blob/main/LICENSE) (Apache 2.0, bản gốc).
+项目源码许可见 [LICENSE](https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/blob/main/LICENSE) (Apache 2.0, bản gốc).
 
 游戏及第三方资源归原权利人所有，源码许可不代表对游戏资源的授权。

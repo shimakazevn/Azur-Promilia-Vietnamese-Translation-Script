@@ -148,7 +148,7 @@ try {
     Assert-NoReparse $root
     $data=Join-Path $root 'AzurPromilia_Data'
     Assert-NoReparse $data
-    $backup=Join-Path $root '.$Language-crc-readonly-3221745-backup'
+    if ($Language -eq 'zhcn') { $backup=Join-Path $root '.crc-readonly-3221745-backup' } else { $backup=Join-Path $root ".$Language-crc-readonly-3221745-backup" }
     if ($Action -eq 'Menu') {
         Write-Host "台服本地化 ($Language)（清单只读、等长、原 CRC）`n$root"
         Write-Host '1 本地化/Apply   2 还原/Restore   3 完整校验/Verify   其他退出'
@@ -178,8 +178,9 @@ try {
     foreach ($e in $Plan.files) {
         $p=Resolve-Child $data $e.relative_path
         $h=Get-Sha $p
-        if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256) { throw "文件版本不匹配：$($e.relative_path)" }
         $bk=Resolve-Child $backup $e.relative_path
+        $hasValidBackup=[IO.File]::Exists($bk) -and ((Get-Sha $bk) -eq $e.source_sha256)
+        if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256 -and -not $hasValidBackup) { throw "文件版本不匹配：$($e.relative_path)" }
         if ($Action -eq 'Apply') {
             $src=Resolve-Child (Join-Path $PackRoot "$PayloadDir/tw_game") $e.relative_path
             Assert-Resource $src $e $true

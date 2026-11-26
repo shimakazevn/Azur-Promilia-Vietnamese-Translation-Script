@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "language": "vi",
+  "version": "v1.0.0",
+  "published_at": "2026-11-26T08:09:03Z",
+  "repo": "shimakazevn/Azur-Promilia-vietnamese-Translation-Script",
+  "jp_resource_version": "3219598",
+  "jp_builtin_version": "3075915",
+  "jp_launcher_version": "1.8.1",
+  "full_package": {
+    "filename": "AzurPromilia-Localization-Full-vi-v1.0.0.zip",
+    "size": 268682310,
+    "sha256": "a7912ad8d41cf6afa53e88c5a0bddbe0a82d608df8a7851782a060523534229c",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/releases/download/v1.0.0/AzurPromilia-Localization-Full-vi-v1.0.0.zip"
+  },
+  "installer": {
+    "filename": "AzurPromilia-VI-Setup.exe",
+    "size": 39936,
+    "sha256": "804b8e442dfe181e3dfcb41d67230df5e3c5c9df278e5e741d4c8d1b966ed56c",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/releases/download/v1.0.0/AzurPromilia-VI-Setup.exe"
+  },
+  "notes": "Việt hóa JP client 3219598 (67.979 VStringPool + 3.573 AST UI + 113 built-in CSV + Font Việt hóa + JP Launcher 1.8.1)."
+}
