@@ -3,6 +3,7 @@
 
 Never touches any real game installation. Uses temporary directories only.
 """
+import contextlib
 import ctypes
 import hashlib
 import json
@@ -42,7 +43,7 @@ def copy_tool_tree(dest_root: Path) -> None:
     for src in (ROOT / 'tools').iterdir():
         if src.is_file():
             shutil.copy2(src, tools_dest / src.name)
-    for name in ('双击运行.bat', 'README.md', 'LICENSE', '.gitignore', '.gitattributes', 'build_release.py'):
+    for name in ('双击运行.bat', 'README.md', '使用说明.txt', 'LICENSE', '.gitignore', '.gitattributes', 'build_release.py'):
         p = ROOT / name
         if p.is_file():
             shutil.copy2(p, dest_root / name)
@@ -99,12 +100,18 @@ def pack_str(s: str) -> bytes:
     return struct.pack('<H', len(b)) + b
 
 
-def build_synthetic_manifest(pack_name: str, segs_data: list[bytes]) -> tuple[bytes, bytes]:
+def build_synthetic_manifest(
+    pack_name: str,
+    segs_data: list[bytes],
+    package: str = 'DefaultPackage',
+    version: str = '100',
+    bundle_indices: list[int] | None = None,
+) -> tuple[bytes, bytes]:
     buf = bytearray()
     buf += struct.pack('<I', crcchain.MAGIC)
     buf += pack_str('2.3.1')
     buf += struct.pack('<3Bii', 1, 0, 0, 1, 0)
-    for s in ('Builtin', 'DefaultPackage', '100', 'test'):
+    for s in ('Builtin', package, version, 'test'):
         buf += pack_str(s)
     # assets (0)
     buf += struct.pack('<i', 0)
@@ -115,7 +122,8 @@ def build_synthetic_manifest(pack_name: str, segs_data: list[bytes]) -> tuple[by
     offset = 0
     pack_bytes = bytearray()
     for i, sd in enumerate(segs_data):
-        buf += struct.pack('<qIiiiiiiqIi4B', len(sd), crc32_u32(sd), i, 0, 0, 0, 0, 0, offset, 0, i, 0, 0, 0, 0)
+        b_idx = i if bundle_indices is None else bundle_indices[i]
+        buf += struct.pack('<qIiiiiiiqIi4B', len(sd), crc32_u32(sd), b_idx, 0, 0, 0, 0, 0, offset, 0, b_idx, 0, 0, 0, 0)
         pack_bytes.extend(sd)
         offset += len(sd)
     # bundle_reference_pool (0)
@@ -234,11 +242,13 @@ class TestBatchEntryPoint(unittest.TestCase):
             output = self._run_mock_menu(pack, ['5', '1', 'bogus', '5', 'Q'], expected=1)
             self.assertIn('payload 不存在', output)
             self.assertIn('无效选项，请重新输入。', output)
-            self.assertEqual(output.count('原版备份：'), 2)
+            # Two status requests each include the TW localization and deblur modules.
+            self.assertEqual(output.count('原版备份：'), 4)
             self.assertEqual(output.count('找到以下项目：'), 1)
             for label in ('1. 全部汉化', '2. 全部还原', '3. 选择项目汉化',
                           '4. 选择项目还原', '5. 查看文件状态', '6. 完整校验',
-                          '7. 手动添加/修改安装目录', 'Q. 退出'):
+                          '7. 手动添加/修改安装目录', '8. 日服反虚化', '9. 还原日服反虚化',
+                          '10. 台服反虚化', '11. 还原台服反虚化', 'Q. 退出'):
                 self.assertEqual(output.count(label), 1, output)
 
     def test_actual_batch_startup_and_dragged_directories(self):
@@ -540,6 +550,38 @@ class TestGameScriptsEndToEnd(unittest.TestCase):
         self._run_region_lifecycle('jp')
 
 
+    def test_resource_version_guard_rejects_older_game(self):
+        td, pack, game_root, data_root, script, backup_name, plan = self._setup_mock_game('tw')
+        old_rel = plan['readonly_files'][0]['relative_path']
+        new_rel = old_rel.replace('_test.bytes', '_3221745.bytes')
+        src = data_root / old_rel
+        dst = data_root / new_rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(src.read_bytes())
+        src.unlink()
+        plan['readonly_files'][0]['relative_path'] = new_rel
+        plan['resource_version'] = '3221745'
+        (pack / 'tools' / 'tw-deployment.json').write_text(json.dumps(plan, indent=2), 'utf-8')
+
+        # Matching version still verifies.
+        self.assertEqual(run_ps(script, ['-Action', 'Verify', '-Hint', str(game_root)]).returncode, 0)
+
+        # Older game resources must still be rejected before any write.
+        older = data_root / '.res/raw_base_package/ManifestFiles/0release_raw_base_package_3221744.bytes'
+        dst.rename(older)
+        before = {p.relative_to(data_root): p.read_bytes() for p in data_root.rglob('*') if p.is_file()}
+        for action in ('Verify', 'Apply', 'Restore'):
+            with self.subTest(action=action):
+                p = run_ps(script, ['-Action', action, '-Hint', str(game_root)])
+                out = p.stdout.decode('utf-8', 'replace')
+                self.assertEqual(p.returncode, 1, out)
+                self.assertIn('游戏资源版本低于补丁基线', out)
+                self.assertIn('3221744', out)
+                self.assertIn('3221745', out)
+        self.assertFalse((game_root / backup_name).exists())
+        self.assertEqual(before, {p.relative_to(data_root): p.read_bytes() for p in data_root.rglob('*') if p.is_file()})
+
+
 class TestLauncherScriptsEndToEnd(unittest.TestCase):
     def test_launcher_apply_upgrade_restore_without_payload(self):
         with tempfile.TemporaryDirectory(prefix='azur_launcher_') as td:
@@ -750,6 +792,8 @@ class TestBuildRelease(unittest.TestCase):
             for zp in (full_zip, src_zip):
                 with zipfile.ZipFile(zp) as zf:
                     self.assertIsNone(zf.testzip())
+                    top = '蓝色星原简体汉化' + ('-源码' if zp == src_zip else '')
+                    self.assertEqual(zf.read(top + '/使用说明.txt'), (pack / '使用说明.txt').read_bytes())
             with zipfile.ZipFile(src_zip) as zf:
                 prefix = '蓝色星原简体汉化-源码/'
                 names = set(zf.namelist())
@@ -821,6 +865,690 @@ class TestPoolCapacity(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             pool_capacity.choose_max_prime_capacity(hashes, 100000, min_padding=4, min_cap=65521)
+
+
+class TestHotfixManifestRelocation(unittest.TestCase):
+    def _write_manifest(self, data_root: Path, pkg: str, ver: str, pack_name: str,
+                        segs_data: list[bytes], bundle_indices: list[int]) -> bytes:
+        m_bytes, p_bytes = build_synthetic_manifest(
+            pack_name, segs_data, package=pkg, version=ver, bundle_indices=bundle_indices,
+        )
+        m_dir = data_root / '.res' / pkg / 'ManifestFiles'
+        m_dir.mkdir(parents=True, exist_ok=True)
+        (m_dir / f'0release_{pkg}_{ver}.bytes').write_bytes(m_bytes)
+        (m_dir / f'0release_{pkg}_{ver}.hash').write_bytes(
+            hashlib.md5(m_bytes).hexdigest().encode('ascii')
+        )
+        b_dir = data_root / '.res' / pkg / 'BundleFiles'
+        b_dir.mkdir(parents=True, exist_ok=True)
+        (b_dir / pack_name).write_bytes(p_bytes)
+        return p_bytes
+
+    def _setup_hotfix_fixture(self, td_path: Path, region: str = 'tw'):
+        pack = td_path / 'pack'
+        copy_tool_tree(pack)
+
+        is_tw = region == 'tw'
+        game_root = td_path / ('AzurPromilia_TC_game' if is_tw else 'AZUPRO_JP')
+        data_root = game_root / ('AzurPromilia_Data' if is_tw else 'AzurPromiliaJP_Data')
+        data_root.mkdir(parents=True)
+        (game_root / ('AzurPromilia.exe' if is_tw else 'AzurPromiliaJP.exe')).write_bytes(b'EXE')
+
+        # raw_base_package stays byte-identical across 3221745 -> 3221746
+        rb_orig, rb_targ, rb_segs = make_crc_matched_pair(b'hotfix_rb', (4096,))
+        rb_name = 'rawbasepack.r'
+        self._write_manifest(data_root, 'raw_base_package', '3221745', rb_name, [rb_orig], [12])
+
+        # default_package: seg0 (patched), seg1 (unmodified middle), seg2 (patched)
+        s0_o, s0_t, _ = make_crc_matched_pair(b'hotfix_d0', (2048,))
+        s1_orig = b'UNMODIFIED_MIDDLE_SEGMENT_' + b'A' * 300
+        s1_hotfix = b'UNMODIFIED_MIDDLE_SHORTER' + b'B' * 291  # 10 bytes shorter -> seg2 shifts -10
+        self.assertEqual(len(s1_orig) - len(s1_hotfix), 10)
+        s2_o, s2_t, _ = make_crc_matched_pair(b'hotfix_d2', (1536,))
+
+        old_def_name = 'olddefaultpack.r'
+        new_def_name = 'newdefaultpack.r'
+        old_def_orig = self._write_manifest(
+            data_root, 'default_package', '3221745', old_def_name,
+            [s0_o, s1_orig, s2_o], [10, 11, 12],
+        )
+        old_def_targ = s0_t + s1_orig + s2_t
+        self.assertEqual(len(old_def_targ), len(old_def_orig))
+        self.assertEqual(crc32_u32(old_def_targ), crc32_u32(old_def_orig))
+
+        fp_bytes = b'FOOTPRINT_3221745'
+        for pkg in ('raw_base_package', 'default_package'):
+            fp = data_root / '.res' / pkg / 'ManifestFiles' / 'ApplicationFootPrint.bytes'
+            fp.write_bytes(fp_bytes)
+
+        # Write payload for baseline 3221745
+        rb_rel = f'.res/raw_base_package/BundleFiles/{rb_name}'
+        def_rel = f'.res/default_package/BundleFiles/{old_def_name}'
+        for rel, data in ((rb_rel, rb_targ), (def_rel, old_def_targ)):
+            pp = pack / 'payload' / (region + '_game') / rel
+            pp.parent.mkdir(parents=True, exist_ok=True)
+            pp.write_bytes(data)
+
+        def_segs = [
+            {'bundle_index': 10, 'offset': 0, 'size': len(s0_o), 'crc32': crc32_u32(s0_o)},
+            {'bundle_index': 11, 'offset': len(s0_o), 'size': len(s1_orig), 'crc32': crc32_u32(s1_orig)},
+            {'bundle_index': 12, 'offset': len(s0_o) + len(s1_orig), 'size': len(s2_o), 'crc32': crc32_u32(s2_o)},
+        ]
+        def_patched_segs = [
+            {
+                'bundle_index': 10, 'offset': 0, 'size': len(s0_o),
+                'crc32': crc32_u32(s0_o), 'source_sha256': sha256_bytes(s0_o),
+                'target_sha256': sha256_bytes(s0_t),
+            },
+            {
+                'bundle_index': 12, 'offset': len(s0_o) + len(s1_orig), 'size': len(s2_o),
+                'crc32': crc32_u32(s2_o), 'source_sha256': sha256_bytes(s2_o),
+                'target_sha256': sha256_bytes(s2_t),
+            },
+        ]
+
+        ro_files = []
+        for pkg in ('raw_base_package', 'default_package'):
+            for suffix in ('bytes', 'hash'):
+                rel = f'.res/{pkg}/ManifestFiles/0release_{pkg}_3221745.{suffix}'
+                ro_files.append({'relative_path': rel, 'sha256': sha256_bytes((data_root / rel).read_bytes())})
+            fp_rel = f'.res/{pkg}/ManifestFiles/ApplicationFootPrint.bytes'
+            ro_files.append({'relative_path': fp_rel, 'sha256': sha256_bytes(fp_bytes)})
+
+        plan = {
+            'format': 1,
+            'region': region,
+            'resource_version': '3221745',
+            'files': [
+                {
+                    'relative_path': rb_rel,
+                    'source_sha256': sha256_bytes(rb_orig),
+                    'target_sha256': sha256_bytes(rb_targ),
+                    'size': len(rb_orig),
+                    'crc32': crc32_u32(rb_orig),
+                    'segments': [{'bundle_index': 12, 'offset': 0, 'size': len(rb_orig), 'crc32': crc32_u32(rb_orig)}],
+                    'patched_segments': [{
+                        'bundle_index': 12, 'offset': 0, 'size': len(rb_orig),
+                        'crc32': crc32_u32(rb_orig), 'source_sha256': sha256_bytes(rb_orig),
+                        'target_sha256': sha256_bytes(rb_targ),
+                    }],
+                },
+                {
+                    'relative_path': def_rel,
+                    'source_sha256': sha256_bytes(old_def_orig),
+                    'target_sha256': sha256_bytes(old_def_targ),
+                    'size': len(old_def_orig),
+                    'crc32': crc32_u32(old_def_orig),
+                    'segments': def_segs,
+                    'patched_segments': def_patched_segs,
+                },
+            ],
+            'readonly_files': ro_files,
+            'runtime_login_verified': False,
+        }
+        plan_path = pack / 'tools' / (region + '-deployment.json')
+        plan_path.write_text(json.dumps(plan, indent=2), 'utf-8')
+        return {
+            'region': region,
+            'plan_path': plan_path,
+            'pack': pack,
+            'game_root': game_root,
+            'data_root': data_root,
+            'script': pack / 'tools' / ('Apply-CRCZH.ps1' if is_tw else 'Apply-JPCRCZH.ps1'),
+            'mgr': pack / 'tools' / 'Manage-Localization.ps1',
+            'rb_name': rb_name,
+            'rb_orig': rb_orig,
+            'rb_targ': rb_targ,
+            'old_def_name': old_def_name,
+            'new_def_name': new_def_name,
+            's0_o': s0_o,
+            's0_t': s0_t,
+            's1_hotfix': s1_hotfix,
+            's2_o': s2_o,
+            's2_t': s2_t,
+        }
+
+    def _apply_hotfix_3221746(self, fx: dict, carry_localized: bool = False):
+        data_root = fx['data_root']
+        plan_before = fx['plan_path'].read_bytes()
+        self.assertEqual(json.loads(plan_before)['resource_version'], '3221745')
+        # raw_base_package keeps BOTH 3221745 and 3221746 manifests
+        self._write_manifest(
+            data_root, 'raw_base_package', '3221746', fx['rb_name'],
+            [fx['rb_targ'] if carry_localized else fx['rb_orig']], [12],
+        )
+        # default_package removes 3221745 manifest + old pack, writes 3221746 + renamed pack
+        for suffix in ('bytes', 'hash'):
+            old_m = data_root / '.res/default_package/ManifestFiles' / f'0release_default_package_3221745.{suffix}'
+            if old_m.exists():
+                old_m.unlink()
+        old_pack = data_root / '.res/default_package/BundleFiles' / fx['old_def_name']
+        if old_pack.exists():
+            old_pack.unlink()
+
+        segs = [
+            fx['s0_t'] if carry_localized else fx['s0_o'],
+            fx['s1_hotfix'],
+            fx['s2_t'] if carry_localized else fx['s2_o'],
+        ]
+        original = self._write_manifest(
+            data_root, 'default_package', '3221746', fx['new_def_name'],
+            segs, [10, 11, 12],
+        )
+        self.assertEqual(fx['plan_path'].read_bytes(), plan_before)
+        return original
+
+    def _run_hotfix_lifecycle(self, region):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_new_') as td:
+            fx = self._setup_hotfix_fixture(Path(td), region)
+            plan_before = fx['plan_path'].read_bytes()
+            new_orig = self._apply_hotfix_3221746(fx, carry_localized=False)
+            new_targ = fx['s0_t'] + fx['s1_hotfix'] + fx['s2_t']
+            new_pack_path = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            rb_pack_path = fx['data_root'] / '.res/raw_base_package/BundleFiles' / fx['rb_name']
+            manifests_before = {p.relative_to(fx['data_root']): p.read_bytes()
+                                for p in fx['data_root'].rglob('*')
+                                if p.is_file() and p.parent.name == 'ManifestFiles'}
+            self._assert_hotfix_menu(fx, '原版')
+
+            p_v0 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v0 = p_v0.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v0.returncode, 0, out_v0)
+            self.assertIn('原版 (热更适配 3221746)', out_v0)
+
+            p_app = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_app.returncode, 0, p_app.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(rb_pack_path.read_bytes(), fx['rb_targ'])
+            self.assertEqual(new_pack_path.read_bytes(), new_targ)
+
+            p_v1 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v1 = p_v1.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v1.returncode, 0, out_v1)
+            self.assertIn('汉化 (热更适配 3221746)', out_v1)
+
+            self._assert_hotfix_menu(fx, '已汉化')
+
+            # Restore works even after payload/ is removed
+            shutil.rmtree(fx['pack'] / 'payload')
+            p_rest = run_ps(fx['script'], ['-Action', 'Restore', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_rest.returncode, 0, p_rest.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(rb_pack_path.read_bytes(), fx['rb_orig'])
+            self.assertEqual(new_pack_path.read_bytes(), new_orig)
+            self.assertEqual(run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])]).returncode, 0)
+
+            self._assert_hotfix_menu(fx, '原版')
+            self.assertEqual(fx['plan_path'].read_bytes(), plan_before)
+            self.assertEqual(manifests_before, {
+                p.relative_to(fx['data_root']): p.read_bytes()
+                for p in fx['data_root'].rglob('*')
+                if p.is_file() and p.parent.name == 'ManifestFiles'})
+
+    def _assert_hotfix_menu(self, fx, state):
+        paths = {key: str(fx['pack'] / ('missing_' + key))
+                 for key in ('tw_game', 'jp_game', 'tw_launcher', 'jp_launcher')}
+        paths[fx['region'] + '_game'] = str(fx['game_root'])
+        (fx['pack'] / 'tools/安装路径.json').write_text(
+            json.dumps(paths, ensure_ascii=False), 'utf-8')
+        result = subprocess.run(
+            ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+             '-File', str(fx['mgr']), '-Action', 'Menu'],
+            input=b'5\r\nQ\r\n', stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            cwd=str(fx['pack']), timeout=60)
+        output = result.stdout.decode('utf-8', 'replace')
+        label = '台服游戏' if fx['region'] == 'tw' else '日服游戏'
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn(f'[{label}] {state}', output)
+        self.assertIn(f'{state}（热更 3221746）', output)
+        self.assertNotIn('版本不匹配（当前 3221746）', output)
+
+    def test_hotfix_apply_verify_restore_with_shifted_segment(self):
+        self._run_hotfix_lifecycle('tw')
+
+    def test_jp_hotfix_apply_verify_restore_with_unchanged_patch(self):
+        self._run_hotfix_lifecycle('jp')
+
+    def test_hotfix_after_prior_apply_verify_and_restore_from_legacy_backup(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_prior_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            # Apply on 3221745 first -> creates legacy backup under old_def_name
+            self.assertEqual(run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])]).returncode, 0)
+            self._apply_hotfix_3221746(fx, carry_localized=True)
+            new_pack_path = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            expected_orig = fx['s0_o'] + fx['s1_hotfix'] + fx['s2_o']
+
+            p_v = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            out_v = p_v.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_v.returncode, 0, out_v)
+            self.assertIn('汉化 (热更适配 3221746)', out_v)
+
+            p_idem = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_idem.returncode, 0, p_idem.stdout.decode('utf-8', 'replace'))
+            self.assertIn('无需修改', p_idem.stdout.decode('utf-8', 'replace'))
+
+            shutil.rmtree(fx['pack'] / 'payload')
+            p_rest = run_ps(fx['script'], ['-Action', 'Restore', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_rest.returncode, 0, p_rest.stdout.decode('utf-8', 'replace'))
+            self.assertEqual(new_pack_path.read_bytes(), expected_orig)
+            p_v2 = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_v2.returncode, 0, p_v2.stdout.decode('utf-8', 'replace'))
+            self.assertIn('原版 (热更适配 3221746)', p_v2.stdout.decode('utf-8', 'replace'))
+
+    def test_hotfix_rejects_modified_target_segment_and_tampered_manifest_hash(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_rej_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            self._apply_hotfix_3221746(fx, carry_localized=False)
+
+            # (a) Tamper .hash MD5 -> Verify & Apply must fail
+            hash_file = fx['data_root'] / '.res/default_package/ManifestFiles/0release_default_package_3221746.hash'
+            saved_hash = hash_file.read_bytes()
+            hash_file.write_bytes(b'0' * 32)
+            p_bad_hash = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(p_bad_hash.returncode, 1)
+            self.assertIn('MD5', p_bad_hash.stdout.decode('utf-8', 'replace'))
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+            hash_file.write_bytes(saved_hash)
+
+            # (b) Hotfix modifies target patched segment s2 -> must refuse cleanly
+            modified_s2 = b'CHANGED_BY_MAJOR_UPDATE_' + b'Z' * (len(fx['s2_o']) - 24)
+            new_pack = self._write_manifest(
+                fx['data_root'], 'default_package', '3221746', fx['new_def_name'],
+                [fx['s0_o'], fx['s1_hotfix'], modified_s2], [10, 11, 12],
+            )
+            p_mod = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            out_mod = p_mod.stdout.decode('utf-8', 'replace')
+            self.assertEqual(p_mod.returncode, 1)
+            self.assertIn('已修改目标资源段', out_mod)
+            self.assertEqual((fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']).read_bytes(), new_pack)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+
+    def test_hotfix_rejects_unknown_same_crc_segment(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_unknown_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            self._apply_hotfix_3221746(fx)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            other = bytearray(fx['s0_o'])
+            other[24:40] = b'OTHER_MOD_123456'
+            self.assertTrue(crcpatch.patch_crc(other, crc32_u32(fx['s0_o']), len(other) - 4))
+            self.assertNotIn(bytes(other), (fx['s0_o'], fx['s0_t']))
+            unknown = bytes(other) + fx['s1_hotfix'] + fx['s2_o']
+            target.write_bytes(unknown)
+            for action in ('Verify', 'Apply', 'Restore'):
+                with self.subTest(action=action):
+                    result = run_ps(fx['script'], ['-Action', action, '-Hint', str(fx['game_root'])])
+                    self.assertEqual(result.returncode, 1, result.stdout.decode('utf-8', 'replace'))
+                    self.assertEqual(target.read_bytes(), unknown)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+    def test_hotfix_rejects_ambiguous_candidates_with_old_index(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_ambiguous_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            self._apply_hotfix_3221746(fx)
+            other = bytearray(fx['s0_o'])
+            other[20:36] = b'NEW_RESOURCE_123'
+            self.assertTrue(crcpatch.patch_crc(other, crc32_u32(fx['s0_o']), len(other) - 4))
+            segments = [b'FILLER_' + str(i).encode() for i in range(21)]
+            segments[10] = bytes(other)
+            segments[11] = fx['s1_hotfix']
+            segments[12] = fx['s2_o']
+            segments[20] = fx['s0_o']
+            original = self._write_manifest(
+                fx['data_root'], 'default_package', '3221746', fx['new_def_name'],
+                segments, list(range(len(segments))),
+            )
+            result = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            output = result.stdout.decode('utf-8', 'replace')
+            self.assertEqual(result.returncode, 1, output)
+            self.assertIn('匹配不唯一', output)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            self.assertEqual(target.read_bytes(), original)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+    def _run_mixed_hotfix_recovery(self, action):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_mixed_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            applied = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            self.assertEqual(applied.returncode, 0, applied.stdout.decode('utf-8', 'replace'))
+            original = self._apply_hotfix_3221746(fx)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            target.write_bytes(fx['s0_t'] + fx['s1_hotfix'] + fx['s2_o'])
+            verified = run_ps(fx['script'], ['-Action', 'Verify', '-Hint', str(fx['game_root'])])
+            output = verified.stdout.decode('utf-8', 'replace')
+            self.assertEqual(verified.returncode, 0, output)
+            self.assertIn('部分汉化', output)
+            if action == 'Restore':
+                shutil.rmtree(fx['pack'] / 'payload')
+            recovered = run_ps(fx['script'], ['-Action', action, '-Hint', str(fx['game_root'])])
+            self.assertEqual(recovered.returncode, 0, recovered.stdout.decode('utf-8', 'replace'))
+            expected = original if action == 'Restore' else fx['s0_t'] + fx['s1_hotfix'] + fx['s2_t']
+            self.assertEqual(target.read_bytes(), expected)
+            if action == 'Apply':
+                restored = run_ps(fx['script'], ['-Action', 'Restore', '-Hint', str(fx['game_root'])])
+                self.assertEqual(restored.returncode, 0, restored.stdout.decode('utf-8', 'replace'))
+                self.assertEqual(target.read_bytes(), original)
+
+    def test_hotfix_mixed_segments_restore_from_legacy_backup(self):
+        self._run_mixed_hotfix_recovery('Restore')
+
+    def test_hotfix_mixed_segments_apply_from_legacy_backup(self):
+        self._run_mixed_hotfix_recovery('Apply')
+
+    def test_rejects_resources_older_than_patch_baseline(self):
+        with tempfile.TemporaryDirectory(prefix='azur_restored_version_guard_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            for pkg in ('raw_base_package', 'default_package'):
+                folder = fx['data_root'] / '.res' / pkg / 'ManifestFiles'
+                for suffix in ('bytes', 'hash'):
+                    (folder / f'0release_{pkg}_3221745.{suffix}').unlink()
+            self._write_manifest(fx['data_root'], 'raw_base_package', '3221744',
+                                 fx['rb_name'], [fx['rb_orig']], [12])
+            original = self._write_manifest(
+                fx['data_root'], 'default_package', '3221744', fx['new_def_name'],
+                [fx['s0_o'], fx['s1_hotfix'], fx['s2_o']], [10, 11, 12],
+            )
+            for action in ('Verify', 'Apply', 'Restore'):
+                with self.subTest(action=action):
+                    result = run_ps(fx['script'], ['-Action', action, '-Hint', str(fx['game_root'])])
+                    output = result.stdout.decode('utf-8', 'replace')
+                    self.assertEqual(result.returncode, 1, output)
+                    self.assertIn('游戏资源版本低于补丁基线', output)
+                    self.assertIn('3221744', output)
+                    self.assertIn('3221745', output)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            self.assertEqual(target.read_bytes(), original)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+    def test_rejects_older_package_when_another_package_is_newer(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_old_package_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            self._apply_hotfix_3221746(fx)
+            folder = fx['data_root'] / '.res/default_package/ManifestFiles'
+            for suffix in ('bytes', 'hash'):
+                (folder / f'0release_default_package_3221746.{suffix}').unlink()
+            original = self._write_manifest(
+                fx['data_root'], 'default_package', '3221744', fx['new_def_name'],
+                [fx['s0_o'], fx['s1_hotfix'], fx['s2_o']], [10, 11, 12])
+            for action in ('Verify', 'Apply', 'Restore'):
+                result = run_ps(fx['script'], ['-Action', action, '-Hint', str(fx['game_root'])])
+                output = result.stdout.decode('utf-8', 'replace')
+                self.assertEqual(result.returncode, 1, output)
+                self.assertIn('原版只读基线版本过低', output)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            self.assertEqual(target.read_bytes(), original)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+    def test_hotfix_rejects_missing_original_segment_hash(self):
+        with tempfile.TemporaryDirectory(prefix='azur_hotfix_nohash_') as td:
+            fx = self._setup_hotfix_fixture(Path(td))
+            original = self._apply_hotfix_3221746(fx)
+            plan_path = fx['pack'] / 'tools/tw-deployment.json'
+            plan = json.loads(plan_path.read_text('utf-8-sig'))
+            plan['files'][1]['patched_segments'][0].pop('source_sha256')
+            plan_path.write_text(json.dumps(plan, indent=2), 'utf-8')
+            result = run_ps(fx['script'], ['-Action', 'Apply', '-Hint', str(fx['game_root'])])
+            output = result.stdout.decode('utf-8', 'replace')
+            self.assertEqual(result.returncode, 1, output)
+            self.assertIn('缺少分段补丁信息', output)
+            target = fx['data_root'] / '.res/default_package/BundleFiles' / fx['new_def_name']
+            self.assertEqual(target.read_bytes(), original)
+            self.assertFalse((fx['game_root'] / '.zhcn-crc-readonly-3221745-backup').exists())
+
+
+class TestPerModuleStateAndProcesses(unittest.TestCase):
+    @contextlib.contextmanager
+    def _fixture(self, prefix):
+        self._fixture_processes = []
+        with tempfile.TemporaryDirectory(prefix=prefix) as td:
+            try:
+                yield self._setup_modules(Path(td))
+            finally:
+                for process in reversed(self._fixture_processes):
+                    self._stop_process(process)
+
+    def _setup_modules(self, td):
+        pack = td / 'pack'
+        copy_tool_tree(pack)
+        modules = {}
+        launchers = []
+        for region in ('tw', 'jp'):
+            is_tw = region == 'tw'
+            game_id = region + '_game'
+            game = td / region / ('AzurPromilia_TC_game' if is_tw else 'AZUPRO_JP')
+            data = game / ('AzurPromilia_Data' if is_tw else 'AzurPromiliaJP_Data')
+            data.mkdir(parents=True)
+            game_exe = game / ('AzurPromilia.exe' if is_tw else 'AzurPromiliaJP.exe')
+            game_exe.write_bytes(b'MOCKEXE')
+            original = (game_id + '_ORIGINAL').encode()
+            target = (game_id + '_ZHCN____').encode()
+            self.assertEqual(len(original), len(target))
+            file = data / 'resources.assets'
+            file.write_bytes(original)
+            payload = pack / 'payload' / game_id / 'resources.assets'
+            payload.parent.mkdir(parents=True)
+            payload.write_bytes(target)
+            plan = {'format': 1, 'region': region, 'resource_version': 'test',
+                    'files': [{'relative_path': 'resources.assets', 'size': len(original),
+                               'source_sha256': sha256_bytes(original), 'target_sha256': sha256_bytes(target)}],
+                    'readonly_files': []}
+            (pack / 'tools' / (region + '-deployment.json')).write_text(json.dumps(plan), 'utf-8')
+            modules[game_id] = {'root': game, 'exe': game_exe, 'file': file,
+                                'original': original, 'target': target,
+                                'script': pack / 'tools' / ('Apply-CRCZH.ps1' if is_tw else 'Apply-JPCRCZH.ps1')}
+            launcher_id = region + '_launcher'
+            launcher = td / region / ('1.0.1.4' if is_tw else 'AZUPRO_JP_Gamelauncher')
+            (launcher / 'resources').mkdir(parents=True)
+            exe = launcher / ('launcher.exe' if is_tw else 'AZUPRO_JP_Gamelauncher.exe')
+            exe.write_bytes(b'MOCKEXE')
+            original = (launcher_id + '_ORIGINAL').encode()
+            target = (launcher_id + '_ZHCN____').encode()
+            file = launcher / 'resources/app.asar'
+            file.write_bytes(original)
+            payload = pack / 'payload' / launcher_id / 'resources/app.asar'
+            payload.parent.mkdir(parents=True)
+            payload.write_bytes(target)
+            launchers.append({'id': launcher_id, 'label': '台服启动器' if is_tw else '日服启动器',
+                              'version': '1.0.1.4' if is_tw else '1.8.1', 'exe': exe.name,
+                              'relative_path': 'resources/app.asar', 'backup_suffix': '.before-zhcn-20261124.bak',
+                              'source_sha256': sha256_bytes(original), 'target_sha256': sha256_bytes(target),
+                              'previous_sha256': [], 'search_subpaths': [], 'payload_dir': launcher_id,
+                              'size': len(target)})
+            modules[launcher_id] = {'root': launcher, 'exe': exe, 'file': file,
+                                    'original': original, 'target': target,
+                                    'script': pack / 'tools/Apply-Launchers.ps1'}
+        (pack / 'tools/launcher-deployment.json').write_text(json.dumps({'launchers': launchers}), 'utf-8')
+        (pack / 'tools/安装路径.json').write_text(json.dumps({k: str(v['root']) for k, v in modules.items()}), 'utf-8')
+        catalog_path = pack / 'tools/package-files.json'
+        catalog = json.loads(catalog_path.read_text('utf-8-sig'))
+        files = []
+        for entry in catalog['files']:
+            if entry['path'].startswith('payload/'):
+                continue
+            data = (pack / entry['path']).read_bytes()
+            files.append({'path': entry['path'], 'size': len(data), 'sha256': sha256_bytes(data)})
+        for p in (pack / 'payload').rglob('*'):
+            if p.is_file():
+                data = p.read_bytes()
+                files.append({'path': p.relative_to(pack).as_posix(), 'size': len(data), 'sha256': sha256_bytes(data)})
+        catalog['files'] = files
+        catalog_path.write_text(json.dumps(catalog), 'utf-8')
+        return {'pack': pack, 'modules': modules, 'mgr': pack / 'tools/Manage-Localization.ps1'}
+
+    def _start_process(self, exe):
+        # A renamed cmd.exe waits on our private stdin; no real game is started.
+        shutil.copy2(Path(os.environ['SystemRoot']) / 'System32/cmd.exe', exe)
+        process = subprocess.Popen([str(exe), '/d', '/q', '/k'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
+        self.addCleanup(self._stop_process, process)
+        self._fixture_processes.append(process)
+        self.assertIsNone(process.poll())
+        return process
+
+    def _stop_process(self, process):
+        if process.poll() is None:
+            process.terminate()
+            process.wait(timeout=10)
+        if process.stdin:
+            process.stdin.close()
+
+    def _run_module(self, fixture, module_id, action):
+        module = fixture['modules'][module_id]
+        args = ['-Action', action, '-Hint', str(module['root'])]
+        if module_id.endswith('_launcher'):
+            args += ['-Target', module_id]
+        return run_ps(module['script'], args)
+
+    def _run_all(self, fixture, action):
+        process = run_ps(fixture['mgr'], ['-Action', action, '-Target', 'All', '-Quiet'])
+        reports = list((fixture['pack'] / 'tools/logs').glob('*/result.json'))
+        self.assertTrue(reports, process.stdout.decode('utf-8', 'replace'))
+        newest = max(reports, key=lambda p: p.stat().st_mtime_ns)
+        report = json.loads(newest.read_text('utf-8'))
+        return process, {entry['module']: entry for entry in report['results']}
+
+    def _assert_noop_with_process(self, module_ids):
+        with self._fixture('azur_module_noop_') as fixture:
+            for module_id in module_ids:
+                module = fixture['modules'][module_id]
+                applied = self._run_module(fixture, module_id, 'Apply')
+                self.assertEqual(applied.returncode, 0, applied.stdout.decode('utf-8', 'replace'))
+                process = self._start_process(module['exe'])
+                noop = self._run_module(fixture, module_id, 'Apply')
+                output = noop.stdout.decode('utf-8', 'replace')
+                self.assertEqual(noop.returncode, 0, output)
+                self.assertTrue('无需修改' in output or 'ALREADY_CURRENT' in output, output)
+                blocked = self._run_module(fixture, module_id, 'Restore')
+                self.assertEqual(blocked.returncode, 1, blocked.stdout.decode('utf-8', 'replace'))
+                # PowerShell may wrap this message after long temporary paths.
+                self.assertIn('请先完全退出', ''.join(blocked.stdout.decode('utf-8', 'replace').split()))
+                self.assertEqual(module['file'].read_bytes(), module['target'])
+                self._stop_process(process)
+                restored = self._run_module(fixture, module_id, 'Restore')
+                self.assertEqual(restored.returncode, 0, restored.stdout.decode('utf-8', 'replace'))
+                process = self._start_process(module['exe'])
+                noop = self._run_module(fixture, module_id, 'Restore')
+                output = noop.stdout.decode('utf-8', 'replace')
+                self.assertEqual(noop.returncode, 0, output)
+                self.assertTrue('无需修改' in output or 'ALREADY_ORIGINAL' in output, output)
+                blocked = self._run_module(fixture, module_id, 'Apply')
+                self.assertEqual(blocked.returncode, 1, blocked.stdout.decode('utf-8', 'replace'))
+                self.assertEqual(module['file'].read_bytes(), module['original'])
+                self._stop_process(process)
+
+    def test_game_noop_ignores_own_running_process_but_writes_are_blocked(self):
+        self._assert_noop_with_process(('tw_game', 'jp_game'))
+
+    def test_launcher_noop_ignores_own_running_process_but_writes_are_blocked(self):
+        self._assert_noop_with_process(('tw_launcher', 'jp_launcher'))
+
+    def test_apply_only_changes_first_and_skips_three_localized_modules(self):
+        with self._fixture('azur_module_mixed_') as fx:
+            for module_id in ('jp_game', 'tw_launcher', 'jp_launcher'):
+                self.assertEqual(self._run_module(fx, module_id, 'Apply').returncode, 0)
+            self._start_process(fx['modules']['jp_game']['exe'])
+            self._start_process(fx['modules']['jp_launcher']['exe'])
+            process, results = self._run_all(fx, 'Apply')
+            output = process.stdout.decode('utf-8', 'replace')
+            self.assertEqual(process.returncode, 0, output)
+            self.assertTrue(results['tw_game']['changed'])
+            self.assertFalse(results['tw_game']['skipped'])
+            self.assertIn('[台服游戏] 汉化完成。', output)
+            for module_id, label in (('jp_game', '日服游戏'), ('tw_launcher', '台服启动器'), ('jp_launcher', '日服启动器')):
+                self.assertTrue(results[module_id]['success'])
+                self.assertTrue(results[module_id]['skipped'])
+                self.assertFalse(results[module_id]['changed'])
+                self.assertIn(f'[{label}] 已汉化，跳过。', output)
+                self.assertNotIn(f'[{label}] 汉化完成。', output)
+
+    def test_blocked_first_module_does_not_block_other_modules(self):
+        with self._fixture('azur_module_independent_') as fx:
+            self._start_process(fx['modules']['tw_game']['exe'])
+            process, results = self._run_all(fx, 'Apply')
+            self.assertEqual(process.returncode, 2, process.stdout.decode('utf-8', 'replace'))
+            self.assertFalse(results['tw_game']['success'])
+            self.assertFalse(results['tw_game']['skipped'])
+            self.assertIsNone(results['tw_game']['changed'])
+            self.assertEqual(fx['modules']['tw_game']['file'].read_bytes(), fx['modules']['tw_game']['original'])
+            for module_id in ('jp_game', 'tw_launcher', 'jp_launcher'):
+                self.assertTrue(results[module_id]['success'])
+                self.assertTrue(results[module_id]['changed'])
+                self.assertEqual(fx['modules'][module_id]['file'].read_bytes(), fx['modules'][module_id]['target'])
+
+    def test_other_running_modules_do_not_block_pending_game(self):
+        with self._fixture('azur_module_related_') as fx:
+            initial, _ = self._run_all(fx, 'Apply')
+            self.assertEqual(initial.returncode, 0, initial.stdout.decode('utf-8', 'replace'))
+            game = fx['modules']['tw_game']
+            game['file'].write_bytes(game['original'])
+            for module_id in ('jp_game', 'tw_launcher', 'jp_launcher'):
+                self._start_process(fx['modules'][module_id]['exe'])
+            process, results = self._run_all(fx, 'Apply')
+            output = process.stdout.decode('utf-8', 'replace')
+            self.assertEqual(process.returncode, 0, output)
+            self.assertTrue(results['tw_game']['success'])
+            self.assertTrue(results['tw_game']['changed'])
+            self.assertFalse(results['tw_game']['skipped'])
+            self.assertEqual(game['file'].read_bytes(), game['target'])
+            self.assertIn('[台服游戏] 汉化完成', output)
+            for module_id in ('jp_game', 'tw_launcher', 'jp_launcher'):
+                self.assertTrue(results[module_id]['success'])
+                self.assertTrue(results[module_id]['skipped'])
+
+    def test_running_launcher_only_blocks_itself_during_apply_and_restore(self):
+        for launcher_id in ('tw_launcher', 'jp_launcher'):
+            with self.subTest(launcher=launcher_id), self._fixture('azur_module_launcher_self_') as fx:
+                launcher = fx['modules'][launcher_id]
+                self._start_process(launcher['exe'])
+                for action, state, exit_code in (('Apply', 'target', 2), ('Restore', 'original', 0)):
+                    process, results = self._run_all(fx, action)
+                    output = process.stdout.decode('utf-8', 'replace')
+                    self.assertEqual(process.returncode, exit_code, output)
+                    for module_id, module in fx['modules'].items():
+                        result = results[module_id]
+                        if module_id == launcher_id:
+                            self.assertEqual(module['file'].read_bytes(), module['original'])
+                            self.assertFalse(result['changed'])
+                            self.assertEqual(result['success'], action == 'Restore')
+                            self.assertEqual(result['skipped'], action == 'Restore')
+                            if action == 'Apply':
+                                self.assertIn(launcher['exe'].name, result['error'])
+                        else:
+                            self.assertTrue(result['success'], output)
+                            self.assertTrue(result['changed'], output)
+                            self.assertFalse(result['skipped'], output)
+                            self.assertEqual(module['file'].read_bytes(), module[state])
+
+    def test_login_helper_does_not_block_game_without_its_own_process(self):
+        with self._fixture('azur_module_login_helper_') as fx:
+            for game_id in ('tw_game', 'jp_game'):
+                game = fx['modules'][game_id]
+                self._start_process(game['root'] / 'sdkbrowser.exe')
+                for action, state in (('Apply', 'target'), ('Restore', 'original')):
+                    process = self._run_module(fx, game_id, action)
+                    self.assertEqual(process.returncode, 0, process.stdout.decode('utf-8', 'replace'))
+                    self.assertEqual(game['file'].read_bytes(), game[state])
+
+    def test_restore_only_changes_localized_module_and_skips_originals(self):
+        with self._fixture('azur_module_restore_') as fx:
+            self.assertEqual(self._run_module(fx, 'tw_game', 'Apply').returncode, 0)
+            self._start_process(fx['modules']['jp_game']['exe'])
+            self._start_process(fx['modules']['jp_launcher']['exe'])
+            process, results = self._run_all(fx, 'Restore')
+            output = process.stdout.decode('utf-8', 'replace')
+            self.assertEqual(process.returncode, 0, output)
+            self.assertTrue(results['tw_game']['changed'])
+            self.assertIn('[台服游戏] 还原完成。', output)
+            for module_id, label in (('jp_game', '日服游戏'), ('tw_launcher', '台服启动器'), ('jp_launcher', '日服启动器')):
+                self.assertTrue(results[module_id]['skipped'])
+                self.assertIn(f'[{label}] 已还原，跳过。', output)
+
+
+def load_tests(loader, tests, pattern):
+    from test_jp_deblur import TestJPDeblur
+    from test_tw_deblur import TestTWDeblur
+    tests.addTests(loader.loadTestsFromTestCase(TestJPDeblur))
+    tests.addTests(loader.loadTestsFromTestCase(TestTWDeblur))
+    return tests
 
 
 if __name__ == '__main__':
