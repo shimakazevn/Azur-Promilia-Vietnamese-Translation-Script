@@ -2,11 +2,11 @@
 
 Only workspace candidates are written. Alignment padding holds CRC fixups.
 """
-import sys,struct,json,io,hashlib,zlib,time,warnings
+import sys,struct,json,io,hashlib,os,zlib,time,warnings
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 HERE=Path(__file__).resolve().parent
-OLD=Path(r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work')
+OLD=Path(os.environ.get('AZUR_WORK_DIR', r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work'))
 sys.path[:0]=[str(OLD/'game_decrypt_bundle'),str(OLD/'analysis_deps'),str(OLD/'font_deps')]
 from unity_setup import UnityPy
 from reencrypt_bundle import encrypt_lz4
@@ -19,8 +19,8 @@ import crcchain as C
 from crcpatch import patch_crc
 from now_cases import CASES
 warnings.filterwarnings('ignore',message='No valid Unity version found')
-DATA=Path(r'E:\AzurPromilia_TC\AzurPromilia_TC_game\AzurPromilia_Data')
-PAY=Path(r'D:\windows\Desktop\蓝色星原简体汉化独立版\payload\tw_game')
+DATA=Path(os.environ.get('AZUR_TW_DATA', r'E:\AzurPromilia_TC\AzurPromilia_TC_game\AzurPromilia_Data'))
+PAY=Path(os.environ.get('AZUR_TW_OLD_PACK', r'D:\windows\Desktop\蓝色星原简体汉化独立版\payload\tw_game'))
 OUT=HERE/'fixed_candidates'
 def emit(x): print(json.dumps(x,ensure_ascii=False),flush=True)
 def meta(raw):

@@ -1,16 +1,17 @@
+import ctypes
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import time
-import ctypes
 from ctypes import wintypes
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 PACK = ROOT / 'outputs' / '日服简体汉化-清单只读CRC版'
-LIVE = Path(r'E:\YostarGames\AZUPRO_JP')
+LIVE = Path(os.environ.get('AZUR_JP_ROOT', r'E:\YostarGames\AZUPRO_JP'))
 DATA = LIVE / 'AzurPromiliaJP_Data'
 ORIGINAL_BACKUP = LIVE / '.zhcn-jp-3219598-backup'
 ORIGINALS = HERE / 'originals'
@@ -68,8 +69,16 @@ def verify_fixture(plan, patched):
         assert sha(safe_child(FD, record['relative_path'])) == record['sha256']
 
 
+def load_plan():
+    for name in ('tools/jp-deployment.json', 'tools/crc-deployment.json'):
+        p = PACK / name
+        if p.is_file():
+            return json.loads(p.read_text(encoding='utf-8-sig'))
+    raise FileNotFoundError(PACK / 'tools/jp-deployment.json')
+
+
 def main():
-    plan = json.loads((PACK / 'tools/crc-deployment.json').read_text(encoding='utf-8-sig'))
+    plan = load_plan()
     assert plan['region'] == 'jp'
     assert plan['files'] and plan['readonly_files']
     records = plan['files'] + plan['readonly_files']

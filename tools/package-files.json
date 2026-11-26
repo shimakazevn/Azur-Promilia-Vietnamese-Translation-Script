@@ -9,6 +9,11 @@
   ],
   "files": [
     {
+      "path": "README.md",
+      "size": 4380,
+      "sha256": "7a51001a8d5480d0415491f065a0e3fd9cf3ca32a4b3cb07272522177d26c3d6"
+    },
+    {
       "path": "payload/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
       "size": 4993892,
       "sha256": "b5370a3923e57a32a44e971c794b449388ae9c26540f292aac61b521e174c403"
@@ -22,11 +27,6 @@
       "path": "payload/jp_game/.res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
       "size": 28840170,
       "sha256": "756df348092dd4669a51e1422d0a6c2caa09eda968a33d48e20599ee254a2c66"
-    },
-    {
-      "path": "payload/jp_game/resources.assets",
-      "size": 48578276,
-      "sha256": "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228"
     },
     {
       "path": "payload/jp_game/StreamingAssets/.res/default_package/awcxxitzquckttvmx0c5q.r",
@@ -64,6 +64,11 @@
       "sha256": "e186cb46f669fe19bf29dd30ecd21e4ce91bc527497368b7c7211659f16d4984"
     },
     {
+      "path": "payload/jp_game/resources.assets",
+      "size": 48578276,
+      "sha256": "4184dc249acb4af706a78ef3ad365ca04407e2197bd3de801c8fc7c281648228"
+    },
+    {
       "path": "payload/jp_launcher/resources/app.asar",
       "size": 71397348,
       "sha256": "4e4cf6c92463734bc33c617a0434e1031ac2c4e504862156caae4027c92a5042"
@@ -82,11 +87,6 @@
       "path": "payload/tw_game/.res/raw_streaming_package/BundleFiles/3iffxeedh2grvnbn2iag.r",
       "size": 37322073,
       "sha256": "620cb1c8dfa18da467cc155577f8d03df0ca3a3617e2de8af4fe3ee7d2a94c7f"
-    },
-    {
-      "path": "payload/tw_game/resources.assets",
-      "size": 14235376,
-      "sha256": "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25"
     },
     {
       "path": "payload/tw_game/StreamingAssets/.res/default_package/a66pm5ie1rrjguuzlsyq.r",
@@ -109,24 +109,44 @@
       "sha256": "0ee7a720a92c3ca9924c128c63beaa83b5bd338a6ce50689e3e6a1bb1603e8f9"
     },
     {
+      "path": "payload/tw_game/resources.assets",
+      "size": 14235376,
+      "sha256": "5c1af532a79dbae32a297418c0782447960142e8c95d28bbfb099b5301206b25"
+    },
+    {
       "path": "payload/tw_launcher/resources/app.asar",
       "size": 29481035,
       "sha256": "42a6240ba33f793c247fb44cd5fdf211670a9256c09513366155277912393a47"
     },
     {
       "path": "tools/Apply-CRCZH.ps1",
-      "size": 12469,
-      "sha256": "b0f9368c9c43ec2458c64907c235a2897a04e56847d39db121939c9d1ce8c6e1"
+      "size": 2087,
+      "sha256": "7174f527762222b6d65a5e207f091b0b0373e712d06d0e2691eb0bb9810f11a7"
     },
     {
       "path": "tools/Apply-JPCRCZH.ps1",
-      "size": 12442,
-      "sha256": "9f785e6f0934f4efae6aecff8ba55fba9db706cb3a05e588b0d250345817ad26"
+      "size": 2043,
+      "sha256": "b47c1ec782ab2f64eb883a5767e6fc30203ff9f1afed190e1d7c33cf99908909"
     },
     {
       "path": "tools/Apply-Launchers.ps1",
-      "size": 7058,
-      "sha256": "c8a93e3a833b8fc8eb1657ade640caa5c51d6ace40d0f3f1e11c1f38c433c557"
+      "size": 9169,
+      "sha256": "9c48f22b600295fefc63a21fe4eb2815797052a022565434a8c0ecdae04e6acc"
+    },
+    {
+      "path": "tools/Localization-Common.ps1",
+      "size": 31594,
+      "sha256": "7a085bec721f193705a4d3350660e9d094393cb8a5dd2fa1c5fa6b72d4ac9e93"
+    },
+    {
+      "path": "tools/Locate-Installations.ps1",
+      "size": 11151,
+      "sha256": "0602a02509cf3f84bf8b7a40493d831a57a180b96d0e6374d4e03dc07edadf82"
+    },
+    {
+      "path": "tools/Manage-Localization.ps1",
+      "size": 32773,
+      "sha256": "220f1ae2ffd1fa0b69a27c458c6cd8770cb224efb88d5354e6ae7af384c5db8e"
     },
     {
       "path": "tools/jp-deployment.json",
@@ -139,29 +159,14 @@
       "sha256": "432b65fd32982a043b1f0a73b1a789578f656ebb058e37521ee00f2243b30ed1"
     },
     {
-      "path": "tools/Locate-Installations.ps1",
-      "size": 6598,
-      "sha256": "ab6ce007f3c8c85a89a5cedfb14d260008416e8d75cf9c30c4309e6e8cb92b78"
-    },
-    {
-      "path": "tools/Manage-Localization.ps1",
-      "size": 23385,
-      "sha256": "837cbd7446d74a7d73d62b786068a57eb22f79ea1c209a0271347b6576a60799"
-    },
-    {
       "path": "tools/tw-deployment.json",
       "size": 13940,
       "sha256": "a125eec73bbd1b72a7db035f2371ef7e9bf3cb7419c2742f03a368a51c64c34a"
     },
     {
-      "path": "使用说明.txt",
-      "size": 1281,
-      "sha256": "fd148a05239474f47f7546e579788f4ba6c3ca001fc1e0e51c796bfa7b1c99b6"
-    },
-    {
       "path": "双击运行.bat",
-      "size": 465,
-      "sha256": "866e791091a163fd7ff20b3d70c68abef2766069ea31017909dbfff3c798447d"
+      "size": 629,
+      "sha256": "6caccc9e278d9733bd59eb6f67f0eeabcce18d717731e1bcf0e1798da51da39c"
     }
   ]
 }

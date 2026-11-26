@@ -1,6 +1,8 @@
 # 忽略缓存、资源及打包文件。
 __pycache__/
 *.pyc
+.pytest_cache/
 dist/
 payload/
+tools/logs/
 *.zip

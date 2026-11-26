@@ -15,8 +15,8 @@ import crcchain as C
 from reencrypt_bundle import wrap
 from fontTools.ttLib import TTFont
 from fontTools.pens.recordingPen import DecomposingRecordingPen
-BACKUP = Path(r'E:\YostarGames\AZUPRO_JP\.zhcn-jp-3219598-backup')
-OLD = Path(r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work\jp_localization')
+BACKUP = Path(os.environ.get('AZUR_JP_ROOT', r'E:\YostarGames\AZUPRO_JP')) / '.zhcn-jp-3219598-backup'
+OLD = Path(os.environ.get('AZUR_WORK_DIR', r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work')) / 'jp_localization'
 TARGET = OLD/'game_candidate'
 OUT = HERE/'fixed_candidates'
 REPORT = HERE/'bundle_report.json'
