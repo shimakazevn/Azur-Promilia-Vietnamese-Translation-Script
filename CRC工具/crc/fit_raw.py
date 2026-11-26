@@ -18,7 +18,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 OLD = Path(os.environ.get('AZUR_WORK_DIR', r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work'))
-sys.path[:0] = [str(OLD / 'game_compare_manifests'), str(OLD / 'game_decrypt_paths'), str(OLD / 'game_mmap')]
+sys.path[:0] = [str(HERE.parent / 'resource_decode'), str(OLD / 'game_compare_manifests'), str(OLD / 'game_decrypt_paths'), str(OLD / 'game_mmap')]
 from vstring_pool import VStringPool
 from rebuild_vstring import HashIndex
 from parse_language_tables import read_index, read_rows
