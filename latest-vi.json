@@ -1,23 +1,23 @@
 {
   "schema_version": 1,
   "language": "vi",
-  "version": "v1.0.1",
-  "published_at": "2026-11-26T08:36:29Z",
+  "version": "v1.0.2",
+  "published_at": "2026-11-26T12:45:12Z",
   "repo": "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script",
   "jp_resource_version": "3219598",
   "jp_builtin_version": "3075915",
   "jp_launcher_version": "1.8.1",
   "full_package": {
-    "filename": "AzurPromilia-Localization-Full-vi-v1.0.1.zip",
-    "size": 268654044,
-    "sha256": "740294949e7bdcd436dc74914f17757d6842ca6ce2d3abdb4d9a8ea53451677d",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.1/AzurPromilia-Localization-Full-vi-v1.0.1.zip"
+    "filename": "AzurPromilia-Localization-Full-vi-v1.0.2.zip",
+    "size": 268621386,
+    "sha256": "7b30d2eede7883486249a3403af3edac8a3e559956bc0e38df539e72cf1bb1cf",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.2/AzurPromilia-Localization-Full-vi-v1.0.2.zip"
   },
   "installer": {
     "filename": "AzurPromilia-VI-Setup.exe",
     "size": 39936,
-    "sha256": "4909d7e0a8e07e009ec099be07d18570379634de840f84bd3db30ea615699611",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.1/AzurPromilia-VI-Setup.exe"
+    "sha256": "46155a531a6b637e799a2da074a215dba29289b37d7e059629cbde50079d8fa3",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.2/AzurPromilia-VI-Setup.exe"
   },
-  "notes": "Việt hóa JP client 3219598 (67.979 VStringPool + 3.573 AST UI + 113 built-in CSV + Font Việt hóa + JP Launcher 1.8.1)."
+  "notes": "v1.0.2: Hoàn thiện UI chuẩn Genshin-RPG gọn nhẹ (Túi, Đội, Du Ký, Sổ Tay, Vọng Tinh, Trang Viên, Break, Shield, Bạo Kích), sửa các lỗi dịch máy & đảo ngữ Hán-Việt (JP client 3219598 + Launcher 1.8.1)."
 }

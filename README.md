@@ -11,7 +11,7 @@ Fork của [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github
 | Ngôn ngữ | Trạng thái | Payload |
 | --- | --- | --- |
 | `zhcn` — 简体中文 | ✅ Dùng được như bản gốc | Có trong Release gốc (`AzurPromilia-Localization-Full-v3.zip`) |
-| `vi` — Tiếng Việt | ✅ Đã phát hành (JP Client `3219598` + Launcher `1.8.1`) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases) (`AzurPromilia-VI-Setup.exe` & `AzurPromilia-Localization-Full-vi-v1.0.1.zip`) |
+| `vi` — Tiếng Việt | ✅ Đã phát hành (JP Client `3219598` + Launcher `1.8.1`) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases) (`AzurPromilia-VI-Setup.exe` & `AzurPromilia-Localization-Full-vi-v1.0.2.zip`) |
 | `en` — English | 🛠️ Scaffolding only | ❌ **Not built yet** — `target_sha256` is 64 zeros, Apply refuses |
 
 Bản source Git nhỏ gọn không chứa file payload (~268 MB) — các file thay thế + bộ cài tự động cập nhật nằm tại mục **Releases**. (`tw_game` & `tw_launcher` ở bản VI vẫn giữ nguyên bản gốc).
@@ -34,10 +34,10 @@ Mỗi ngôn ngữ dùng bộ清单 riêng và thư mục riêng, để không l�
 
 ## Tải về & Cài đặt nhanh (Tiếng Việt — Auto-Update)
 
-Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-vietnamese-Translation-Script/releases/latest):
+Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest):
 
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~40 KB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa** (tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game).
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.1.zip`** (~256 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.2.zip`** (~268 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 **Lưu ý:** Repo mã nguồn không đính kèm file payload nhị phân; tải Source ZIP từ nút Code sẽ không có sẵn file thay thế. Để dùng bản Trung (`zhcn`) gốc, xem [Releases bản gốc](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases).
 

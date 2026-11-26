@@ -125,7 +125,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': 'Việt hóa JP client 3219598 (67.979 VStringPool + 3.573 AST UI + 113 built-in CSV + Font Việt hóa + JP Launcher 1.8.1).',
+            'notes': 'v1.0.2: Hoàn thiện UI chuẩn Genshin-RPG gọn nhẹ (Túi, Đội, Du Ký, Sổ Tay, Vọng Tinh, Trang Viên, Break, Shield, Bạo Kích), sửa các lỗi dịch máy & đảo ngữ Hán-Việt (JP client 3219598 + Launcher 1.8.1).',
         }
         latest_txt = json.dumps(latest, indent=2, ensure_ascii=False) + '\n'
         (ROOT / 'latest-vi.json').write_text(latest_txt, encoding='utf-8')
