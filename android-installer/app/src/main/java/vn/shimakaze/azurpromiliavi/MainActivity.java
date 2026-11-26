@@ -30,7 +30,13 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.provider.Settings;
+
 import androidx.core.content.FileProvider;
+import androidx.core.content.pm.PackageInfoCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -73,6 +79,8 @@ public class MainActivity extends Activity {
 
     private static final String PREFS_NAME = "azur_vi_mobile_prefs";
     private static final String KEY_INSTALLED_VER = "installed_patch_version";
+    private static final String KEY_INSTALLED_ZIP_SHA = "installed_patch_zip_sha256";
+    private static final String KEY_INSTALLED_PAYLOAD_HASH = "installed_patch_payload_hash";
     private static final String KEY_CACHED_PLAN = "cached_deployment_json";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -101,6 +109,7 @@ public class MainActivity extends Activity {
     private JSONObject remoteInfo = null;
     private String currentPlanJson = "";
     private JSONObject lastProbe = null;
+    private File pendingInstallApk = null;
 
     private final Shizuku.UserServiceArgs userServiceArgs =
             new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, ViPatchService.class.getName()))
@@ -174,6 +183,12 @@ public class MainActivity extends Activity {
         super.onResume();
         updateShizukuUi();
         ensureServiceBound();
+        if (pendingInstallApk != null && pendingInstallApk.isFile()
+                && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls())) {
+            File toInstall = pendingInstallApk;
+            pendingInstallApk = null;
+            launchApkInstaller(toInstall);
+        }
     }
 
     @Override
@@ -207,21 +222,27 @@ public class MainActivity extends Activity {
     // UI Construction (Dark Luxury Modern Theme)
     // -------------------------------------------------------------------------
     private void buildUi() {
+        LinearLayout outer = new LinearLayout(this);
+        outer.setOrientation(LinearLayout.VERTICAL);
+        outer.setBackgroundColor(Color.parseColor("#0B101B"));
+        ViewCompat.setOnApplyWindowInsetsListener(outer, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(Color.parseColor("#0B101B"));
         scroll.setFillViewport(true);
-        scroll.setFitsSystemWindows(true);
+        scroll.setClipToPadding(true);
+        outer.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = dp(16);
-        root.setPadding(pad, dp(20), pad, dp(24));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            scroll.setOnApplyWindowInsetsListener((v, insets) -> {
-                root.setPadding(pad, dp(16) + insets.getSystemWindowInsetTop(), pad, dp(20) + insets.getSystemWindowInsetBottom());
-                return insets;
-            });
-        }
+        root.setPadding(pad, dp(16), pad, dp(24));
         scroll.addView(root);
 
         // Header
@@ -233,7 +254,7 @@ public class MainActivity extends Activity {
         root.addView(title);
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("App " + BuildConfig.VERSION_NAME + " · Không cần Root · Giữ nguyên chữ ký APK gốc");
+        subtitle.setText("App " + getAppVersionName() + " · Không cần Root · Giữ nguyên chữ ký APK gốc");
         subtitle.setTextColor(Color.parseColor("#94A3B8"));
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
         subtitle.setPadding(0, dp(4), 0, dp(12));
@@ -320,8 +341,8 @@ public class MainActivity extends Activity {
         tvLog.setMaxLines(12);
         cLog.addView(tvLog);
 
-        setContentView(scroll);
-        log("Khởi động tool (" + BuildConfig.VERSION_NAME + "). Đang kiểm tra GitHub...");
+        setContentView(outer);
+        log("Khởi động tool (" + getAppVersionName() + "). Đang kiểm tra GitHub...");
     }
 
     private LinearLayout makeCard(LinearLayout parent, String heading) {
@@ -584,15 +605,102 @@ public class MainActivity extends Activity {
                 sb.append("ℹ️ Việt hóa: ").append(vi).append("/").append(total)
                   .append(" · Gốc: ").append(orig).append("/").append(total);
             }
-            sb.append(" · Backup gốc: ").append(bak).append("/").append(total);
+            if (bak > 0) {
+                sb.append(" · Backup gốc: ").append(bak).append("/").append(total);
+            } else {
+                sb.append(" · Chưa có backup gốc");
+            }
         }
         tvGameStatus.setText(sb.toString());
         evaluateUpdateNotifications();
+        maybeShowUpdatePopup();
     }
 
     // -------------------------------------------------------------------------
     // Auto-Update Check (GitHub latest-vi.json + Releases API fallback)
     // -------------------------------------------------------------------------
+    private long getAppVersionCode() {
+        try {
+            PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return PackageInfoCompat.getLongVersionCode(pi);
+        } catch (Throwable t) {
+            return BuildConfig.VERSION_CODE;
+        }
+    }
+
+    private String getAppVersionName() {
+        try {
+            PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            if (pi.versionName != null && !pi.versionName.trim().isEmpty()) {
+                return pi.versionName.trim();
+            }
+        } catch (Throwable ignored) {
+        }
+        return BuildConfig.VERSION_NAME;
+    }
+
+    private boolean isRemoteApkNewer(JSONObject apk) {
+        if (apk == null) return false;
+        long remoteCode = apk.optLong("version_code", 0);
+        long localCode = getAppVersionCode();
+        String remoteVer = apk.optString("version", "");
+        if (remoteCode > 0 && localCode > 0) {
+            if (remoteCode != localCode) return remoteCode > localCode;
+            return false;
+        }
+        return !remoteVer.isEmpty() && compareSemver(remoteVer, getAppVersionName()) > 0;
+    }
+
+    private boolean isRemotePatchNewer(JSONObject remote) {
+        if (remote == null) return false;
+        JSONObject an = remote.optJSONObject("android");
+        if (an == null) return false;
+        String remotePatchVer = remote.optString("version", "");
+        String remotePayloadHash = an.optString("payload_hash", "");
+        String remoteZipSha = an.optString("sha256", "");
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String localPatchVer = prefs.getString(KEY_INSTALLED_VER, "");
+        String installedZipSha = prefs.getString(KEY_INSTALLED_ZIP_SHA, "");
+        String installedPayloadHash = prefs.getString(KEY_INSTALLED_PAYLOAD_HASH, "");
+
+        boolean gameAlreadyVi = lastProbe != null
+                && lastProbe.optInt("total", 0) > 0
+                && lastProbe.optInt("vi_count", 0) == lastProbe.optInt("total", 0);
+        String probePayloadHash = lastProbe != null ? lastProbe.optString("payload_hash", "") : "";
+
+        if (gameAlreadyVi) {
+            if (!remotePayloadHash.isEmpty() && remotePayloadHash.equalsIgnoreCase(probePayloadHash)) {
+                if (!remotePatchVer.equals(localPatchVer) || !remotePayloadHash.equalsIgnoreCase(installedPayloadHash)) {
+                    prefs.edit()
+                            .putString(KEY_INSTALLED_VER, remotePatchVer)
+                            .putString(KEY_INSTALLED_PAYLOAD_HASH, remotePayloadHash)
+                            .apply();
+                }
+                return false;
+            }
+            if (!remoteZipSha.isEmpty() && remoteZipSha.equalsIgnoreCase(installedZipSha)) {
+                return false;
+            }
+            if (!localPatchVer.isEmpty()) {
+                return compareSemver(remotePatchVer, localPatchVer) > 0;
+            }
+            return false;
+        }
+        if (lastProbe == null) {
+            return false; // Wait until game files are probed before claiming a patch update
+        }
+        return !localPatchVer.isEmpty() && compareSemver(remotePatchVer, localPatchVer) > 0;
+    }
+
+    private void cleanupStaleApkUpdate() {
+        try {
+            File apkFile = new File(new File(getExternalFilesDir(null), "updates"), "AzurPromilia-VI-Mobile-update.apk");
+            if (apkFile.isFile()) apkFile.delete();
+        } catch (Throwable ignored) {
+        }
+    }
+
     private void checkUpdatesAsync(boolean showPopupIfNew) {
         executor.execute(() -> {
             try {
@@ -603,17 +711,12 @@ public class MainActivity extends Activity {
                     return;
                 }
                 remoteInfo = data;
+                JSONObject anObj = data.optJSONObject("android");
+                JSONObject apkObj = anObj != null ? anObj.optJSONObject("apk") : null;
+                if (!isRemoteApkNewer(apkObj)) {
+                    cleanupStaleApkUpdate();
+                }
                 runOnUiThread(() -> {
-                    String ver = data.optString("version", "");
-                    JSONObject an = data.optJSONObject("android");
-                    String rVer = an != null ? an.optString("resource_version", "") : "";
-                    long sz = an != null ? an.optLong("size", 0) : 0;
-                    String apkVer = (an != null && an.optJSONObject("apk") != null)
-                            ? an.optJSONObject("apk").optString("version", "") : "";
-                    tvRemoteStatus.setText(String.format(Locale.ROOT,
-                            "🌐 Bản mới nhất trên GitHub: %s (Mobile res %s · %.1f MB%s)",
-                            ver, rVer, sz / (1024.0 * 1024.0),
-                            apkVer.isEmpty() ? "" : " · App " + apkVer));
                     evaluateUpdateNotifications();
                     if (showPopupIfNew) maybeShowUpdatePopup();
                 });
@@ -640,13 +743,15 @@ public class MainActivity extends Activity {
                 JSONObject rel = new JSONObject(api);
                 String tag = rel.optString("tag_name", "");
                 JSONArray assets = rel.optJSONArray("assets");
-                String zipUrl = "", zipName = "", apkUrl = "", apkName = "";
+                String zipUrl = "", zipName = "", apkUrl = "", apkName = "", latestJsonUrl = "";
                 long zipSize = 0, apkSize = 0;
                 if (assets != null) {
                     for (int i = 0; i < assets.length(); i++) {
                         JSONObject a = assets.getJSONObject(i);
                         String n = a.optString("name", "");
-                        if (n.startsWith("AzurPromilia-Localization-Android-vi-") && n.endsWith(".zip")) {
+                        if (n.equals("latest-vi.json")) {
+                            latestJsonUrl = a.optString("browser_download_url", "");
+                        } else if (n.startsWith("AzurPromilia-Localization-Android-vi-") && n.endsWith(".zip")) {
                             zipUrl = a.optString("browser_download_url", "");
                             zipName = n;
                             zipSize = a.optLong("size", 0);
@@ -655,6 +760,16 @@ public class MainActivity extends Activity {
                             apkName = n;
                             apkSize = a.optLong("size", 0);
                         }
+                    }
+                }
+                if (!latestJsonUrl.isEmpty()) {
+                    try {
+                        String assetJson = httpGetString(latestJsonUrl);
+                        if (assetJson != null && assetJson.trim().startsWith("{")) {
+                            JSONObject j = new JSONObject(assetJson);
+                            if (j.has("android")) return j;
+                        }
+                    } catch (Throwable ignored) {
                     }
                 }
                 if (!zipUrl.isEmpty()) {
@@ -689,26 +804,32 @@ public class MainActivity extends Activity {
         if (remoteInfo == null) return;
         String remotePatchVer = remoteInfo.optString("version", "");
         JSONObject an = remoteInfo.optJSONObject("android");
+        String rVer = an != null ? an.optString("resource_version", "") : "";
+        long sz = an != null ? an.optLong("size", 0) : 0;
         JSONObject apk = an != null ? an.optJSONObject("apk") : null;
         String remoteApkVer = apk != null ? apk.optString("version", "") : "";
+        String localAppVer = getAppVersionName();
 
-        boolean hasNewApk = !remoteApkVer.isEmpty() && compareSemver(remoteApkVer, BuildConfig.VERSION_NAME) > 0;
-        String localPatchVer = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_INSTALLED_VER, "");
+        boolean hasNewApk = isRemoteApkNewer(apk);
+        boolean hasNewPatch = isRemotePatchNewer(remoteInfo);
         boolean gameAlreadyVi = lastProbe != null
                 && lastProbe.optInt("total", 0) > 0
                 && lastProbe.optInt("vi_count", 0) == lastProbe.optInt("total", 0);
-        boolean hasNewPatch = !remotePatchVer.isEmpty() && (
-                (!localPatchVer.isEmpty() && compareSemver(remotePatchVer, localPatchVer) > 0)
-                || (gameAlreadyVi && localPatchVer.isEmpty())
-                || (lastProbe != null && lastProbe.optInt("orig_count", 0) > 0)
-        );
+
+        tvRemoteStatus.setText(String.format(Locale.ROOT,
+                "🌐 GitHub: %s (Mobile res %s · %.1f MB%s%s)",
+                remotePatchVer, rVer, sz / (1024.0 * 1024.0),
+                remoteApkVer.isEmpty() ? "" : " · App " + remoteApkVer,
+                (!hasNewApk && !hasNewPatch && gameAlreadyVi) ? " · Đã đồng bộ" : ""));
+
+        String localPatchVer = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_INSTALLED_VER, "");
 
         if (hasNewApk) {
             tvUpdateBanner.setVisibility(View.VISIBLE);
             tvUpdateBanner.setBackground(makeCardBg("#1E3A8A", "#38BDF8", 12));
-            tvUpdateBanner.setText("🔔 CÓ BẢN APP MỚI " + remoteApkVer + " (hiện tại " + BuildConfig.VERSION_NAME + ") — Chạm vào đây để cập nhật App!");
+            tvUpdateBanner.setText("🔔 CÓ BẢN APP MỚI " + remoteApkVer + " (hiện tại " + localAppVer + ") — Chạm vào đây để cập nhật App!");
             tvUpdateBanner.setOnClickListener(v -> startSelfApkUpdate(apk));
-        } else if (hasNewPatch && !localPatchVer.isEmpty() && compareSemver(remotePatchVer, localPatchVer) > 0) {
+        } else if (hasNewPatch) {
             tvUpdateBanner.setVisibility(View.VISIBLE);
             tvUpdateBanner.setBackground(makeCardBg("#064E3B", "#10B981", 12));
             tvUpdateBanner.setText("🆕 Đã có bản Việt Hóa mới " + remotePatchVer + " (đang cài " + localPatchVer + ") — Bấm nút 'Tải & Cài Đặt' hoặc chạm đây!");
@@ -728,15 +849,15 @@ public class MainActivity extends Activity {
         String localPatchVer = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_INSTALLED_VER, "");
         String notes = remoteInfo.optString("notes", "");
 
-        if (!remoteApkVer.isEmpty() && compareSemver(remoteApkVer, BuildConfig.VERSION_NAME) > 0) {
+        if (isRemoteApkNewer(apk)) {
             autoUpdateDialogShown = true;
             new AlertDialog.Builder(this)
                     .setTitle("Có bản App Việt Hóa mới (" + remoteApkVer + ")")
-                    .setMessage("Phiên bản app hiện tại: " + BuildConfig.VERSION_NAME + "\nPhiên bản mới trên GitHub: " + remoteApkVer + "\n\n" + notes)
+                    .setMessage("Phiên bản app hiện tại: " + getAppVersionName() + "\nPhiên bản mới trên GitHub: " + remoteApkVer + "\n\n" + notes)
                     .setPositiveButton("Tải & Cài đặt App", (d, w) -> startSelfApkUpdate(apk))
                     .setNegativeButton("Để sau", null)
                     .show();
-        } else if (!remotePatchVer.isEmpty() && !localPatchVer.isEmpty() && compareSemver(remotePatchVer, localPatchVer) > 0) {
+        } else if (lastProbe != null && isRemotePatchNewer(remoteInfo)) {
             autoUpdateDialogShown = true;
             new AlertDialog.Builder(this)
                     .setTitle("Có bản dịch Việt Hóa mới (" + remotePatchVer + ")")
@@ -790,36 +911,74 @@ public class MainActivity extends Activity {
                 File dir = new File(getExternalFilesDir(null), "updates");
                 dir.mkdirs();
                 File apkFile = new File(dir, "AzurPromilia-VI-Mobile-update.apk");
-                log("Đang tải APK mới: " + url);
-                downloadFile(url, apkFile, apkObj.optLong("size", 0), "Đang tải APK mới");
-                if (!expectedSha.isEmpty()) {
-                    String got = sha256File(apkFile);
-                    if (!got.equals(expectedSha)) {
-                        throw new RuntimeException("SHA-256 APK tải về không khớp!");
+                if (!apkFile.isFile() || expectedSha.isEmpty() || !sha256File(apkFile).equals(expectedSha)) {
+                    log("Đang tải APK mới: " + url);
+                    downloadFile(url, apkFile, apkObj.optLong("size", 0), "Đang tải APK mới");
+                    if (!expectedSha.isEmpty()) {
+                        String got = sha256File(apkFile);
+                        if (!got.equals(expectedSha)) {
+                            apkFile.delete();
+                            throw new RuntimeException("SHA-256 APK tải về không khớp!");
+                        }
                     }
+                } else {
+                    log("Dùng lại APK mới đã tải (SHA-256 khớp).");
                 }
-                log("Tải APK hoàn tất, mở trình cài đặt...");
+
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                if (archiveInfo == null || !getPackageName().equals(archiveInfo.packageName)) {
+                    apkFile.delete();
+                    throw new RuntimeException("File APK tải về không hợp lệ hoặc sai package.");
+                }
+                long archiveCode = PackageInfoCompat.getLongVersionCode(archiveInfo);
+                if (archiveCode <= getAppVersionCode()) {
+                    apkFile.delete();
+                    log("ℹ️ Bản đang cài (" + getAppVersionName() + ") đã là mới nhất so với APK tải về.");
+                    runOnUiThread(() -> {
+                        setBusy(false);
+                        setProgressUi(false, 0, "");
+                        evaluateUpdateNotifications();
+                        toast("Bạn đang ở bản APK mới nhất rồi!");
+                    });
+                    return;
+                }
+
+                log("Tải APK hoàn tất (code " + archiveCode + "), mở trình cài đặt...");
                 runOnUiThread(() -> {
                     setBusy(false);
-                    try {
-                        Uri contentUri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".fileprovider", apkFile);
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(intent);
-                    } catch (Throwable t) {
-                        log("Không mở được bộ cài trực tiếp (" + t.getMessage() + "), mở trình duyệt...");
-                        openUrl(url);
-                    }
+                    setProgressUi(false, 0, "");
+                    launchApkInstaller(apkFile);
                 });
             } catch (Throwable t) {
                 log("❌ Lỗi tải APK mới: " + t.getMessage());
                 runOnUiThread(() -> {
                     setBusy(false);
+                    setProgressUi(false, 0, "");
                     toast("Lỗi tải APK: " + t.getMessage());
                 });
             }
         });
+    }
+
+    private void launchApkInstaller(File apkFile) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+                pendingInstallApk = apkFile;
+                toast("Hãy bật 'Cho phép từ nguồn này' rồi quay lại để tự mở cài đặt!");
+                Intent permIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(permIntent);
+                return;
+            }
+            Uri contentUri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".fileprovider", apkFile);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Throwable t) {
+            log("Không mở được bộ cài trực tiếp (" + t.getMessage() + "), mở trình duyệt...");
+            openUrl(RELEASES_PAGE_URL);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -839,7 +998,7 @@ public class MainActivity extends Activity {
         String url = an.optString("url", "");
         String expectedSha = an.optString("sha256", "").toLowerCase(Locale.ROOT);
         long expectedSize = an.optLong("size", 0);
-        String ver = remoteInfo.optString("version", "v1.0.2");
+        String ver = remoteInfo.optString("version", getAppVersionName());
 
         setBusy(true);
         executor.execute(() -> {
@@ -860,7 +1019,7 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                applyFromZipStream(new FileInputStream(zipFile), ver);
+                applyFromZipStream(new FileInputStream(zipFile), ver, expectedSha);
             } catch (Throwable t) {
                 log("❌ Lỗi cài đặt Online: " + t.getMessage());
                 runOnUiThread(() -> {
@@ -896,7 +1055,7 @@ public class MainActivity extends Activity {
                     log("Đang giải nén file ZIP đã chọn...");
                     InputStream is = getContentResolver().openInputStream(uri);
                     if (is == null) throw new RuntimeException("Không đọc được file đã chọn.");
-                    applyFromZipStream(is, "offline");
+                    applyFromZipStream(is, "offline", "");
                 } catch (Throwable t) {
                     log("❌ Lỗi cài đặt Offline: " + t.getMessage());
                     runOnUiThread(() -> {
@@ -909,7 +1068,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void applyFromZipStream(InputStream rawIn, String labelVer) throws Exception {
+    private void applyFromZipStream(InputStream rawIn, String labelVer, String expectedZipSha) throws Exception {
         File staging = new File(getExternalFilesDir(null), "staging");
         deleteRecursive(staging);
         staging.mkdirs();
@@ -971,9 +1130,19 @@ public class MainActivity extends Activity {
             throw new RuntimeException(result == null ? "Không nhận được phản hồi từ Shizuku" : result.replaceFirst("^ERR:", ""));
         }
 
+        SharedPreferences.Editor ed = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
         if (!"offline".equals(labelVer)) {
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString(KEY_INSTALLED_VER, labelVer).apply();
+            ed.putString(KEY_INSTALLED_VER, labelVer);
         }
+        if (expectedZipSha != null && !expectedZipSha.isEmpty()) {
+            ed.putString(KEY_INSTALLED_ZIP_SHA, expectedZipSha.toLowerCase(Locale.ROOT));
+        }
+        String payloadHash = computeManifestPayloadHash(extractedManifest);
+        if (!payloadHash.isEmpty()) {
+            ed.putString(KEY_INSTALLED_PAYLOAD_HASH, payloadHash);
+        }
+        ed.apply();
+
         log("🎉 HOÀN TẤT! Đã cài đặt thành công " + result.substring(3) + " file Việt hóa + verify SHA-256.");
         runOnUiThread(() -> {
             setBusy(false);
@@ -990,6 +1159,16 @@ public class MainActivity extends Activity {
 
     private void confirmRestore() {
         if (busy || patchService == null) return;
+        int total = lastProbe != null ? lastProbe.optInt("total", 7) : 7;
+        int bak = lastProbe != null ? lastProbe.optInt("backup_count", -1) : -1;
+        if (bak >= 0 && bak < total) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Chưa có bản sao lưu gốc (" + bak + "/" + total + ")")
+                    .setMessage("Không tìm thấy đủ 7 file gốc trong bộ nhớ sao lưu của App.\n\nNguyên nhân thường gặp: bạn đã cài Việt hóa thủ công qua PC/ADB trước khi dùng App nên App chưa kịp sao lưu bản gốc.\n\nHãy mở game và dùng tính năng Verify / Repair tài nguyên để tải lại file gốc, hoặc chạy 'Apply-AndroidVI.ps1 -Action Restore' trên PC nếu có bản backup cũ.")
+                    .setPositiveButton("Đã hiểu", null)
+                    .show();
+            return;
+        }
         new AlertDialog.Builder(this)
                 .setTitle("Khôi phục bản gốc JP?")
                 .setMessage("Thao tác này sẽ trả lại 7 file gốc ban đầu từ bản sao lưu để gỡ Việt Hóa.")
@@ -1012,7 +1191,11 @@ public class MainActivity extends Activity {
                 if (res == null || !res.startsWith("OK:")) {
                     throw new RuntimeException(res == null ? "Shizuku null" : res.replaceFirst("^ERR:", ""));
                 }
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().remove(KEY_INSTALLED_VER).apply();
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .remove(KEY_INSTALLED_VER)
+                        .remove(KEY_INSTALLED_ZIP_SHA)
+                        .remove(KEY_INSTALLED_PAYLOAD_HASH)
+                        .apply();
                 log("↩️ Đã khôi phục bản gốc JP (" + res.substring(3) + " file) và kiểm tra SHA-256 thành công.");
                 runOnUiThread(() -> {
                     setBusy(false);
@@ -1040,14 +1223,41 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static String computeManifestPayloadHash(String manifestJson) {
+        if (manifestJson == null || manifestJson.trim().isEmpty()) return "";
+        try {
+            JSONObject plan = new JSONObject(manifestJson);
+            JSONArray arr = plan.getJSONArray("files");
+            List<String> rows = new ArrayList<>(arr.length());
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject item = arr.getJSONObject(i);
+                String rel = item.getString("relative_path").replace('\\', '/');
+                String tgt = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+                rows.add(rel + ":" + tgt + "\n");
+            }
+            java.util.Collections.sort(rows);
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            for (String r : rows) md.update(r.getBytes(StandardCharsets.UTF_8));
+            byte[] d = md.digest();
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : d) sb.append(String.format(Locale.ROOT, "%02x", b & 0xFF));
+            return sb.toString();
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
     // -------------------------------------------------------------------------
     // HTTP & File Helpers
     // -------------------------------------------------------------------------
     private String httpGetString(String urlStr) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        conn.setUseCaches(false);
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(15000);
-        conn.setRequestProperty("User-Agent", "AzurPromiliaVIMobile/" + BuildConfig.VERSION_NAME);
+        conn.setRequestProperty("Cache-Control", "no-cache");
+        conn.setRequestProperty("Pragma", "no-cache");
+        conn.setRequestProperty("User-Agent", "AzurPromiliaVIMobile/" + getAppVersionName());
         try {
             int code = conn.getResponseCode();
             if (code >= 400) throw new RuntimeException("HTTP " + code);

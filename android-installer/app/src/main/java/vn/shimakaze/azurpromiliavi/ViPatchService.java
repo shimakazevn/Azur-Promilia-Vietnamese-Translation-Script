@@ -112,10 +112,32 @@ public class ViPatchService extends IViPatchService.Stub {
             out.put("missing_count", missingCount);
             out.put("mismatch_count", mismatchCount);
             out.put("backup_count", backupCount);
+            out.put("payload_hash", computePayloadHash(arr));
             return out.toString();
         } catch (Throwable t) {
             return "{\"error\":\"" + t.getMessage() + "\"}";
         }
+    }
+
+    private static String computePayloadHash(JSONArray arr) throws Exception {
+        java.util.List<String> rows = new java.util.ArrayList<>(arr.length());
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject item = arr.getJSONObject(i);
+            String rel = item.getString("relative_path").replace('\\', '/');
+            String tgt = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+            rows.add(rel + ":" + tgt + "\n");
+        }
+        java.util.Collections.sort(rows);
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        for (String r : rows) {
+            md.update(r.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        byte[] digest = md.digest();
+        StringBuilder sb = new StringBuilder(64);
+        for (byte b : digest) {
+            sb.append(String.format(Locale.ROOT, "%02x", b & 0xFF));
+        }
+        return sb.toString();
     }
 
     @Override

@@ -38,7 +38,7 @@ Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Tr
 
 ### A. Trên Windows PC (`AZUPRO_JP` — Resource `3219598`)
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~40 KB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa** (tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game).
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.3.zip`** (~268 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.4.zip`** (~268 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 ### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3219596`, Không cần Root)
 
@@ -57,7 +57,7 @@ Bản Mobile áp dụng kỹ thuật CRC32 đè trực tiếp vào 7 gói `.r` t
 
 #### Cách 2 — Cài nhanh qua cáp USB bằng máy tính (ADB 1-Click)
 1. Cài game gốc và tải xong tài nguyên trên điện thoại, bật **USB Debugging** trong *Tùy chọn nhà phát triển* rồi cắm cáp vào PC.
-2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.3.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`** (cần có `adb.exe` trên PATH hoặc trong `%LOCALAPPDATA%\Android\Sdk\platform-tools\`).
+2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.4.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`** (cần có `adb.exe` trên PATH hoặc trong `%LOCALAPPDATA%\Android\Sdk\platform-tools\`).
 
 > **Lưu ý Mobile:**
 > - Do giữ nguyên APK gốc không sửa, màn hình loading đầu tiên khi vừa khởi chạy app (chữ nằm trong `builtInLangString` của APK) vẫn giữ nguyên gốc; toàn bộ UI, kỹ năng, cốt truyện và font chữ tiếng Việt khi vào game hiển thị đầy đủ.

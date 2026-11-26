@@ -143,12 +143,29 @@ def main():
 
             apk_src = ROOT / 'android-installer' / 'app' / 'build' / 'outputs' / 'apk' / 'release' / 'app-release.apk'
             apk_dist = output / 'AzurPromilia-VI-Mobile.apk'
+            gradle_path = ROOT / 'android-installer' / 'app' / 'build.gradle'
+            apk_ver_name = args.version
+            apk_ver_code = 0
+            if gradle_path.is_file():
+                gradle_txt = gradle_path.read_text('utf-8')
+                m_vc = re.search(r'\bversionCode\s+(\d+)', gradle_txt)
+                m_vn = re.search(r'\bversionName\s+"([^"]+)"', gradle_txt)
+                if m_vc:
+                    apk_ver_code = int(m_vc.group(1))
+                if m_vn:
+                    apk_ver_name = m_vn.group(1)
+            payload_rows = sorted(
+                f"{item['relative_path'].replace(chr(92), '/')}:{item['target_sha256'].lower()}\n"
+                for item in android_plan['files']
+            )
+            android_payload_hash = hashlib.sha256(''.join(payload_rows).encode('utf-8')).hexdigest()
             apk_info = None
             if apk_src.is_file():
                 shutil.copy2(apk_src, apk_dist)
                 sums_items.append(apk_dist)
                 apk_info = {
-                    'version': args.version,
+                    'version': apk_ver_name,
+                    'version_code': apk_ver_code,
                     'filename': apk_dist.name,
                     'size': apk_dist.stat().st_size,
                     'sha256': sha256(apk_dist),
@@ -157,7 +174,8 @@ def main():
             elif apk_dist.is_file():
                 sums_items.append(apk_dist)
                 apk_info = {
-                    'version': args.version,
+                    'version': apk_ver_name,
+                    'version_code': apk_ver_code,
                     'filename': apk_dist.name,
                     'size': apk_dist.stat().st_size,
                     'sha256': sha256(apk_dist),
@@ -167,6 +185,7 @@ def main():
             android_obj = {
                 'package_name': android_plan.get('package_name', 'com.Yostar.AzurpromiliaJP'),
                 'resource_version': android_plan.get('resource_version', '3219596'),
+                'payload_hash': android_payload_hash,
                 'filename': az_zip.name,
                 'size': az_zip.stat().st_size,
                 'sha256': sha256(az_zip),
@@ -199,7 +218,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Hoàn thiện UI chuẩn Genshin-RPG gọn nhẹ (Túi, Đội, Du Ký, Sổ Tay, Vọng Tinh, Trang Viên, Break, Shield, Bạo Kích), sửa lỗi dịch máy & đảo ngữ Hán-Việt. Hỗ trợ cả PC (3219598) và Android Shizuku/ADB (3219596).',
+            'notes': f'{args.version}: Sửa lỗi đồng bộ kiểm tra cập nhật APK/Patch trên Android & bố cục Edge-to-Edge; đồng bộ hash nội dung để không báo nhầm bản mới khi file Việt hóa không đổi. Hỗ trợ đầy đủ PC (3219598) và Android Shizuku/ADB (3219596).',
         }
         if android_obj:
             latest['android'] = android_obj
