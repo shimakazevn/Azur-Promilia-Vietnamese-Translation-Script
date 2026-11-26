@@ -2,7 +2,7 @@ import sys, json, struct, hashlib, collections, time
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
 OLD=Path(r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work')
-sys.path[:0]=[str(OLD/'game_decrypt_bundle'),str(OLD/'game_compare_manifests'),str(OLD/'game_decrypt_paths'),str(OLD/'game_mmap'),str(OLD/'analysis_deps')]
+sys.path[:0]=[str(HERE.parent/'resource_decode'),str(OLD/'game_decrypt_bundle'),str(OLD/'game_compare_manifests'),str(OLD/'game_decrypt_paths'),str(OLD/'game_mmap'),str(OLD/'analysis_deps')]
 from unity_setup import UnityPy
 from UnityPy.streams import EndianBinaryReader
 from UnityPy.helpers import ArchiveStorageManager as asm
