@@ -1,6 +1,6 @@
 ﻿param(
     [ValidateSet('Menu', 'Apply', 'Restore', 'Verify', 'ValidatePayload', 'CheckPackage')][string]$Action = 'Menu',
-    [ValidateSet('All', 'TW', 'JP', 'Launchers', 'Games', 'tw_game', 'jp_game', 'tw_launcher', 'jp_launcher')][string]$Target = 'All',
+    [ValidateSet('All', 'TW', 'JP', 'Launchers', 'Games', 'tw_game', 'jp_game', 'tw_launcher', 'jp_launcher', 'jp_deblur', 'tw_deblur')][string]$Target = 'All',
     [string]$Hint = '',
     [string]$PathsFile = '',
     [string[]]$ModuleIds,
@@ -21,6 +21,11 @@ $Definitions = @(
     [pscustomobject]@{ Id = 'jp_game'; Label = '日服游戏'; Script = 'tools/Apply-JPCRCZH.ps1'; Launcher = $false },
     [pscustomobject]@{ Id = 'tw_launcher'; Label = '台服启动器'; Script = 'tools/Apply-Launchers.ps1'; Launcher = $true },
     [pscustomobject]@{ Id = 'jp_launcher'; Label = '日服启动器'; Script = 'tools/Apply-Launchers.ps1'; Launcher = $true }
+)
+
+$DeblurDefinitions = @(
+    [pscustomobject]@{ Id = 'jp_deblur'; Label = '日服反虚化'; Script = 'tools/Apply-JPDeblur.ps1'; Launcher = $false },
+    [pscustomobject]@{ Id = 'tw_deblur'; Label = '台服反虚化'; Script = 'tools/Apply-TWDeblur.ps1'; Launcher = $false }
 )
 
 function Child([string]$Relative) {
@@ -83,7 +88,7 @@ function Assert-Package {
         $checkedCount++
     }
 
-    foreach ($d in $Definitions) {
+    foreach ($d in (@($Definitions) + @($DeblurDefinitions))) {
         if (-not $seen.ContainsKey($d.Script)) { throw "未登记的模块入口：$($d.Script)" }
     }
     if (-not $seen.ContainsKey('tools/Localization-Common.ps1')) {
@@ -99,7 +104,7 @@ function Selected([string]$Scope) {
         'JP' { return @($Definitions | Where-Object { $_.Id.StartsWith('jp_') }) }
         'Games' { return @($Definitions | Where-Object { -not $_.Launcher }) }
         'Launchers' { return @($Definitions | Where-Object { $_.Launcher }) }
-        default { return @($Definitions | Where-Object { $_.Id -eq $Scope }) }
+        default { return @((@($Definitions) + @($DeblurDefinitions)) | Where-Object { $_.Id -eq $Scope }) }
     }
 }
 
@@ -110,7 +115,7 @@ function Read-ConfiguredPaths {
         Assert-NoReparse $config
         $paths = Get-Content -LiteralPath $config -Raw -Encoding UTF8 | ConvertFrom-Json
         foreach ($prop in $paths.PSObject.Properties) {
-            if ($prop.Name -notin @($Definitions.Id) -or $prop.Value -isnot [string]) { throw "安装路径配置无效：$($prop.Name)" }
+            if ($prop.Name -notin (@($Definitions.Id) + @($DeblurDefinitions.Id)) -or $prop.Value -isnot [string]) { throw "安装路径配置无效：$($prop.Name)" }
             if ($prop.Value.Contains([char]0) -or $prop.Value -match '[\r\n]') { throw '目录不能包含控制字符。' }
             $pathMap[$prop.Name] = $prop.Value
         }
@@ -139,6 +144,9 @@ function Get-FriendlyFailure([string]$Detail) {
         'payload 不存在|误下载了 GitHub 源码包' { return '未处理：缺少 payload 替换资源，请下载 Releases 完整包。' }
         '已取消管理员权限|canceled by the user' { return '未完成：已取消管理员权限授权。' }
         'rollback.*(damaged|verification failed)|未能回滚|回滚失败' { return '失败：自动回滚失败，请保留备份。' }
+        '游戏资源版本低于补丁基线|原版只读基线版本过低' { return '未处理：游戏资源版本低于补丁基线。' }
+        '已修改目标资源段|分段补丁信息|目标资源段匹配不唯一' { return '未处理：游戏热更已修改目标汉化段，请等待新版汉化补丁。' }
+        '清单 MD5 校验失败|清单包名或版本不匹配|YooAsset 清单' { return '未处理：游戏资源清单校验不通过。' }
         'Unknown launcher version|版本不匹配|基线不匹配|版本不符' { return '未处理：文件版本与本补丁不匹配。' }
         'Bad canonical backup|Verified original backup required|Backup verification failed|原版备份|缺少原版备份' { return '失败：原版备份缺失或校验不通过。' }
         'Bad payload|包文件损坏|载荷|补丁包文件缺失' { return '未处理：补丁文件缺失或损坏，请完整解压后重试。' }
@@ -161,6 +169,7 @@ function Get-FriendlyFailure([string]$Detail) {
 
 function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashtable]$MenuLocations, [bool]$Silent = $false) {
     $selected = @(Selected $Scope)
+    if ($Scope -eq 'All' -and $Ids) { $selected += @($DeblurDefinitions | Where-Object { $_.Id -in $Ids }) }
     if ($Ids) { $selected = @($selected | Where-Object { $_.Id -in $Ids }) }
     if ($Operation -ne 'CheckPackage' -and -not $selected.Count) { throw '没有可操作的项目。' }
 
@@ -185,7 +194,7 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
 
     foreach ($d in $selected) {
         if (-not $Silent) { Write-Host ("`n=== {0} / {1} ===" -f $d.Label, $Operation) -ForegroundColor Cyan }
-        $started = [DateTime]::UtcNow.ToString('o'); $code = 1; $errorText = $null
+        $started = [DateTime]::UtcNow.ToString('o'); $code = 1; $errorText = $null; $unchanged = $false
         $log = Join-Path $logDir ($d.Id + '.log')
         try {
             $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Child $d.Script), '-Action', $Operation)
@@ -207,6 +216,8 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
                 $code = $LASTEXITCODE
             } finally { $ErrorActionPreference = $savedPreference }
             $capturedText = (@($output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine)
+            $unchanged = ($code -eq 0 -and $Operation -in @('Apply', 'Restore') -and
+                $capturedText -match '(?m)^(?:ALREADY_(?:CURRENT|ORIGINAL)\s|所有文件均已处于目标状态，无需修改。)')
             Write-Utf8NoBom $log $capturedText
             if ($code -ne 0) { $errorText = $capturedText.Trim() }
             if (-not $Silent) { foreach ($line in $output) { Write-Host $line } }
@@ -221,6 +232,8 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
                 action      = $Operation
                 exit_code   = $code
                 success     = ($code -eq 0)
+                skipped     = $unchanged
+                changed     = if ($code -eq 0 -and $Operation -in @('Apply', 'Restore')) { -not $unchanged } else { $null }
                 started_utc = $started
                 ended_utc   = [DateTime]::UtcNow.ToString('o')
                 log         = $log
@@ -229,7 +242,11 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
 
         $statusColor = if ($code -eq 0) { 'Green' } else { 'Yellow' }
         $statusText = if ($code -eq 0) {
-            $verb = switch ($Operation) { 'Restore' { '还原完成' } 'Apply' { '汉化完成' } default { '校验通过' } }
+            $verb = if ($unchanged) {
+                if ($Operation -eq 'Restore') { '已还原，跳过' } elseif ($d.Id -in $DeblurDefinitions.Id) { '已反虚化，跳过' } else { '已汉化，跳过' }
+            } else {
+                switch ($Operation) { 'Restore' { '还原完成' } 'Apply' { if ($d.Id -in $DeblurDefinitions.Id) { '反虚化完成' } else { '汉化完成' } } default { '校验通过' } }
+            }
             ('  [{0}] {1}。' -f $d.Label, $verb)
         } else {
             ('  [{0}] {1}' -f $d.Label, (Get-FriendlyFailure $errorText))
@@ -267,7 +284,7 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
     }
     Write-Host "`n=== 本次结果 ==="
     foreach ($r in $results) {
-        $state = if ($r.success) { '通过' } else { '失败/未完成' }
+        $state = if ($r.skipped) { '已是目标状态，跳过' } elseif ($r.success) { '通过' } else { '失败/未完成' }
         Write-Host ("{0}：{1}（退出码 {2}）" -f $r.label, $state, $r.exit_code)
     }
     Write-Host ("日志：" + $logDir)
@@ -275,7 +292,7 @@ function Run-Modules([string]$Operation, [string]$Scope, [string[]]$Ids, [hashta
         Write-Host '存在失败模块；成功模块不会跨模块自动还原。请查看日志，修正后单独重试。' -ForegroundColor Yellow
         return 2
     }
-    if ($Operation -eq 'Verify') { Write-Host '校验接受原版和本版汉化；请看逐文件状态，这不等于全部已经汉化。' }
+    if ($Operation -eq 'Verify') { Write-Host '校验接受原版和本版补丁；请看逐文件状态。' }
     Write-Host '本地操作通过不代表服务端校验或登录已经验证。'
     return 0
 }
@@ -297,25 +314,37 @@ function Get-ItemSummary($Definition, [string]$Root) {
             return '版本不匹配'
         }
         $plan = $gamePlans[$Definition.Id]
-        $dataName = if ($Definition.Id -eq 'tw_game') { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
+        $dataName = if ($Definition.Id -in @('tw_game', 'tw_deblur')) { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
         $dataRoot = Install-Child $Root $dataName
-        foreach ($guard in $plan.readonly_files) {
+        $ctx = Resolve-GameDeploymentContext $plan $dataRoot
+        foreach ($guard in $ctx.ActiveGuards) {
             $file = Install-Child $dataRoot $guard.relative_path
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ((Sha $file) -ne $guard.sha256) { return '版本不匹配' }
         }
-        $original = 0; $localized = 0
-        foreach ($entry in $plan.files) {
-            $file = Install-Child $dataRoot $entry.relative_path
+        $original = 0; $localized = 0; $partial = $false
+        foreach ($item in $ctx.Items) {
+            $file = Install-Child $dataRoot $item.TargetRelativePath
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
-            if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
-            $hash = Sha $file
-            if ($hash -eq $entry.source_sha256) { $original++ }
-            elseif ($hash -eq $entry.target_sha256) { $localized++ }
-            else { return '版本不匹配' }
+            if ($item.Mode -eq 'ExactFile') {
+                $entry = $item.Entry
+                if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
+                $hash = Sha $file
+                if ($hash -eq $entry.source_sha256) { $original++ }
+                elseif ($hash -eq $entry.target_sha256) { $localized++ }
+                else { return '版本不匹配' }
+            } else {
+                $relState = Get-RelocatedPackState $file $item
+                if ($relState -eq 'Original') { $original++ }
+                elseif ($relState -eq 'Localized') { $localized++ }
+                elseif ($relState -eq 'Mixed') { $partial = $true }
+                else { return '版本不匹配' }
+            }
         }
-        if ($original -eq @($plan.files).Count) { return '原版' }
-        if ($localized -eq @($plan.files).Count) { return '已汉化' }
+        if ($partial) { if ($Definition.Id -in $DeblurDefinitions.Id) { return '部分反虚化' }; return '部分汉化' }
+        if ($original -eq @($ctx.Items).Count) { return '原版' }
+        if ($localized -eq @($ctx.Items).Count) { if ($Definition.Id -in $DeblurDefinitions.Id) { return '已反虚化' }; return '已汉化' }
+        if ($Definition.Id -in $DeblurDefinitions.Id) { return '部分反虚化' }
         return '部分汉化'
     } catch { return '无法读取' }
 }
@@ -378,6 +407,8 @@ function Find-MenuLocations([hashtable]$ConfiguredPaths, [string]$Folder) {
         }
         $resolved[$d.Id] = $single[$d.Id]
     }
+    $resolved['jp_deblur'] = $resolved['jp_game']
+    $resolved['tw_deblur'] = $resolved['tw_game']
     return $resolved
 }
 
@@ -394,40 +425,79 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
                 $bkState = if ((Sha $bkFile) -eq $entry.source_sha256) { '完整' } else { '损坏或不匹配' }
                 Write-Host ('  原版备份：{0}' -f $bkState) -ForegroundColor DarkGray
             } else {
-                Write-Host '  原版备份：尚未创建（首次汉化时自动创建）' -ForegroundColor DarkGray
+                Write-Host '  原版备份：尚未创建（首次安装时自动创建）' -ForegroundColor DarkGray
             }
             continue
         }
-        $dataName = if ($d.Id -eq 'tw_game') { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
+        $dataName = if ($d.Id -in @('tw_game', 'tw_deblur')) { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
         $dataRoot = Install-Child $root $dataName
         $plan = $gamePlans[$d.Id]
         $backupName = if ($d.Id -eq 'tw_game') { '.zhcn-crc-readonly-3221745-backup' } else { '.zhcn-jp-crc-readonly-3219598-backup' }
+        if ($d.Id -eq 'jp_deblur') { $backupName = '.jp-deblur-1.0.2-backup' }
+        if ($d.Id -eq 'tw_deblur') { $backupName = '.tw-deblur-3221746-backup' }
         $backupRoot = Join-Path $root $backupName
 
-        $bkTotal = @($plan.files).Count
+        $ctx = $null
+        try {
+            $ctx = Resolve-GameDeploymentContext $plan $dataRoot
+        } catch {
+            Write-Host ('  热更清单解析失败：' + $_.Exception.Message) -ForegroundColor Yellow
+            $fallbackItems = @($plan.files | ForEach-Object {
+                [PSCustomObject]@{ Mode = 'ExactFile'; TargetRelativePath = $_.relative_path; PayloadRelativePath = $_.relative_path; Entry = $_; ManifestVersion = $null }
+            })
+            $ctx = [PSCustomObject]@{ ActiveGuards = @($plan.readonly_files); Items = $fallbackItems; HotfixVersions = @() }
+        }
+
+        $bkTotal = @($ctx.Items).Count
         $bkOk = 0; $bkBad = 0
-        foreach ($e in $plan.files) {
+        foreach ($item in $ctx.Items) {
             $state = '无法读取'
             try {
-                $file = Install-Child $dataRoot $e.relative_path
+                $file = Install-Child $dataRoot $item.TargetRelativePath
                 if (-not [IO.File]::Exists($file)) { $state = '缺少文件' }
-                else {
+                elseif ($item.Mode -eq 'ExactFile') {
+                    $e = $item.Entry
                     $hash = Sha $file
-                    if ($hash -eq $e.target_sha256) { $state = '已汉化' }
+                    if ($hash -eq $e.target_sha256) { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
                     elseif ($hash -eq $e.source_sha256) { $state = '原版' }
+                    else { $state = '版本不匹配' }
+                } else {
+                    $relState = Get-RelocatedPackState $file $item
+                    if ($relState -eq 'Localized') { $state = ('已汉化（热更 ' + $item.ManifestVersion + '）') }
+                    elseif ($relState -eq 'Original') { $state = ('原版（热更 ' + $item.ManifestVersion + '）') }
+                    elseif ($relState -eq 'Mixed') { $state = ('部分汉化（热更 ' + $item.ManifestVersion + '）') }
                     else { $state = '版本不匹配' }
                 }
             } catch {}
-            Write-Host ('  {0}  {1}' -f $state, $e.relative_path)
+            Write-Host ('  {0}  {1}' -f $state, $item.TargetRelativePath)
 
             try {
-                $bkFile = Install-Child $backupRoot $e.relative_path
-                if ([IO.File]::Exists($bkFile)) {
-                    if ((Sha $bkFile) -eq $e.source_sha256) { $bkOk++ } else { $bkBad++ }
+                $bkFile = Install-Child $backupRoot $item.TargetRelativePath
+                if ($item.Mode -eq 'ExactFile') {
+                    if ([IO.File]::Exists($bkFile)) {
+                        if ((Sha $bkFile) -eq $item.Entry.source_sha256) { $bkOk++ } else { $bkBad++ }
+                    }
+                } else {
+                    if ([IO.File]::Exists($bkFile)) {
+                        try {
+                            if ((Get-RelocatedPackState $bkFile $item) -eq 'Original') { $bkOk++ } else { $bkBad++ }
+                        } catch { $bkBad++ }
+                    } else {
+                        $allLegacyPresent = $true
+                        $allLegacyOk = $true
+                        foreach ($be in $item.BaselineEntries) {
+                            $legacyBk = Install-Child $backupRoot $be.relative_path
+                            if (-not [IO.File]::Exists($legacyBk)) { $allLegacyPresent = $false; break }
+                            if ((Sha $legacyBk) -ne $be.source_sha256) { $allLegacyOk = $false }
+                        }
+                        if ($allLegacyPresent) {
+                            if ($allLegacyOk) { $bkOk++ } else { $bkBad++ }
+                        }
+                    }
                 }
             } catch { $bkBad++ }
         }
-        foreach ($e in $plan.readonly_files) {
+        foreach ($e in $ctx.ActiveGuards) {
             $state = '无法读取'
             try {
                 $file = Install-Child $dataRoot $e.relative_path
@@ -444,7 +514,7 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
         } elseif ($bkOk -gt 0) {
             Write-Host ('  原版备份：部分存在（{0}/{1}）' -f $bkOk, $bkTotal) -ForegroundColor DarkGray
         } else {
-            Write-Host '  原版备份：尚未创建（首次汉化时自动创建）' -ForegroundColor DarkGray
+            Write-Host '  原版备份：尚未创建（首次安装时自动创建）' -ForegroundColor DarkGray
         }
 
         $txDir = Join-Path $backupRoot 'transactions'
@@ -532,7 +602,7 @@ try {
     if ($Action -ne 'Menu') {
         if ($ModuleIds -and $ModuleIds.Count -eq 1 -and $ModuleIds[0].Contains(',')) { $ModuleIds = $ModuleIds[0].Split(',') }
         if ($ModuleIds) {
-            foreach ($id in $ModuleIds) { if ($id -notin @($Definitions.Id)) { throw ('无效模块：' + $id) } }
+            foreach ($id in $ModuleIds) { if ($id -notin (@($Definitions.Id) + @($DeblurDefinitions.Id))) { throw ('无效模块：' + $id) } }
         }
         exit (Run-Modules $Action $Target $ModuleIds $null $Quiet.IsPresent)
     }
@@ -541,6 +611,11 @@ try {
     foreach ($id in @('tw_game', 'jp_game')) {
         $region = if ($id -eq 'tw_game') { 'tw' } else { 'jp' }
         $gamePlans[$id] = Get-Content -LiteralPath (Child ('tools/' + $region + '-deployment.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+
+    foreach ($d in $DeblurDefinitions) {
+        $region = $d.Id.Substring(0, 2)
+        $gamePlans[$d.Id] = Get-Content -LiteralPath (Child ('tools/' + $region + '-deblur-deployment.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
     }
 
     Write-Host '=================================================='
@@ -590,6 +665,10 @@ try {
     Write-Host '  5. 查看文件状态'
     Write-Host '  6. 完整校验（含分段与整包 CRC32）'
     Write-Host '  7. 手动添加/修改安装目录'
+    Write-Host '  8. 日服反虚化'
+    Write-Host '  9. 还原日服反虚化'
+    Write-Host '  10. 台服反虚化'
+    Write-Host '  11. 还原台服反虚化'
     Write-Host '  Q. 退出'
     while ($true) {
         $items = @($Definitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
@@ -606,8 +685,16 @@ try {
                 '2' { $op = 'Restore' }
                 '3' { $op = 'Apply'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
                 '4' { $op = 'Restore'; $ids = @(Parse-Select (Read-Host '请输入项目编号（多个用逗号分隔，例如 1,3）') $items) }
-                '5' { Show-FileStatus $items $menuLocations; continue }
-                '6' { $op = 'Verify' }
+                '5' {
+                    $statusItems = @($items)
+                    $statusItems += @($DeblurDefinitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' })
+                    Show-FileStatus $statusItems $menuLocations; continue
+                }
+                '6' { $op = 'Verify'; $ids += @($DeblurDefinitions | Where-Object { $menuLocations[$_.Id].State -eq 'found' } | ForEach-Object { $_.Id }) }
+                '8' { $op = 'Apply'; $ids = @('jp_deblur') }
+                '9' { $op = 'Restore'; $ids = @('jp_deblur') }
+                '10' { $op = 'Apply'; $ids = @('tw_deblur') }
+                '11' { $op = 'Restore'; $ids = @('tw_deblur') }
                 '7' {
                     $manual = Read-Host '请输入或拖入游戏/启动器目录（直接回车取消）'
                     if ([string]::IsNullOrWhiteSpace($manual)) { continue }
@@ -626,6 +713,8 @@ try {
                             $updated += ($d.Label + ': ' + $foundOne.Path)
                         }
                     }
+                    $menuLocations['jp_deblur'] = $menuLocations['jp_game']
+                    $menuLocations['tw_deblur'] = $menuLocations['tw_game']
                     if (-not $updated.Count) {
                         Write-Host '未在该目录中识别出支持的蓝色星原游戏或启动器目录。' -ForegroundColor Yellow
                         continue
@@ -648,7 +737,12 @@ try {
             continue
         }
         if (-not $op -or -not $ids.Count) { continue }
-        $selected = @($items | Where-Object { $_.Id -in $ids })
+        $selected = @((@($items) + @($DeblurDefinitions)) | Where-Object { $_.Id -in $ids })
+        $missingDeblur = @($DeblurDefinitions | Where-Object { $_.Id -in $ids -and $menuLocations[$_.Id].State -ne 'found' })
+        if ($missingDeblur.Count) {
+            foreach ($d in $missingDeblur) { Write-Host ($d.Label + '：' + $menuLocations[$d.Id].Problem) -ForegroundColor Yellow }
+            continue
+        }
         try {
             $lastExitCode = Invoke-MenuOperation $op $selected $menuLocations
         } catch {
