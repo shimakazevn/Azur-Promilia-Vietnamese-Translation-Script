@@ -20,3 +20,4 @@ def main():
   assert not RECEIPT.exists(),'Never replace original audit'
   RECEIPT.write_text(json.dumps(current,ensure_ascii=False,indent=2),'utf-8');print(json.dumps({'protected_files_snapshotted':len(current)}))
 if __name__=='__main__':main()
+
