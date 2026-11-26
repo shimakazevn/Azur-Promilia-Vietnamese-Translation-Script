@@ -25,10 +25,10 @@ namespace AzurPromiliaVIInstaller
 {
     internal static class Config
     {
-        public const string RepoSlug = "shimakazevn/Azur-Promilia-vietnamese-Translation-Script";
+        public const string RepoSlug = "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.0";
+        public const string CurrentInstallerVersion = "v1.0.1";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"

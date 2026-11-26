@@ -102,7 +102,7 @@ def main():
     (output / 'SHA256SUMS.txt').write_text(checksums, 'ascii')
     if args.language == 'vi':
         from datetime import datetime, timezone
-        repo_slug = 'shimakazevn/Azur-Promilia-vietnamese-Translation-Script'
+        repo_slug = 'shimakazevn/Azur-Promilia-Vietnamese-Translation-Script'
         base_dl = f'https://github.com/{repo_slug}/releases/download/{args.version}'
         latest = {
             'schema_version': 1,

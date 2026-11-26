@@ -13,17 +13,17 @@
     {
       "path": "payload-vi/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
       "size": 4993892,
-      "sha256": "ae91b726905d7714162d26b2b382b7621a43cf32f463394b416a6659ca115f2e"
+      "sha256": "80b4614855c5b22c296336a94018e11472bda377be4985cd258bad906d276f35"
     },
     {
       "path": "payload-vi/jp_game/.res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r",
       "size": 133622104,
-      "sha256": "fab5d3459e29c8e12df12693c1b7cf57109dd654d24d6043ea3ab671268f86b3"
+      "sha256": "f3b1e1e9f5b9ada984772ff15950244b9e20ce1c6ff0b84f2a643d18a4a3a6ac"
     },
     {
       "path": "payload-vi/jp_game/.res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
       "size": 28840170,
-      "sha256": "8faea53852cc7a94c9378558f5f83575dd753b1396fcfeb9b89ddc96217908a3"
+      "sha256": "736cf61b18fa6cefb14ccd9d595e9c7fe3227658b743d8778c076fea1520f4b2"
     },
     {
       "path": "payload-vi/jp_game/resources.assets",
@@ -33,37 +33,37 @@
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/awcxxitzquckttvmx0c5q.r",
       "size": 4550495,
-      "sha256": "279508e169a10642b9360e0810caff9f832f4ee970ae3245bfb7a0109e86adb0"
+      "sha256": "1c493903572d1822606148e0102d6eb8d5dd3271578f47cd6d02728c702f62d4"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/e5e4oijae8zliat91bgbw.r",
       "size": 4517927,
-      "sha256": "fe839dc9721a8b570f9732618f828afcda32868e985fda76979c2135897205b9"
+      "sha256": "0a716d0c17926909d00f7da2bfd47fce4026e72a2a1a28d69156a2901ad2b2cc"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/hqqoy0ojvzpggukcf5m85w.r",
       "size": 5109385,
-      "sha256": "1ed7fa2d0a5d98906fce2acc6fbf3a4f9d556611fb1d9b756e8ffa796116fa28"
+      "sha256": "bfafeb47618bfe843d404311317b2bd9db02f14af4353f91da5785db8f2ddbf3"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/rpgxilrqhjgj9am5g799fa.r",
       "size": 11695789,
-      "sha256": "b1696cdd7b18374be961a77b6b7705a5563a8af9122f8b325f39c7852cef8695"
+      "sha256": "1ac9be9d39e5a162df9f878e32202fdfb4d3237831eb22505f8313dbb1d6d60f"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/tqells6pca8ieju9qlbuw.r",
       "size": 4994161,
-      "sha256": "df9092ea53e3f03fbf0295d51ea9e82f8d3bec0688dfb7606394464580739863"
+      "sha256": "10eb123946a4b81330edde50ed8437b7c725901cb18fa1fc697e1f3546287b6d"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/xlpsyuxnoz1cjmawi1wcxa.r",
       "size": 4517899,
-      "sha256": "b077a439417f87265793edbb73602610f5534e7f8e7aa86bf3b07570f1b503ec"
+      "sha256": "0d759a7220cc37b8eb9605e27c6a0f5491c9cf4aea3b31abc5bd0ae7e54e8ce9"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/static_package/6pq4a7hlp7zidu91dvvww.r",
       "size": 58707878,
-      "sha256": "e27f2d3bec2205f989e4fb9c88021806adb451d33a99e236ce2267e31fd105fb"
+      "sha256": "5f8787dce5547cdd4a4eb61b090f913252cf157934440febbf6afad840572f21"
     },
     {
       "path": "payload-vi/jp_launcher/resources/app.asar",
@@ -88,7 +88,7 @@
     {
       "path": "tools/jp-deployment-vi.json",
       "size": 56026,
-      "sha256": "0c1f4913fe19d0801c1653575934509f969915962f0a45ab6fcc468ef9b31deb"
+      "sha256": "696d3c629f9f35cebf2055f80eff14d13e78c7e0dc2e42e11458399c6aa9b272"
     },
     {
       "path": "tools/launcher-deployment-vi.json",
