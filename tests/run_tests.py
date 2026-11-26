@@ -46,6 +46,10 @@ def copy_tool_tree(dest_root: Path) -> None:
         p = ROOT / name
         if p.is_file():
             shutil.copy2(p, dest_root / name)
+    for folder in ('CRC工具', 'tests'):
+        shutil.copytree(ROOT / folder, dest_root / folder,
+                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.pytest_cache',
+                                                     'release_test', 'fixed_candidates', 'originals'))
 
 
 def make_crc_matched_pair(seed: bytes, seg_sizes=(4096, 8192, 513)):
@@ -136,13 +140,135 @@ def remove_temp_dir(path: Path):
     if not path.exists():
         return
     # Safely unlink any directory junctions before rmtree so we never recurse into targets.
-    for p in list(path.rglob('*')):
-        if p.is_junction() or p.is_symlink():
-            if p.is_dir():
-                subprocess.run(['cmd', '/c', 'rmdir', str(p)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                p.unlink(missing_ok=True)
+    for base, dirs, files in os.walk(path, topdown=True, followlinks=False):
+        for name in list(dirs):
+            p = Path(base) / name
+            if p.is_junction():
+                os.rmdir(p)
+                dirs.remove(name)
+            elif p.is_symlink():
+                p.unlink()
+                dirs.remove(name)
     shutil.rmtree(path, ignore_errors=True)
+
+
+class TestBatchEntryPoint(unittest.TestCase):
+    def test_actual_batch_reaches_real_menu(self):
+        with tempfile.TemporaryDirectory(prefix='azur_menu_') as td:
+            pack = Path(td) / '中文 空格 (菜单)&!'
+            copy_tool_tree(pack)
+            game = Path(td) / 'mock_game'
+            (game / 'AzurPromilia_Data').mkdir(parents=True)
+            (game / 'AzurPromilia.exe').write_bytes(b'MOCKEXE')
+            paths = {key: str(Path(td) / ('missing_' + key))
+                     for key in ('tw_game', 'jp_game', 'tw_launcher', 'jp_launcher')}
+            paths['tw_game'] = str(game)
+            (pack / 'tools' / '安装路径.json').write_text(
+                json.dumps(paths, ensure_ascii=False), 'utf-8')
+            command = 'cmd.exe /d /s /c ""' + str(pack / '双击运行.bat') + '""'
+            result = subprocess.run(command, input=b'Q\r\n\r\n', stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, timeout=30)
+            output = result.stdout.decode('utf-8', 'replace')
+            self.assertEqual(result.returncode, 0, output)
+            self.assertIn('全部汉化', output)
+            self.assertIn('Q. 退出', output)
+            self.assertIn('按任意键继续', output)
+
+    def _mock_menu_pack(self, td):
+        pack = Path(td) / '中文 空格 (回归)&!'
+        copy_tool_tree(pack)
+        game = Path(td) / 'mock_game'
+        (game / 'AzurPromilia_Data').mkdir(parents=True)
+        (game / 'AzurPromilia.exe').write_bytes(b'MOCKEXE')
+        # Explicit nonempty paths disable discovery of real installations.
+        paths = {key: str(Path(td) / ('missing_' + key))
+                 for key in ('tw_game', 'jp_game', 'tw_launcher', 'jp_launcher')}
+        paths['tw_game'] = str(game)
+        (pack / 'tools/安装路径.json').write_text(
+            json.dumps(paths, ensure_ascii=False), 'utf-8')
+        return pack
+
+    def _run_mock_menu(self, pack, inputs, expected=0):
+        command = 'cmd.exe /d /s /c ""' + str(pack / '双击运行.bat') + '""'
+        result = subprocess.run(command, input=('\r\n'.join(inputs) + '\r\n\r\n').encode('utf-8'),
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
+        output = result.stdout.decode('utf-8', 'replace')
+        self.assertEqual(result.returncode, expected, output)
+        self.assertIn('按任意键继续', output)
+        return output
+
+    def test_invalid_project_selection_returns_to_menu(self):
+        with tempfile.TemporaryDirectory(prefix='azur_bad_selection_') as td:
+            pack = self._mock_menu_pack(td)
+            for choice in ('3', '4'):
+                with self.subTest(choice=choice):
+                    output = self._run_mock_menu(pack, [choice, '99', choice, '1,bad', '5', 'Q'])
+                    self.assertIn('项目编号无效：99', output)
+                    self.assertIn('项目编号无效：bad', output)
+                    self.assertEqual(output.count('1. 全部汉化'), 1)
+                    self.assertIn('原版备份：', output)
+                    self.assertFalse((pack / 'tools/logs').exists())
+
+    def test_missing_manual_directory_does_not_search_neighbors(self):
+        with tempfile.TemporaryDirectory(prefix='azur_bad_folder_') as td:
+            pack = self._mock_menu_pack(td)
+            # A sibling launcher would have been found by the former parent expansion.
+            neighbor = Path(td) / 'neighbor_launcher'
+            (neighbor / 'resources').mkdir(parents=True)
+            (neighbor / 'launcher.exe').write_bytes(b'MOCKEXE')
+            (neighbor / 'resources/app.asar').write_bytes(b'MOCKASAR')
+            config = pack / 'tools/安装路径.json'
+            before = config.read_bytes()
+            output = self._run_mock_menu(pack, ['7', str(Path(td) / 'does_not_exist'), '5', 'Q'])
+            self.assertIn('目录不存在：', output)
+            self.assertNotIn('已更新', output)
+            self.assertNotIn('已保存', output)
+            self.assertEqual(output.count('1. 全部汉化'), 1)
+            self.assertIn('原版备份：', output)
+            self.assertEqual(config.read_bytes(), before)
+            self.assertFalse((pack / 'tools/logs').exists())
+
+    def test_menu_prints_once_after_results_and_errors(self):
+        with tempfile.TemporaryDirectory(prefix='azur_menu_once_') as td:
+            pack = self._mock_menu_pack(td)
+            output = self._run_mock_menu(pack, ['5', '1', 'bogus', '5', 'Q'], expected=1)
+            self.assertIn('payload 不存在', output)
+            self.assertIn('无效选项，请重新输入。', output)
+            self.assertEqual(output.count('原版备份：'), 2)
+            self.assertEqual(output.count('找到以下项目：'), 1)
+            for label in ('1. 全部汉化', '2. 全部还原', '3. 选择项目汉化',
+                          '4. 选择项目还原', '5. 查看文件状态', '6. 完整校验',
+                          '7. 手动添加/修改安装目录', 'Q. 退出'):
+                self.assertEqual(output.count(label), 1, output)
+
+    def test_actual_batch_startup_and_dragged_directories(self):
+        with tempfile.TemporaryDirectory(prefix='azur_bat_') as td:
+            pack = Path(td) / '中文 空格 (入口)&!'
+            (pack / 'tools').mkdir(parents=True)
+            entry = pack / '双击运行.bat'
+            entry.write_bytes((ROOT / '双击运行.bat').read_bytes())
+            write_ps1(pack / 'tools' / 'Manage-Localization.ps1', """
+param([string]$Hint = '')
+$value = if ($Hint) { [IO.Path]::GetFullPath($Hint) } else { '' }
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'entry.json'), (ConvertTo-Json -InputObject $value))
+exit 3
+""")
+            cases = (('', ''), (str(pack), str(pack)),
+                     (str(pack) + '\\', str(pack)), (pack.anchor, pack.anchor))
+            for hint, expected in cases:
+                with self.subTest(hint=hint):
+                    result_file = pack / 'tools' / 'entry.json'
+                    result_file.unlink(missing_ok=True)
+                    command = 'cmd.exe /d /s /c ""' + str(entry) + '"'
+                    if hint:
+                        command += ' "' + hint + '"'
+                    command += '"'
+                    result = subprocess.run(command, input=b'\r\n',
+                                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                            timeout=30)
+                    self.assertEqual(result.returncode, 3, result.stdout.decode('utf-8', 'replace'))
+                    self.assertEqual(json.loads(result_file.read_text('utf-8-sig')), expected)
+                    self.assertIn('按任意键继续', result.stdout.decode('utf-8', 'replace'))
 
 
 class TestCrcPatch(unittest.TestCase):
@@ -624,12 +750,51 @@ class TestBuildRelease(unittest.TestCase):
             for zp in (full_zip, src_zip):
                 with zipfile.ZipFile(zp) as zf:
                     self.assertIsNone(zf.testzip())
+            with zipfile.ZipFile(src_zip) as zf:
+                prefix = '蓝色星原简体汉化-源码/'
+                names = set(zf.namelist())
+                for name in ('tests/run_tests.py', 'CRC工具/crc/pool_capacity.py',
+                             'CRC工具/crc/Apply-CRCZH.ps1',
+                             'CRC工具/jp_crc/Apply-JPCRCZH.ps1'):
+                    self.assertIn(prefix + name, names)
+                unpacked = td_path / 'unpacked'
+                zf.extractall(unpacked)
+            extracted_root = unpacked / '蓝色星原简体汉化-源码'
+            verify = subprocess.run(
+                [sys.executable, str(extracted_root / 'build_release.py'), '--verify-repo'],
+                cwd=str(extracted_root), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                timeout=60,
+            )
+            self.assertEqual(verify.returncode, 0, verify.stdout.decode('utf-8', 'replace'))
             sums = (out_dir / 'SHA256SUMS.txt').read_text('ascii')
             self.assertIn(sha256_bytes(full_zip.read_bytes()), sums)
             self.assertIn(sha256_bytes(src_zip.read_bytes()), sums)
 
 
 class TestPoolCapacity(unittest.TestCase):
+    def test_nonmonotonic_occupied_bucket_count(self):
+        hashes = [i * 100003 for i in range(50000)]
+        self.assertEqual(pool_capacity.choose_max_prime_capacity(hashes, 1000044), 100003)
+
+    def test_capacity_matches_exhaustive_search(self):
+        import random
+        rng = random.Random(20261126)
+        for _ in range(100):
+            hashes = [rng.randrange(10000) for _ in range(rng.randrange(20))]
+            maximum = rng.randrange(2, 100)
+            budget = 24 + 12 * len(hashes) + rng.randrange(500)
+            feasible = [cap for cap in range(2, maximum + 1)
+                        if pool_capacity.is_prime(cap)
+                        and 24 + 12 * len(hashes) + 4 * cap
+                        + 4 * len({h % cap for h in hashes}) <= budget - 4]
+            if feasible:
+                self.assertEqual(pool_capacity.choose_max_prime_capacity(
+                    hashes, budget, min_cap=2, max_cap=maximum), max(feasible))
+            else:
+                with self.assertRaises(ValueError):
+                    pool_capacity.choose_max_prime_capacity(
+                        hashes, budget, min_cap=2, max_cap=maximum)
+
     def test_is_prime_and_choose_max_prime_capacity(self):
         for p in (2, 3, 5, 65521, 524287, 999983, 2009191):
             self.assertTrue(pool_capacity.is_prime(p))
