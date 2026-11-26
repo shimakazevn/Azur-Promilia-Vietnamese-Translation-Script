@@ -9,9 +9,24 @@
   ],
   "files": [
     {
-      "path": "README.md",
-      "size": 4577,
-      "sha256": "e6b42317bac41e9815b5819170b81c1efef743b891b99640588bc155eb61046c"
+      "path": "payload/jp_deblur/.res/default_package/BundleFiles/vcnqp22wy61m2n1z1kyxrg.r",
+      "size": 4744949,
+      "sha256": "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3"
+    },
+    {
+      "path": "payload/jp_deblur/StreamingAssets/.res/default_package/6ffhq8vxxcxhajv2smenba.r",
+      "size": 5242318,
+      "sha256": "8f1e44219c451af2d16ac7aa14b5c1fb98d693bbe07e5b3668ad601523c516f1"
+    },
+    {
+      "path": "payload/jp_deblur/StreamingAssets/.res/default_package/f4izs5z5g3dowxewfbsww.r",
+      "size": 5236872,
+      "sha256": "1773f99f4a9861f6fa412622664192c158b461242bacfd4c5d83c21da6e5673f"
+    },
+    {
+      "path": "payload/jp_deblur/StreamingAssets/.res/default_package/vrvljtvqpritdz11tc6eg.r",
+      "size": 4744960,
+      "sha256": "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac"
     },
     {
       "path": "payload/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
@@ -74,6 +89,26 @@
       "sha256": "4e4cf6c92463734bc33c617a0434e1031ac2c4e504862156caae4027c92a5042"
     },
     {
+      "path": "payload/tw_deblur/.res/default_package/BundleFiles/d3svzxgozq953wetzjanua.r",
+      "size": 5242352,
+      "sha256": "60f10aa4dc23b90a55f491265cb88e5ac5e4d814c23a3e975d1b0074dd151433"
+    },
+    {
+      "path": "payload/tw_deblur/StreamingAssets/.res/default_package/s6ppge3l6q1q9htrof7qcq.r",
+      "size": 5236878,
+      "sha256": "c0db6b5c0d6ec9f1c481fe16980f4b8af2dd02670a83f014e812b27561cf3e36"
+    },
+    {
+      "path": "payload/tw_deblur/StreamingAssets/.res/default_package/tsn5bfvm7hx6csi1reyrya.r",
+      "size": 4744110,
+      "sha256": "c6119cc527651c413ebcf131a456189b3dd15e64426b5ddd4e85b17948e3f564"
+    },
+    {
+      "path": "payload/tw_deblur/StreamingAssets/.res/default_package/wf4ksai7xalfafyxycu1g.r",
+      "size": 5242352,
+      "sha256": "5665f4e2012f8574e4a679fb777168a4550cc4d1b4354338633e2cb52a58874f"
+    },
+    {
       "path": "payload/tw_game/.res/default_package/BundleFiles/owmxh3bjdhcwjoabqv67q.r",
       "size": 5045108,
       "sha256": "6cd399da9632f3518652c176b214de8d8209a377f76b807008f3a78b78359e25"
@@ -120,38 +155,53 @@
     },
     {
       "path": "tools/Apply-CRCZH.ps1",
-      "size": 2089,
-      "sha256": "3c866f2487946af5a4b8f22d2972ad18b21d153903df8f0ceb6ff563882873de"
+      "size": 2005,
+      "sha256": "083cb8c2ea418171a3ba02d97abae8d9ada251071a8a09edd2f800f62595bbf9"
     },
     {
       "path": "tools/Apply-JPCRCZH.ps1",
-      "size": 2045,
-      "sha256": "631fb33fda516fb09ef9804d9694dfe4fb9a366c9abb518a4e82b13e5440c111"
+      "size": 1932,
+      "sha256": "a824325eec2520b66b81d9b89912b0997b1c1e2d4fe959b15c762e6ec3027be7"
+    },
+    {
+      "path": "tools/Apply-JPDeblur.ps1",
+      "size": 1869,
+      "sha256": "0f444baa5b46d379c03265d81095a35611f70f567b2735b898bc882f4832a25c"
     },
     {
       "path": "tools/Apply-Launchers.ps1",
-      "size": 9171,
-      "sha256": "4eb74f4d3299fc875bab673929bd8f859b6d7ff313d95637d633e705a5b68499"
+      "size": 9173,
+      "sha256": "eb531596e745cfd0a75fa4ee6a549637ff2cc84367f16e111dc0ccbaf2f37be9"
+    },
+    {
+      "path": "tools/Apply-TWDeblur.ps1",
+      "size": 1947,
+      "sha256": "c16e721a4e83da010faf7ef51c9632f5ee9140a63fe3b2bd0aea92dc6fdf6e29"
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 31596,
-      "sha256": "34b0aae4577733c7dc0552325cee6bd74ad4545c7d56f02864372b2a76b664e9"
+      "size": 71040,
+      "sha256": "f2a10e1fba2bdbe5508155c20a598a0524acdececa1d81d8443638d7154cce34"
     },
     {
       "path": "tools/Locate-Installations.ps1",
-      "size": 11153,
-      "sha256": "e72cb49df164949d3094641f14222f38cb4a052718226ec97c9e830e8c704c85"
+      "size": 11873,
+      "sha256": "f0b3ab6a781dfc28a19f32e05207c7f9993d6cc987d88426e44cb53980d91d6e"
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 33160,
-      "sha256": "de80acc4a2d0f925ea7d87bab2e9dd389f34062a363ee74316013c771a2709fe"
+      "size": 39869,
+      "sha256": "e2324c7c32f259dcc9cb3145dd9bd8f9b9ce81df0652dac13a3166b393e8134b"
+    },
+    {
+      "path": "tools/jp-deblur-deployment.json",
+      "size": 1574,
+      "sha256": "4247625c3df9987ef836cbe3ae81d59b74eff45116ff6631cd0d51e418a28223"
     },
     {
       "path": "tools/jp-deployment.json",
-      "size": 55833,
-      "sha256": "0457b522d58aa074287de6a6c0eea865c39c9eebc5fadbad349805e6d246a1fa"
+      "size": 60548,
+      "sha256": "11152b86e0529a4f6ea832a927026e5e513ccb77040d371d1726e7a9c22f80ea"
     },
     {
       "path": "tools/launcher-deployment.json",
@@ -159,9 +209,19 @@
       "sha256": "62f4bc9a4a0bb71c19eef209d60dfa045b1c535d007aa1ff81dffb659ac52426"
     },
     {
+      "path": "tools/tw-deblur-deployment.json",
+      "size": 256031,
+      "sha256": "0e42efa0411210700b0d16ffbee37ebc5b89fe1ac78eaaf24942e695c2728d94"
+    },
+    {
       "path": "tools/tw-deployment.json",
-      "size": 13942,
-      "sha256": "f95943edf5fe02695fb095c5c1b9fa1c8e30bf18b9cc63a516e77f3ac4e03367"
+      "size": 17876,
+      "sha256": "83dc0c5e38817b0102757d83344a89aa7e5529683ea0f452cfcc4ced2cd94617"
+    },
+    {
+      "path": "使用说明.txt",
+      "size": 2012,
+      "sha256": "0c14ace84ca17b51597d8bd9c72daf4bf107b52aa928237d0cca5c6ca7651ae7"
     },
     {
       "path": "双击运行.bat",
