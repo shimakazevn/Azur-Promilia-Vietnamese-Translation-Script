@@ -1,6 +1,6 @@
-from unity_setup import *
 from UnityPy.streams import EndianBinaryReader
 from UnityPy.helpers import CompressionHelper
+from UnityPy.helpers import ArchiveStorageManager as asm
 import struct,json,hashlib,zlib
 
 def encrypt_lz4(data,index,dec):
@@ -53,6 +53,7 @@ def wrap(plain,original):
  return bytes(output),n
 
 if __name__=='__main__':
+ from unity_setup import *
  original=Path(r'E:\AzurPromilia_TC\AzurPromilia_TC_game\AzurPromilia_Data\StreamingAssets\.res\default_package\a66pm5ie1rrjguuzlsyq.r').read_bytes()
  plain=(HERE/'tw_a00_cn_font_plain.r').read_bytes();encrypted,n=wrap(plain,original)
  out=HERE/'tw_a00_cn_font_unitycn.r';out.write_bytes(encrypted)
