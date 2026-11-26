@@ -7,7 +7,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 HERE=Path(__file__).resolve().parent
 OLD=Path(os.environ.get('AZUR_WORK_DIR', r'C:\Users\xiaoxi\Documents\Codex\2026-11-24\new-chat\work'))
-sys.path[:0]=[str(OLD/'game_decrypt_bundle'),str(OLD/'analysis_deps'),str(OLD/'font_deps')]
+sys.path[:0]=[str(HERE.parent/'resource_decode'),str(OLD/'game_decrypt_bundle'),str(OLD/'analysis_deps'),str(OLD/'font_deps')]
 from unity_setup import UnityPy
 from reencrypt_bundle import encrypt_lz4
 from UnityPy.streams import EndianBinaryReader
