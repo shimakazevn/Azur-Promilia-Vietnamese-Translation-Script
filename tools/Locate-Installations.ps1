@@ -8,6 +8,8 @@ function Test-InstallRoot([string]$Id, [string]$Path) {
     Assert-NoReparse $Path
     switch ($Id) {
         'tw_game' { return ([IO.File]::Exists((Join-Path $Path 'AzurPromilia.exe')) -and [IO.Directory]::Exists((Join-Path $Path 'AzurPromilia_Data'))) }
+        'jp_deblur' { return (Test-InstallRoot 'jp_game' $Path) }
+        'tw_deblur' { return (Test-InstallRoot 'tw_game' $Path) }
         'jp_game' { return ([IO.File]::Exists((Join-Path $Path 'AzurPromiliaJP.exe')) -and [IO.Directory]::Exists((Join-Path $Path 'AzurPromiliaJP_Data'))) }
         'tw_launcher' { return ([IO.File]::Exists((Join-Path $Path 'launcher.exe')) -and [IO.File]::Exists((Join-Path $Path 'resources/app.asar'))) }
         'jp_launcher' { return ([IO.File]::Exists((Join-Path $Path 'AZUPRO_JP_Gamelauncher.exe')) -and [IO.File]::Exists((Join-Path $Path 'resources/app.asar'))) }
@@ -110,6 +112,8 @@ function Get-RelativeCandidates($Definition) {
         'tw_game' {
             return @('', 'AzurPromilia_TC_game', 'AzurPromilia_TC/AzurPromilia_TC_game', 'Games/AzurPromilia_TC/AzurPromilia_TC_game', 'Game/AzurPromilia_TC/AzurPromilia_TC_game', 'Games/AzurPromilia_TC_game', 'Game/AzurPromilia_TC_game')
         }
+        'jp_deblur' { return (Get-RelativeCandidates ([pscustomobject]@{ Id = 'jp_game' })) }
+        'tw_deblur' { return (Get-RelativeCandidates ([pscustomobject]@{ Id = 'tw_game' })) }
         'jp_game' {
             return @('', 'AZUPRO_JP', 'YostarGames/AZUPRO_JP', 'Games/YostarGames/AZUPRO_JP', 'Game/YostarGames/AZUPRO_JP')
         }
@@ -138,13 +142,19 @@ function Get-RelativeCandidates($Definition) {
 }
 
 function Find-InstallLocations($Definitions, [hashtable]$ConfiguredPaths, [string[]]$SearchRoots) {
-    $needSearch = @($Definitions | Where-Object { -not $ConfiguredPaths.ContainsKey($_.Id) -or [string]::IsNullOrWhiteSpace($ConfiguredPaths[$_.Id]) })
+    $effectivePaths = @{}
+    foreach ($key in $ConfiguredPaths.Keys) { $effectivePaths[$key] = $ConfiguredPaths[$key] }
+    foreach ($region in @('tw', 'jp')) {
+        $deblurId = $region + '_deblur'; $gameId = $region + '_game'
+        if (-not $effectivePaths.ContainsKey($deblurId) -and $effectivePaths.ContainsKey($gameId)) { $effectivePaths[$deblurId] = $effectivePaths[$gameId] }
+    }
+    $needSearch = @($Definitions | Where-Object { -not $effectivePaths.ContainsKey($_.Id) -or [string]::IsNullOrWhiteSpace($effectivePaths[$_.Id]) })
     if ($needSearch.Count -and -not $PSBoundParameters.ContainsKey('SearchRoots')) {
         $SearchRoots = @(Get-InstallSearchRoots)
     }
     $result = @{}
     foreach ($d in $Definitions) {
-        $configured = if ($ConfiguredPaths.ContainsKey($d.Id)) { $ConfiguredPaths[$d.Id] } else { '' }
+        $configured = if ($effectivePaths.ContainsKey($d.Id)) { $effectivePaths[$d.Id] } else { '' }
         $matchesFound = New-Object 'System.Collections.Generic.List[string]'
         $seenMatches = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
         $problem = $null
