@@ -181,3 +181,4 @@ def main():
     report['complete_count']=sum(p['complete'] for p in report['packs']);save(report)
     emit({'status':report['status'],'complete':report['complete_count'],'total':len(packs)})
 if __name__=='__main__': main()
+
