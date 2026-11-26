@@ -24,3 +24,4 @@
   日服游戏：.zhcn-jp-crc-readonly-3219598-backup
   启动器 resources：app.asar.before-zhcn-20261124.bak
 - 报错日志位于 tools\logs；回滚失败时保留备份及事务快照。
+
