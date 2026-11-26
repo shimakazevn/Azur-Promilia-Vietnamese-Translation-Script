@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "module": "launchers",
+  "launchers": [
+    {
+      "id": "tw_launcher",
+      "label": "台服启动器",
+      "version": "1.0.1.4",
+      "exe": "launcher.exe",
+      "relative_path": "resources/app.asar",
+      "backup_suffix": ".before-vi-20261126.bak",
+      "source_sha256": "30b1d20cf58649f553fa4cf3b006f26a847958fd2cf2a005b410baf178d3eafa",
+      "search_subpaths": [
+        "AzurPromilia_TC"
+      ],
+      "target_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "previous_sha256": [],
+      "payload_dir": "tw_launcher",
+      "size": 29481035,
+      "size_note": "ZH-CN target size kept here; update it when the VI/EN app.asar payload is built."
+    },
+    {
+      "id": "jp_launcher",
+      "label": "日服启动器",
+      "version": "1.8.1",
+      "exe": "AZUPRO_JP_Gamelauncher.exe",
+      "relative_path": "resources/app.asar",
+      "backup_suffix": ".before-vi-20261126.bak",
+      "source_sha256": "4f013026736f6afa819a37f299caa9577140e88254ef4097b4d4589fa47f0818",
+      "search_subpaths": [
+        "YostarGames/AZUPRO_JP_Gamelauncher",
+        "AZUPRO_JP_Gamelauncher",
+        "YostarGames"
+      ],
+      "target_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "previous_sha256": [],
+      "payload_dir": "jp_launcher",
+      "size": 71397348,
+      "size_note": "ZH-CN target size kept here; update it when the VI/EN app.asar payload is built."
+    }
+  ],
+  "language": "vi",
+  "status": "placeholder-no-payload",
+  "payload_root": "payload-vi",
+  "target_note": "target_sha256 is 64 zeros on purpose: no VI/EN launcher payload exists yet."
+}

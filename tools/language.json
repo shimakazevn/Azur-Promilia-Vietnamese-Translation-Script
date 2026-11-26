@@ -1,0 +1,14 @@
+{
+  "language": "vi",
+  "available": [
+    "vi",
+    "en",
+    "zhcn"
+  ],
+  "default": "vi",
+  "notes": {
+    "vi": "Tiếng Việt — payload chưa có, chỉ khung chọn ngôn ngữ. Apply sẽ từ chối cho tới khi build xong payload-vi.",
+    "en": "English — payload not built yet, scaffolding only. Apply refuses until payload-en is built.",
+    "zhcn": "简体中文 — bản gốc, payload đã có trong Release gốc."
+  }
+}

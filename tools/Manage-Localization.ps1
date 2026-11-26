@@ -3,6 +3,7 @@
     [ValidateSet('All','TW','JP','Launchers','Games','tw_game','jp_game','tw_launcher','jp_launcher')][string]$Target='All',
     [string]$Hint='',
     [string]$PathsFile='',
+    [ValidateSet('vi','en','zhcn')][string]$Language='',
     [string[]]$ModuleIds,
     [switch]$OnlyHint,
     [switch]$Elevated,
@@ -11,6 +12,20 @@
 $ErrorActionPreference='Stop'
 try { [Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); $OutputEncoding=[Console]::OutputEncoding } catch {}
 $PackRoot=Split-Path $PSScriptRoot -Parent
+# --- Fork shimakazevn: language selection (vi/en/zhcn) ---
+# tools/language.json holds the default; -Language overrides it. zhcn keeps
+# the original behaviour and file names. vi/en load *-deployment-<lang>.json
+# and payload-<lang>/ ; their plans are placeholders until a real payload exists.
+$script:Language='vi'
+if ($Language) { $script:Language=$Language }
+elseif (Test-Path (Join-Path $PSScriptRoot 'language.json')) {
+    try { $cfg=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'language.json') -Raw -Encoding UTF8 | ConvertFrom-Json; if ($cfg.language -in @('vi','en','zhcn')) { $script:Language=$cfg.language } } catch {}
+}
+$Language=$script:Language
+$script:LanguageLabel=switch ($script:Language) { 'vi' { 'Tiếng Việt' } 'en' { 'English' } default { '简体中文' } }
+$script:LocalizedLabel=switch ($script:Language) { 'vi' { 'Đã dịch' } 'en' { 'Localized' } default { '已汉化' } }
+function Deployment-FileName([string]$Base) { if ($script:Language -eq 'zhcn') { return $Base } return ($Base -replace '\.json$', "-$($script:Language).json") }
+function Package-CatalogName { if ($script:Language -eq 'zhcn') { return 'tools/package-files.json' } return "tools/package-files-$($script:Language).json" }
 $Definitions=@(
     [pscustomobject]@{Id='tw_game';Label='台服游戏';Script='tools/Apply-CRCZH.ps1';Launcher=$false},
     [pscustomobject]@{Id='jp_game';Label='日服游戏';Script='tools/Apply-JPCRCZH.ps1';Launcher=$false},
@@ -42,7 +57,12 @@ function Sha([string]$Path) {
     finally { $s.Dispose(); $a.Dispose() }
 }
 function Assert-Package([bool]$Silent=$false) {
-    $catalog=Get-Content -LiteralPath (Child 'tools/package-files.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $catalog=Get-Content -LiteralPath (Child (Package-CatalogName)) -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($catalog.status -eq 'placeholder-no-payload') {
+        Write-Host ("Cảnh báo: chưa có payload cho ngôn ngữ $($script:Language) — chỉ kiểm tra file gốc / xem trạng thái được, chưa áp dụng bản dịch được.") -ForegroundColor Yellow
+        foreach ($d in $Definitions) { if (-not [IO.File]::Exists((Child $d.Script))) { throw "Thiếu module: $($d.Script)" } }
+        return
+    }
     if ($catalog.format -ne 1 -or @($catalog.files).Count -lt 10) { throw '包校验清单格式无效。' }
     $seen=@{}
     foreach ($f in $catalog.files) {
@@ -131,7 +151,7 @@ function Run-Modules([string]$Operation,[string]$Scope,[string[]]$Ids,[hashtable
         $started=[DateTime]::UtcNow.ToString('o'); $code=1; $errorText=$null
         $log=Join-Path $logDir ($d.Id+'.log')
         try {
-            $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',(Child $d.Script),'-Action',$Operation)
+            $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',(Child $d.Script),'-Action',$Operation,'-Language',$script:Language)
             if ($d.Launcher) { $arguments+=@('-Target',$d.Id) }
             $moduleHint=''
             if ($Operation -ne 'ValidatePayload') {
@@ -162,7 +182,7 @@ function Run-Modules([string]$Operation,[string]$Scope,[string[]]$Ids,[hashtable
         $results.Add([pscustomobject]@{module=$d.Id;label=$d.Label;action=$Operation;exit_code=$code;success=($code -eq 0);started_utc=$started;ended_utc=[DateTime]::UtcNow.ToString('o');log=$log;error=$errorText})
         if ($Silent) {
             if ($code -eq 0) {
-                $verb=switch ($Operation) { 'Restore' {'还原完成'} 'Apply' {'汉化完成'} default {'校验通过'} }
+                $verb=switch ($Operation) { 'Restore' {'还原完成'} 'Apply' {$script:LocalizedLabel} default {'校验通过'} }
                 Write-Host ('  [{0}] {1}。' -f $d.Label,$verb) -ForegroundColor Green
             } else {
                 Write-Host ('  [{0}] {1}' -f $d.Label,(Get-FriendlyFailure $errorText)) -ForegroundColor Yellow
@@ -186,7 +206,7 @@ function Run-Modules([string]$Operation,[string]$Scope,[string[]]$Ids,[hashtable
         Write-Host '存在失败模块；成功模块不会跨模块自动还原。请查看日志，修正后单独重试。' -ForegroundColor Yellow
         return 2
     }
-    if ($Operation -eq 'Verify') { Write-Host '校验接受原版和本版汉化；请看逐文件状态，这不等于全部已经汉化。' }
+    if ($Operation -eq 'Verify') { Write-Host ('校验接受原版和本版'+$script:LocalizedLabel+'；请看逐文件状态，这不等于全部已经翻译。') }
     Write-Host '本地操作通过不代表服务端校验或登录已经验证。'
     return 0
 }
@@ -207,8 +227,8 @@ function Get-ItemSummary($Definition,[string]$Root) {
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             $hash=Sha $file
             if ($hash -eq $entry.source_sha256) { return '原版' }
-            if ($hash -eq $entry.target_sha256) { return '已汉化' }
-            if ($hash -in @($entry.previous_sha256)) { return '旧版汉化' }
+            if ($hash -eq $entry.target_sha256) { return $script:LocalizedLabel }
+            if ($hash -in @($entry.previous_sha256)) { return ('旧版'+$script:LocalizedLabel) }
             return '版本不匹配'
         }
         $plan=$gamePlans[$Definition.Id]
@@ -230,8 +250,8 @@ function Get-ItemSummary($Definition,[string]$Root) {
             else { return '版本不匹配' }
         }
         if ($original -eq @($plan.files).Count) { return '原版' }
-        if ($localized -eq @($plan.files).Count) { return '已汉化' }
-        return '部分汉化'
+        if ($localized -eq @($plan.files).Count) { return $script:LocalizedLabel }
+        return ('部分'+$script:LocalizedLabel)
     } catch { return '无法读取' }
 }
 function Parse-Select([string]$Text,$Items) {
@@ -305,7 +325,7 @@ function Show-FileStatus($Items,[hashtable]$Locations) {
                 if (-not [IO.File]::Exists($file)) { $state='缺少文件' }
                 else {
                     $hash=Sha $file
-                    if ($hash -eq $e.target_sha256) { $state='已汉化' }
+                    if ($hash -eq $e.target_sha256) { $state=$script:LocalizedLabel }
                     elseif ($hash -eq $e.source_sha256) { $state='原版' }
                     else { $state='版本不匹配' }
                 }
@@ -325,7 +345,7 @@ function Show-FileStatus($Items,[hashtable]$Locations) {
     }
 }
 function Test-MenuWritable([string]$Root) {
-    $probe=Install-Child $Root ('.zhcn-write-test-'+[Guid]::NewGuid().ToString('N'))
+    $probe=Install-Child $Root ('.'+$script:Language+'-write-test-'+[Guid]::NewGuid().ToString('N'))
     try { [IO.File]::WriteAllText($probe,'x'); [IO.File]::Delete($probe); return $true }
     catch { return $false }
     finally { if ([IO.File]::Exists($probe)) { [IO.File]::Delete($probe) } }
@@ -347,7 +367,7 @@ function Invoke-MenuOperation([string]$Operation,$Items,[hashtable]$Locations) {
         $map=[ordered]@{}
         foreach ($d in $Items) { $map[$d.Id]=$Locations[$d.Id].Path }
         $map | ConvertTo-Json | Out-File -LiteralPath $paths -Encoding UTF8
-        $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$PSCommandPath+'" -Action '+$Operation+' -Elevated -Quiet -PathsFile "'+$paths+'" -ModuleIds '+($Items.Id -join ',')
+        $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$PSCommandPath+'" -Action '+$Operation+' -Language '+$script:Language+' -Elevated -Quiet -PathsFile "'+$paths+'" -ModuleIds '+($Items.Id -join ',')
         $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
         $process=Start-Process -FilePath $shell -Verb RunAs -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
         return $process.ExitCode
@@ -357,7 +377,7 @@ function Invoke-MenuOperation([string]$Operation,$Items,[hashtable]$Locations) {
 try {
     Assert-NoReparse $PackRoot
     . (Child 'tools/Locate-Installations.ps1')
-    $launcherPlan=Get-Content -LiteralPath (Child 'tools/launcher-deployment.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $launcherPlan=Get-Content -LiteralPath (Child (Deployment-FileName 'tools/launcher-deployment.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($d in $Definitions | Where-Object { $_.Launcher }) {
         $entry=@($launcherPlan.launchers | Where-Object { $_.id -eq $d.Id })
         if ($entry.Count -ne 1) { throw '启动器定位清单无效。' }
@@ -372,10 +392,11 @@ try {
     $gamePlans=@{}
     foreach ($id in @('tw_game','jp_game')) {
         $region=if ($id -eq 'tw_game') { 'tw' } else { 'jp' }
-        $gamePlans[$id]=Get-Content -LiteralPath (Child ('tools/'+$region+'-deployment.json')) -Raw -Encoding UTF8 | ConvertFrom-Json
+        $gamePlans[$id]=Get-Content -LiteralPath (Child (Deployment-FileName ('tools/'+$region+'-deployment.json'))) -Raw -Encoding UTF8 | ConvertFrom-Json
     }
     Write-Host '=================================================='
-    Write-Host '  蓝色星原：旅谣 简体汉化/尔安' -ForegroundColor Cyan
+    Write-Host ('  Azur Promilia — Localization / Bản dịch: '+$script:LanguageLabel+' ('+$script:Language+')  [fork shimakazevn]') -ForegroundColor Cyan
+    if ($script:Language -ne 'zhcn') { Write-Host '  Lưu ý: payload VI/EN chưa có — Apply sẽ từ chối cho tới khi build xong payload. zhcn vẫn dùng được như bản gốc.' -ForegroundColor Yellow }
     Write-Host '  开服后若登录异常请还原文件，此脚本未进行反作弊验证' -ForegroundColor Red
     Write-Host '=================================================='
     Write-Host '正在查找游戏和启动器安装位置……'
@@ -404,10 +425,10 @@ try {
         if ($menuLocations[$d.Id].State -in @('invalid','ambiguous')) { Write-Host ('     '+$menuLocations[$d.Id].Problem) -ForegroundColor Yellow }
     }
     Write-Host ''
-    Write-Host '  1. 全部汉化'
+    Write-Host '  1. 全部汉化 / Dịch tất cả / Localize all'
     Write-Host '  2. 全部还原'
-    Write-Host '  3. 选择项目汉化'
-    Write-Host '  4. 选择项目还原'
+    Write-Host '  3. 选择项目汉化 / Dịch từng mục / Localize selected'
+    Write-Host '  4. 选择项目还原 / Khôi phục từng mục / Restore selected'
     Write-Host '  5. 查看文件状态'
     Write-Host '  Q. 退出'
     $choice=([string](Read-Host '请输入选项并按回车')).Trim()

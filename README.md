@@ -1,18 +1,46 @@
-# 蓝色星原简体汉化 / 尔安 问题反馈QQ群：1055713417（随时不在线，目前没人）
+# Azur Promilia — Vietnamese / English Localization (fork)
 
-《蓝色星原：旅谣》台服、日服游戏及启动器的简体中文汉化工具，支持汉化、还原和文件状态检查。
+Fork của [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script) (bản gốc: 台服/日服 → 简体中文), do [shimakazevn](https://github.com/shimakazevn) fork để thêm **Tiếng Việt** và **English**.
+
+《蓝色星原：旅谣》台服、日服游戏及启动器的本地化工具，支持汉化/翻译、还原和文件状态检查。
 
 > **如出现无法登录，请还原文件。本项目未进行反作弊测试，不保证后续版本兼容。**
 
-## 下载
+## Trạng thái ngôn ngữ / Language status
 
-前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases) 下载完整汉化包：
+| Ngôn ngữ | Trạng thái | Payload |
+| --- | --- | --- |
+| `zhcn` — 简体中文 | ✅ Dùng được như bản gốc | Có trong Release gốc (`AzurPromilia-Localization-Full-v3.zip`) |
+| `vi` — Tiếng Việt | 🛠️ Mới chỉ có khung chọn ngôn ngữ | ❌ **Chưa có** — `target_sha256` đang là 64 số 0, Apply sẽ từ chối |
+| `en` — English | 🛠️ Scaffolding only | ❌ **Not built yet** — `target_sha256` is 64 zeros, Apply refuses |
+
+**Nói rõ: fork này chưa dịch được game sang Việt/Anh.** Bản source trên GitHub vốn đã không chứa file dịch — file thay thế nằm trong gói Release. Muốn dịch thật, bước tiếp theo phải build bộ file VI/EN thay thế (dùng `CRC工具/` để dịch text trong các bundle `.r` / `resources.assets` / `app.asar`, giữ nguyên độ dài + CRC như bản Trung đã làm), rồi cập nhật `target_sha256` trong `tools/*-deployment-vi.json` / `*-en.json` và đổi `status` thành `ready`. Cho tới lúc đó, chạy Apply với `vi`/`en` sẽ báo lỗi rõ ràng chứ không ghi đè file game.
+
+## Chọn ngôn ngữ
+
+Mặc định là `vi`. Đổi trong `tools/language.json` (`"language": "vi" | "en" | "zhcn"`), hoặc chạy:
+
+```powershell
+tools\Manage-Localization.ps1 -Language en
+tools\Manage-Localization.ps1 -Language zhcn
+```
+
+Mỗi ngôn ngữ dùng bộ清单 riêng và thư mục riêng, để không lẫn với bản Trung:
+
+- 清单: `tools/tw-deployment-<lang>.json`, `tools/jp-deployment-<lang>.json`, `tools/launcher-deployment-<lang>.json` (`zhcn` giữ tên gốc, không hậu tố)
+- Payload: `payload/` (zhcn), `payload-vi/`, `payload-en/` (đều đã thêm vào `.gitignore`)
+- Backup: `.<lang>-crc-readonly-3221745-backup` (台服), `.<lang>-jp-crc-readonly-3219598-backup` (日服), launcher `resources/app.asar.before-<lang>-20261126.bak`
+- Đóng gói: `build_release.py --language vi|en|zhcn` (mặc định `zhcn`)
+
+## 下载 (chỉ zhcn mới có gói đầy đủ)
+
+前往 [Releases](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases) (bản gốc) 下载完整汉化包：
 
 **`AzurPromilia-Localization-Full-v3.zip`**
 
 完整包包含运行脚本和替换资源，无需另行准备国服包体。
 
-**仓库源码不包含游戏替换资源，直接下载仓库 ZIP 无法完成汉化。**
+**仓库源码不包含游戏替换资源，直接下载仓库 ZIP 无法完成汉化。** Fork này cũng vậy đối với VI/EN.
 
 ## 操作方法
 
@@ -23,7 +51,7 @@
 
 | 选项 | 功能 |
 | --- | --- |
-| 1 | 全部汉化 |
+| 1 | 全部汉化 / Dịch tất cả |
 | 2 | 全部还原 |
 | 3 | 选择项目汉化 |
 | 4 | 选择项目还原 |
@@ -57,16 +85,15 @@
 
 游戏资源汉化采用等长替换及 CRC 配平方案，目标是保留原版资源大小、分段 CRC 和整包 CRC。
 
-
 ## 备份与还原
 
-汉化前会备份原版文件，请勿手动删除：
+汉化前会备份原版文件，请勿手动删除（`<lang>` là `zhcn`/`vi`/`en` tùy ngôn ngữ đã chọn）：
 
 | 项目 | 备份位置 |
 | --- | --- |
-| 台服游戏 | 游戏目录下 `.zhcn-crc-readonly-3221745-backup` |
-| 日服游戏 | 游戏目录下 `.zhcn-jp-crc-readonly-3219598-backup` |
-| 启动器 | `resources/app.asar.before-zhcn-20261124.bak` |
+| 台服游戏 | 游戏目录下 `.<lang>-crc-readonly-3221745-backup` |
+| 日服游戏 | 游戏目录下 `.<lang>-jp-crc-readonly-3219598-backup` |
+| 启动器 | `resources/app.asar.before-<lang>-20261124.bak` (zhcn) / `.before-<lang>-20261126.bak` (vi/en) |
 
 更新游戏或启动器前，建议先还原文件。
 
@@ -77,10 +104,15 @@
 ```text
 ├─ 双击运行.bat        # 运行入口
 ├─ tools/              # 汉化菜单、路径查找、部署与还原
+│  ├─ language.json    # [fork] Ngôn ngữ mặc định: vi
+│  ├─ tw-deployment-vi.json / tw-deployment-en.json      # [fork] 清单 VI/EN (placeholder)
+│  ├─ jp-deployment-vi.json / jp-deployment-en.json      # [fork] 清单 VI/EN (placeholder)
+│  ├─ launcher-deployment-vi.json / launcher-deployment-en.json
+│  └─ package-files-vi.json / package-files-en.json      # [fork] 清单 gói VI/EN (placeholder)
 ├─ CRC工具/
 │  ├─ crc/             # 台服资源处理与校验工具
 │  └─ jp_crc/          # 日服资源处理与校验工具
-├─ build_release.py    # 发布包构建脚本
+├─ build_release.py    # 发布包构建脚本 (thêm --language)
 └─ README.md           # 项目说明
 ```
 
@@ -88,7 +120,7 @@ CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚�
 
 ## 问题反馈
 
-请在 [Issues](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/issues) 中提供：
+请在 [Issues](https://github.com/shimakazevn/Azur-Promilia-Chinese-Translation-Script/issues) 中提供：
 
 - 台服或日服，以及游戏或启动器版本。
 - 操作选项和完整报错。
@@ -98,6 +130,6 @@ CRC 工具目录包含资源分析、构建、校验脚本及报告；部分脚�
 
 ## 许可说明
 
-项目源码许可见 [LICENSE](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/blob/main/LICENSE)。
+项目源码许可见 [LICENSE](https://github.com/shimakazevn/Azur-Promilia-Chinese-Translation-Script/blob/main/LICENSE) (Apache 2.0, bản gốc).
 
 游戏及第三方资源归原权利人所有，源码许可不代表对游戏资源的授权。

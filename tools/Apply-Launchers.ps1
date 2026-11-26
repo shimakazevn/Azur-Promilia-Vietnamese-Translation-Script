@@ -2,7 +2,8 @@
 param(
  [Parameter(Mandatory=$true)][ValidateSet('Apply','Restore','Verify','ValidatePayload')][string]$Action,
  [Parameter(Mandatory=$true)][ValidateSet('tw_launcher','jp_launcher')][string]$Target,
- [string]$Hint
+ [string]$Hint,
+ [ValidateSet('vi','en','zhcn')][string]$Language='zhcn'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -26,13 +27,16 @@ function Stopped {
 }
 try {
  $module=Split-Path $PSScriptRoot -Parent
- $planPath=Join-Path $PSScriptRoot 'launcher-deployment.json';Safe $planPath
+ $planFile=if ($Language -eq 'zhcn') { 'launcher-deployment.json' } else { 'launcher-deployment-'+$Language+'.json' }
+ $planPath=Join-Path $PSScriptRoot $planFile;Safe $planPath
  $plan=Get-Content -Raw -LiteralPath $planPath -Encoding UTF8 | ConvertFrom-Json
+ if ($plan.status -eq 'placeholder-no-payload') { throw "Launcher payload $Language chua duoc build: chua co app.asar dich thay the. Xem README muc Trang thai ngon ngu." }
+ $payloadDir=if ($Language -eq 'zhcn') { 'payload' } else { 'payload-'+$Language }
  $entry=@($plan.launchers | Where-Object id -eq $Target)
  if ($entry.Count -ne 1) { throw 'Invalid plan target' };$entry=$entry[0]
- if ($entry.relative_path -ne 'resources/app.asar' -or $entry.payload_dir -ne $Target -or $entry.backup_suffix -ne '.before-zhcn-20261124.bak') { throw 'Unsafe plan paths' }
+ if ($entry.relative_path -ne 'resources/app.asar' -or $entry.payload_dir -ne $Target -or $entry.backup_suffix -notmatch '^\.before-(zhcn|vi|en)-\d{8}\.bak$') { throw 'Unsafe plan paths' }
  foreach ($digest in @($entry.source_sha256,$entry.target_sha256)+@($entry.previous_sha256)) { if ($digest -notmatch '^[a-f0-9]{64}$') { throw 'Invalid plan hash' } }
- $payload=Join-Path $module "payload\$Target\resources\app.asar"
+ $payload=Join-Path $module "$payloadDir\$Target\resources\app.asar"
  if ((Hash $payload) -ne $entry.target_sha256 -or (Get-Item -LiteralPath $payload).Length -ne $entry.size) { throw 'Bad payload' }
  if ($Action -eq 'ValidatePayload') { Write-Output "PAYLOAD_VALID $Target $($entry.target_sha256)";exit 0 }
  if ($PSBoundParameters.ContainsKey('Hint')) {

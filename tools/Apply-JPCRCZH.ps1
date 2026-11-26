@@ -1,12 +1,16 @@
 ﻿param(
     [ValidateSet('Menu','Apply','Restore','Verify','ValidatePayload')][string]$Action = 'Menu',
-    [string]$Hint = ''
+    [string]$Hint = '',
+    [ValidateSet('vi','en','zhcn')][string]$Language = 'zhcn'
 )
 $ErrorActionPreference = 'Stop'
 $script:HintExplicit = $PSBoundParameters.ContainsKey('Hint')
 try { [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false) } catch {}
 $PackRoot = Split-Path $PSScriptRoot -Parent
-$Plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'jp-deployment.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$PlanFile=if ($Language -eq 'zhcn') { 'jp-deployment.json' } else { 'jp-deployment-'+$Language+'.json' }
+$Plan = Get-Content -LiteralPath (Join-Path $PSScriptRoot $PlanFile) -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($Plan.status -eq 'placeholder-no-payload') { throw "Payload $Language chua duoc build: chua co file dich thay the cho 日服. Xem README muc Trang thai ngon ngu." }
+$PayloadDir=if ($Language -eq 'zhcn') { 'payload' } else { 'payload-'+$Language }
 if (-not ('LocalizationCRC' -as [type])) {
 Add-Type -TypeDefinition @'
 using System;
@@ -115,7 +119,7 @@ function Assert-Resource([string]$Path,$Entry,[bool]$Patched) {
     }
 }
 function Replace-Verified([string]$Source,[string]$Target,[string]$Expected) {
-    $temp=$Target+'.crc-zhcn-stage-'+[Guid]::NewGuid().ToString('N')
+    $temp=$Target+'.crc-'+$Language+'-stage-'+[Guid]::NewGuid().ToString('N')
     try {
         [IO.File]::Copy($Source,$temp,$false)
         if ((Get-Sha $temp) -ne $Expected) { throw "暂存文件校验失败：$Target" }
@@ -135,7 +139,7 @@ try {
     }
     if ($Action -eq 'ValidatePayload') {
         foreach ($e in $Plan.files) {
-            Assert-Resource (Resolve-Child (Join-Path $PackRoot 'payload/jp_game') $e.relative_path) $e $true
+            Assert-Resource (Resolve-Child (Join-Path $PackRoot "$PayloadDir/jp_game") $e.relative_path) $e $true
             Write-Host ('载荷通过：'+$e.relative_path)
         }
         Write-Host '全部载荷通过：大小、SHA256、整包 CRC、全部段 CRC。' -ForegroundColor Green
@@ -145,10 +149,10 @@ try {
     Assert-NoReparse $root
     $data=Join-Path $root 'AzurPromiliaJP_Data'
     Assert-NoReparse $data
-    $backup=Join-Path $root '.zhcn-jp-crc-readonly-3219598-backup'
+    $backup=Join-Path $root '.$Language-jp-crc-readonly-3219598-backup'
     if ($Action -eq 'Menu') {
-        Write-Host "日服简体汉化（清单只读、等长、原 CRC）`n$root"
-        Write-Host '1 汉化   2 还原   3 完整校验   其他退出'
+        Write-Host "日服本地化 ($Language)（清单只读、等长、原 CRC）`n$root"
+        Write-Host '1 本地化/Apply   2 还原/Restore   3 完整校验/Verify   其他退出'
         switch ((Read-Host '选择').Trim()) { '1' {$Action='Apply'} '2' {$Action='Restore'} '3' {$Action='Verify'} default {exit 0} }
     }
     Assert-Guards $data
@@ -156,9 +160,9 @@ try {
         foreach ($e in $Plan.files) {
             $p=Resolve-Child $data $e.relative_path
             $hash=Get-Sha $p
-            if ($hash -eq $e.target_sha256) { Assert-Resource $p $e $true; $state='汉化' }
+            if ($hash -eq $e.target_sha256) { Assert-Resource $p $e $true; $state='已本地化' }
             elseif ($hash -eq $e.source_sha256) { Assert-Resource $p $e $false; $state='原版' }
-            else { throw "文件既非原版也非本版汉化：$($e.relative_path)" }
+            else { throw "文件既非原版也非本版本地化：$($e.relative_path)" }
             Write-Host ("通过 [$state] "+$e.relative_path)
         }
         Write-Host '完整校验通过，所有只读基线保持原字节。' -ForegroundColor Green
@@ -178,7 +182,7 @@ try {
         if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256) { throw "文件版本不匹配：$($e.relative_path)" }
         $bk=Resolve-Child $backup $e.relative_path
         if ($Action -eq 'Apply') {
-            $src=Resolve-Child (Join-Path $PackRoot 'payload/jp_game') $e.relative_path
+            $src=Resolve-Child (Join-Path $PackRoot "$PayloadDir/jp_game") $e.relative_path
             Assert-Resource $src $e $true
             if (-not [IO.File]::Exists($bk)) {
                 if ($h -ne $e.source_sha256) { throw "缺少原版备份：$($e.relative_path)" }
