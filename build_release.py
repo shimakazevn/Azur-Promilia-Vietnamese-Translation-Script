@@ -199,7 +199,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': 'v1.0.2: Hoàn thiện UI chuẩn Genshin-RPG gọn nhẹ (Túi, Đội, Du Ký, Sổ Tay, Vọng Tinh, Trang Viên, Break, Shield, Bạo Kích), sửa lỗi dịch máy & đảo ngữ Hán-Việt. Hỗ trợ cả PC (3219598) và Android Shizuku/ADB (3219596).',
+            'notes': f'{args.version}: Hoàn thiện UI chuẩn Genshin-RPG gọn nhẹ (Túi, Đội, Du Ký, Sổ Tay, Vọng Tinh, Trang Viên, Break, Shield, Bạo Kích), sửa lỗi dịch máy & đảo ngữ Hán-Việt. Hỗ trợ cả PC (3219598) và Android Shizuku/ADB (3219596).',
         }
         if android_obj:
             latest['android'] = android_obj
