@@ -70,3 +70,4 @@ def choose_max_prime_capacity(hashes, hash_total: int, min_padding: int = 4, min
     if min_cap == 2 and hi >= 2 and fits(2):
         return 2
     raise ValueError('No hash capacity fits original slot')
+
