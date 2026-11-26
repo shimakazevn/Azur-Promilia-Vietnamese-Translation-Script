@@ -13,6 +13,10 @@ PACKAGE = '蓝色星原简体汉化'
 CORE_NON_PAYLOAD_PATHS = [
     'tools/Apply-CRCZH.ps1',
     'tools/Apply-JPCRCZH.ps1',
+    'tools/Apply-JPDeblur.ps1',
+    'tools/Apply-TWDeblur.ps1',
+    'tools/tw-deblur-deployment.json',
+    'tools/jp-deblur-deployment.json',
     'tools/Apply-Launchers.ps1',
     'tools/Localization-Common.ps1',
     'tools/jp-deployment.json',
@@ -20,7 +24,7 @@ CORE_NON_PAYLOAD_PATHS = [
     'tools/Locate-Installations.ps1',
     'tools/Manage-Localization.ps1',
     'tools/tw-deployment.json',
-    'README.md',
+    '使用说明.txt',
     '双击运行.bat',
 ]
 
@@ -108,10 +112,6 @@ def refresh_manifest(payload_root=None):
             'sha256': sha256(src),
         }
 
-    # Drop legacy removed entries like 使用说明.txt if present while keeping payload entries intact.
-    for legacy in ('使用说明.txt',):
-        by_path.pop(legacy, None)
-
     if payload_root is not None:
         for rel, item in list(by_path.items()):
             if rel.startswith('payload/'):
@@ -170,7 +170,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--payload', type=Path, help='完整包中的 payload 文件夹')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist')
-    parser.add_argument('--version', default='v3')
+    parser.add_argument('--version', default='v5')
     parser.add_argument('--refresh-manifest', action='store_true', help='刷新 tools/package-files.json 中非 payload 条目')
     parser.add_argument('--verify-repo', action='store_true', help='校验源码仓库清单、编码规则及 CRC 副本同步')
     args = parser.parse_args()
@@ -208,7 +208,7 @@ def main():
         entries[relative] = source
     for name in ('tools/package-files.json', 'tools/安装路径.json'):
         entries[name] = child(ROOT, name)
-    source_names = ['.gitignore', 'LICENSE', 'README.md', 'build_release.py', '双击运行.bat']
+    source_names = ['.gitignore', 'LICENSE', 'README.md', '使用说明.txt', 'build_release.py', '双击运行.bat']
     if (ROOT / '.gitattributes').is_file():
         source_names.append('.gitattributes')
     for folder in ('tools', 'CRC工具', 'tests'):
