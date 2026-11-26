@@ -115,3 +115,4 @@ python tests/run_tests.py
 项目源码许可见 [LICENSE](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/blob/main/LICENSE)。
 
 游戏及第三方资源归原权利人所有，源码许可不代表对游戏资源的授权。
+
