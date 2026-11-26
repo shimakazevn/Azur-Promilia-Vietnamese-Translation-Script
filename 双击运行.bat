@@ -15,3 +15,4 @@ echo.
 echo 按任意键继续……
 pause >nul
 exit /b %RESULT%
+
