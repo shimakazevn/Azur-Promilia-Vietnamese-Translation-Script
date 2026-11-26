@@ -125,7 +125,6 @@ try {
         Assert-ProcessesStopped -ProcessNames @($procName) -PathScopes @($root) -FriendlyError "请先完全退出启动器：$($entry.exe)" -AlwaysRefuseNames $launcherAlwaysRefuse
     }
 
-    & $assertStopped
     if ($Action -eq 'Restore' -and $state -eq 'ORIGINAL') {
         Write-Output "ALREADY_ORIGINAL $Target"
         exit 0
@@ -134,6 +133,8 @@ try {
         Write-Output "ALREADY_CURRENT $Target"
         exit 0
     }
+
+    & $assertStopped
 
     $desired = if ($Action -eq 'Restore') { $backup } else { $payload }
     $expected = if ($Action -eq 'Restore') { $entry.source_sha256 } else { $entry.target_sha256 }
