@@ -1,0 +1,1785 @@
+{
+  "format": 1,
+  "region": "jp_android",
+  "package_name": "com.Yostar.AzurpromiliaJP",
+  "resource_version": "3219596",
+  "builtin_version": "2929638",
+  "language": "vi",
+  "created_at": "2026-11-26T21:41:58.280478+08:00",
+  "files": [
+    {
+      "relative_path": "raw_base_package/BundleFiles/1qnamndresrohzjhuvt2lw.r",
+      "size": 130963874,
+      "source_sha256": "c6ba69f2403102a9d4dbf2b3ab079abbe7de25896abdb3969dd5b7988a2db013",
+      "target_sha256": "3f9d271e85f2f62b17f8d21ce2aa4afe78bc927a56f694b7e3f213053eabc9f5",
+      "crc32": 2896882461,
+      "manifest": "raw_base_package/ManifestFiles/0release_raw_base_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 12,
+          "offset": 0,
+          "size": 130963874,
+          "crc32": 2896882461
+        }
+      ]
+    },
+    {
+      "relative_path": "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r",
+      "size": 28840170,
+      "source_sha256": "3d9fd2444d625ce66d65b516e7662581fd197716303fd2697df01c0478efac5e",
+      "target_sha256": "a29d4678d66b583c80bf2a881c47930b6193300abcafddb070784b146970f0b4",
+      "crc32": 3871693837,
+      "manifest": "raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 0,
+          "offset": 0,
+          "size": 28840170,
+          "crc32": 3871693837
+        }
+      ]
+    },
+    {
+      "relative_path": "default_package/BundleFiles/gbyv5d4clkimzykmtdpw.r",
+      "size": 4517899,
+      "source_sha256": "e4bb26cf68214101c59f42afccfa5b8f77052ebc98e300423edd07e18ddc7d18",
+      "target_sha256": "a9d50940cb8a4fc7863e926f8bcdc1553cddc36a8250b8aed708f06371236b4b",
+      "crc32": 2503108291,
+      "manifest": "default_package/ManifestFiles/0release_default_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 363545,
+          "offset": 0,
+          "size": 4517899,
+          "crc32": 2503108291
+        }
+      ]
+    },
+    {
+      "relative_path": "default_package/BundleFiles/hinb4tru8cuv5nt1itcg.r",
+      "size": 4517927,
+      "source_sha256": "af50f87a8998becf0a17721c90552fd3cdb6d375cd94d0280dab39edc075acf2",
+      "target_sha256": "d03fb1169649a13a820f3641475654dc5b748c30f59b834cea8d413afee6cd17",
+      "crc32": 2951483062,
+      "manifest": "default_package/ManifestFiles/0release_default_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 363546,
+          "offset": 0,
+          "size": 4517927,
+          "crc32": 2951483062
+        }
+      ]
+    },
+    {
+      "relative_path": "default_package/BundleFiles/tzudhfy4h2dw5iybz3lcq.r",
+      "size": 4550495,
+      "source_sha256": "7a17a285723375157a910467cd0fbb7336731e54e85c10e3db2f29ba9a0031b1",
+      "target_sha256": "62ed55bc96748b77600a16a5eb2c581dc98cff9bfcca572835f8df3ac5f0b74d",
+      "crc32": 2718948055,
+      "manifest": "default_package/ManifestFiles/0release_default_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 363547,
+          "offset": 0,
+          "size": 4550495,
+          "crc32": 2718948055
+        }
+      ]
+    },
+    {
+      "relative_path": "default_package/BundleFiles/qhoxrcvxsntnps8wdagnvw.r",
+      "size": 4666103,
+      "source_sha256": "32ce241a8b8f1de62f47d5a83466dfd1d068f927d90dc84e3506882749df2b6f",
+      "target_sha256": "2b29ff6fca9e606bf6d73aafcd79039f2ebd0d3e5ca029179b91fbfee25617a2",
+      "crc32": 2913379943,
+      "manifest": "default_package/ManifestFiles/0release_default_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 363548,
+          "offset": 0,
+          "size": 4550535,
+          "crc32": 237685490
+        },
+        {
+          "bundle_index": 363552,
+          "offset": 4550535,
+          "size": 7172,
+          "crc32": 1020700216
+        },
+        {
+          "bundle_index": 363553,
+          "offset": 4557707,
+          "size": 7184,
+          "crc32": 1239169638
+        },
+        {
+          "bundle_index": 363554,
+          "offset": 4564891,
+          "size": 6824,
+          "crc32": 2032714202
+        },
+        {
+          "bundle_index": 363555,
+          "offset": 4571715,
+          "size": 94388,
+          "crc32": 2306612730
+        }
+      ]
+    },
+    {
+      "relative_path": "default_package/BundleFiles/nibdvaxcnfh3en5bnvhtw.r",
+      "size": 6315113,
+      "source_sha256": "53a36c59b4ababf9457ed37b195092dcafd491c2d95d9ba75a61998c0138d22a",
+      "target_sha256": "e8582c515bee311da84d6983be42a800f1c6f79c7d0529351ed6fce68cec1f76",
+      "crc32": 1531110243,
+      "manifest": "default_package/ManifestFiles/0release_default_package_3219596.bytes",
+      "segments": [
+        {
+          "bundle_index": 363560,
+          "offset": 0,
+          "size": 4173006,
+          "crc32": 3009349413
+        },
+        {
+          "bundle_index": 363561,
+          "offset": 4173006,
+          "size": 27069,
+          "crc32": 102921888
+        },
+        {
+          "bundle_index": 363645,
+          "offset": 4200075,
+          "size": 83151,
+          "crc32": 907704381
+        },
+        {
+          "bundle_index": 363676,
+          "offset": 4283226,
+          "size": 19191,
+          "crc32": 1034792935
+        },
+        {
+          "bundle_index": 363736,
+          "offset": 4302417,
+          "size": 4067,
+          "crc32": 516522248
+        },
+        {
+          "bundle_index": 363737,
+          "offset": 4306484,
+          "size": 4318,
+          "crc32": 3660244187
+        },
+        {
+          "bundle_index": 363738,
+          "offset": 4310802,
+          "size": 4058,
+          "crc32": 742338420
+        },
+        {
+          "bundle_index": 363739,
+          "offset": 4314860,
+          "size": 4342,
+          "crc32": 2996245627
+        },
+        {
+          "bundle_index": 363740,
+          "offset": 4319202,
+          "size": 4057,
+          "crc32": 3559494721
+        },
+        {
+          "bundle_index": 363741,
+          "offset": 4323259,
+          "size": 4298,
+          "crc32": 2113929503
+        },
+        {
+          "bundle_index": 363742,
+          "offset": 4327557,
+          "size": 4071,
+          "crc32": 1826053037
+        },
+        {
+          "bundle_index": 363743,
+          "offset": 4331628,
+          "size": 4303,
+          "crc32": 2669809057
+        },
+        {
+          "bundle_index": 363744,
+          "offset": 4335931,
+          "size": 4060,
+          "crc32": 4225033476
+        },
+        {
+          "bundle_index": 363745,
+          "offset": 4339991,
+          "size": 4317,
+          "crc32": 3104189980
+        },
+        {
+          "bundle_index": 363748,
+          "offset": 4344308,
+          "size": 4055,
+          "crc32": 378914800
+        },
+        {
+          "bundle_index": 363749,
+          "offset": 4348363,
+          "size": 4310,
+          "crc32": 3939857327
+        },
+        {
+          "bundle_index": 363752,
+          "offset": 4352673,
+          "size": 4062,
+          "crc32": 1526876203
+        },
+        {
+          "bundle_index": 363753,
+          "offset": 4356735,
+          "size": 4303,
+          "crc32": 2236322490
+        },
+        {
+          "bundle_index": 363754,
+          "offset": 4361038,
+          "size": 4050,
+          "crc32": 2428176513
+        },
+        {
+          "bundle_index": 363755,
+          "offset": 4365088,
+          "size": 4325,
+          "crc32": 366632817
+        },
+        {
+          "bundle_index": 363756,
+          "offset": 4369413,
+          "size": 4065,
+          "crc32": 1914993217
+        },
+        {
+          "bundle_index": 363757,
+          "offset": 4373478,
+          "size": 4309,
+          "crc32": 2206194132
+        },
+        {
+          "bundle_index": 363762,
+          "offset": 4377787,
+          "size": 4060,
+          "crc32": 4219918315
+        },
+        {
+          "bundle_index": 363763,
+          "offset": 4381847,
+          "size": 4320,
+          "crc32": 3301810482
+        },
+        {
+          "bundle_index": 363766,
+          "offset": 4386167,
+          "size": 4059,
+          "crc32": 550486505
+        },
+        {
+          "bundle_index": 363767,
+          "offset": 4390226,
+          "size": 4313,
+          "crc32": 3015187209
+        },
+        {
+          "bundle_index": 363772,
+          "offset": 4394539,
+          "size": 4072,
+          "crc32": 2552528070
+        },
+        {
+          "bundle_index": 363773,
+          "offset": 4398611,
+          "size": 4293,
+          "crc32": 905803458
+        },
+        {
+          "bundle_index": 363776,
+          "offset": 4402904,
+          "size": 4048,
+          "crc32": 2424979938
+        },
+        {
+          "bundle_index": 363777,
+          "offset": 4406952,
+          "size": 4327,
+          "crc32": 2884645954
+        },
+        {
+          "bundle_index": 363778,
+          "offset": 4411279,
+          "size": 4069,
+          "crc32": 3152591126
+        },
+        {
+          "bundle_index": 363779,
+          "offset": 4415348,
+          "size": 4323,
+          "crc32": 4104652512
+        },
+        {
+          "bundle_index": 363780,
+          "offset": 4419671,
+          "size": 4065,
+          "crc32": 1572634981
+        },
+        {
+          "bundle_index": 363781,
+          "offset": 4423736,
+          "size": 4309,
+          "crc32": 3561301382
+        },
+        {
+          "bundle_index": 363824,
+          "offset": 4428045,
+          "size": 4072,
+          "crc32": 3516682864
+        },
+        {
+          "bundle_index": 363826,
+          "offset": 4432117,
+          "size": 4065,
+          "crc32": 2284433765
+        },
+        {
+          "bundle_index": 363827,
+          "offset": 4436182,
+          "size": 4076,
+          "crc32": 3554325196
+        },
+        {
+          "bundle_index": 363828,
+          "offset": 4440258,
+          "size": 4069,
+          "crc32": 2367361625
+        },
+        {
+          "bundle_index": 363834,
+          "offset": 4444327,
+          "size": 4307,
+          "crc32": 3273262970
+        },
+        {
+          "bundle_index": 363836,
+          "offset": 4448634,
+          "size": 4320,
+          "crc32": 954606955
+        },
+        {
+          "bundle_index": 363837,
+          "offset": 4452954,
+          "size": 4326,
+          "crc32": 3395919669
+        },
+        {
+          "bundle_index": 363838,
+          "offset": 4457280,
+          "size": 4308,
+          "crc32": 2422978156
+        },
+        {
+          "bundle_index": 363843,
+          "offset": 4461588,
+          "size": 4063,
+          "crc32": 3784614328
+        },
+        {
+          "bundle_index": 363844,
+          "offset": 4465651,
+          "size": 4071,
+          "crc32": 3878029401
+        },
+        {
+          "bundle_index": 363845,
+          "offset": 4469722,
+          "size": 4084,
+          "crc32": 1400846555
+        },
+        {
+          "bundle_index": 363846,
+          "offset": 4473806,
+          "size": 4056,
+          "crc32": 2498260442
+        },
+        {
+          "bundle_index": 363847,
+          "offset": 4477862,
+          "size": 4081,
+          "crc32": 3165008111
+        },
+        {
+          "bundle_index": 363848,
+          "offset": 4481943,
+          "size": 4084,
+          "crc32": 3817927881
+        },
+        {
+          "bundle_index": 363849,
+          "offset": 4486027,
+          "size": 4073,
+          "crc32": 1926936576
+        },
+        {
+          "bundle_index": 363850,
+          "offset": 4490100,
+          "size": 4081,
+          "crc32": 3042290999
+        },
+        {
+          "bundle_index": 363851,
+          "offset": 4494181,
+          "size": 4066,
+          "crc32": 877255048
+        },
+        {
+          "bundle_index": 363852,
+          "offset": 4498247,
+          "size": 4069,
+          "crc32": 1204855395
+        },
+        {
+          "bundle_index": 363854,
+          "offset": 4502316,
+          "size": 4354,
+          "crc32": 1129939508
+        },
+        {
+          "bundle_index": 363855,
+          "offset": 4506670,
+          "size": 4353,
+          "crc32": 4147239621
+        },
+        {
+          "bundle_index": 363856,
+          "offset": 4511023,
+          "size": 4325,
+          "crc32": 408763226
+        },
+        {
+          "bundle_index": 363857,
+          "offset": 4515348,
+          "size": 4324,
+          "crc32": 2635341014
+        },
+        {
+          "bundle_index": 363858,
+          "offset": 4519672,
+          "size": 4312,
+          "crc32": 38281481
+        },
+        {
+          "bundle_index": 363859,
+          "offset": 4523984,
+          "size": 4314,
+          "crc32": 3331157650
+        },
+        {
+          "bundle_index": 363860,
+          "offset": 4528298,
+          "size": 4331,
+          "crc32": 2551238632
+        },
+        {
+          "bundle_index": 363861,
+          "offset": 4532629,
+          "size": 4326,
+          "crc32": 2144815574
+        },
+        {
+          "bundle_index": 363862,
+          "offset": 4536955,
+          "size": 4324,
+          "crc32": 1911674179
+        },
+        {
+          "bundle_index": 363863,
+          "offset": 4541279,
+          "size": 4318,
+          "crc32": 1804932936
+        },
+        {
+          "bundle_index": 363864,
+          "offset": 4545597,
+          "size": 4082,
+          "crc32": 2566175674
+        },
+        {
+          "bundle_index": 363865,
+          "offset": 4549679,
+          "size": 4076,
+          "crc32": 3818695820
+        },
+        {
+          "bundle_index": 363866,
+          "offset": 4553755,
+          "size": 4061,
+          "crc32": 4183726425
+        },
+        {
+          "bundle_index": 363867,
+          "offset": 4557816,
+          "size": 4059,
+          "crc32": 706588692
+        },
+        {
+          "bundle_index": 363871,
+          "offset": 4561875,
+          "size": 4063,
+          "crc32": 645167761
+        },
+        {
+          "bundle_index": 363872,
+          "offset": 4565938,
+          "size": 4073,
+          "crc32": 456739991
+        },
+        {
+          "bundle_index": 363873,
+          "offset": 4570011,
+          "size": 4060,
+          "crc32": 437644533
+        },
+        {
+          "bundle_index": 363874,
+          "offset": 4574071,
+          "size": 4342,
+          "crc32": 2163426490
+        },
+        {
+          "bundle_index": 363875,
+          "offset": 4578413,
+          "size": 4350,
+          "crc32": 4111587229
+        },
+        {
+          "bundle_index": 363876,
+          "offset": 4582763,
+          "size": 4334,
+          "crc32": 1833348264
+        },
+        {
+          "bundle_index": 363877,
+          "offset": 4587097,
+          "size": 4330,
+          "crc32": 1606419278
+        },
+        {
+          "bundle_index": 363881,
+          "offset": 4591427,
+          "size": 4331,
+          "crc32": 2543020860
+        },
+        {
+          "bundle_index": 363882,
+          "offset": 4595758,
+          "size": 4333,
+          "crc32": 3659722480
+        },
+        {
+          "bundle_index": 363883,
+          "offset": 4600091,
+          "size": 4343,
+          "crc32": 2143293758
+        },
+        {
+          "bundle_index": 363884,
+          "offset": 4604434,
+          "size": 4059,
+          "crc32": 2197219683
+        },
+        {
+          "bundle_index": 363885,
+          "offset": 4608493,
+          "size": 4072,
+          "crc32": 3376487178
+        },
+        {
+          "bundle_index": 363886,
+          "offset": 4612565,
+          "size": 4067,
+          "crc32": 3600626742
+        },
+        {
+          "bundle_index": 363887,
+          "offset": 4616632,
+          "size": 4081,
+          "crc32": 1949081638
+        },
+        {
+          "bundle_index": 363894,
+          "offset": 4620713,
+          "size": 4311,
+          "crc32": 400252158
+        },
+        {
+          "bundle_index": 363895,
+          "offset": 4625024,
+          "size": 4348,
+          "crc32": 3137343768
+        },
+        {
+          "bundle_index": 363896,
+          "offset": 4629372,
+          "size": 4325,
+          "crc32": 1855133156
+        },
+        {
+          "bundle_index": 363897,
+          "offset": 4633697,
+          "size": 4370,
+          "crc32": 546573372
+        },
+        {
+          "bundle_index": 363949,
+          "offset": 4638067,
+          "size": 4071,
+          "crc32": 1195120843
+        },
+        {
+          "bundle_index": 363950,
+          "offset": 4642138,
+          "size": 4094,
+          "crc32": 495964176
+        },
+        {
+          "bundle_index": 363951,
+          "offset": 4646232,
+          "size": 4077,
+          "crc32": 3908069475
+        },
+        {
+          "bundle_index": 363952,
+          "offset": 4650309,
+          "size": 4073,
+          "crc32": 1887142515
+        },
+        {
+          "bundle_index": 363953,
+          "offset": 4654382,
+          "size": 4066,
+          "crc32": 3672080045
+        },
+        {
+          "bundle_index": 363954,
+          "offset": 4658448,
+          "size": 4071,
+          "crc32": 161989933
+        },
+        {
+          "bundle_index": 363955,
+          "offset": 4662519,
+          "size": 4078,
+          "crc32": 1636289168
+        },
+        {
+          "bundle_index": 363959,
+          "offset": 4666597,
+          "size": 4081,
+          "crc32": 3642079557
+        },
+        {
+          "bundle_index": 363960,
+          "offset": 4670678,
+          "size": 4089,
+          "crc32": 663916014
+        },
+        {
+          "bundle_index": 363961,
+          "offset": 4674767,
+          "size": 4071,
+          "crc32": 631404325
+        },
+        {
+          "bundle_index": 363967,
+          "offset": 4678838,
+          "size": 4162,
+          "crc32": 106949202
+        },
+        {
+          "bundle_index": 363968,
+          "offset": 4683000,
+          "size": 4176,
+          "crc32": 3710407269
+        },
+        {
+          "bundle_index": 363969,
+          "offset": 4687176,
+          "size": 4331,
+          "crc32": 4160833363
+        },
+        {
+          "bundle_index": 363970,
+          "offset": 4691507,
+          "size": 4328,
+          "crc32": 1462636642
+        },
+        {
+          "bundle_index": 363971,
+          "offset": 4695835,
+          "size": 4177,
+          "crc32": 4142654478
+        },
+        {
+          "bundle_index": 363972,
+          "offset": 4700012,
+          "size": 4329,
+          "crc32": 3929421651
+        },
+        {
+          "bundle_index": 363973,
+          "offset": 4704341,
+          "size": 4333,
+          "crc32": 52145411
+        },
+        {
+          "bundle_index": 363977,
+          "offset": 4708674,
+          "size": 4163,
+          "crc32": 2025115449
+        },
+        {
+          "bundle_index": 363978,
+          "offset": 4712837,
+          "size": 4331,
+          "crc32": 1447206791
+        },
+        {
+          "bundle_index": 363979,
+          "offset": 4717168,
+          "size": 4318,
+          "crc32": 1603465873
+        },
+        {
+          "bundle_index": 364060,
+          "offset": 4721486,
+          "size": 4066,
+          "crc32": 4120236528
+        },
+        {
+          "bundle_index": 364061,
+          "offset": 4725552,
+          "size": 4068,
+          "crc32": 2614429134
+        },
+        {
+          "bundle_index": 364062,
+          "offset": 4729620,
+          "size": 4072,
+          "crc32": 1498651032
+        },
+        {
+          "bundle_index": 364063,
+          "offset": 4733692,
+          "size": 4058,
+          "crc32": 2008103735
+        },
+        {
+          "bundle_index": 364064,
+          "offset": 4737750,
+          "size": 4075,
+          "crc32": 3289239617
+        },
+        {
+          "bundle_index": 364065,
+          "offset": 4741825,
+          "size": 4060,
+          "crc32": 175643460
+        },
+        {
+          "bundle_index": 364066,
+          "offset": 4745885,
+          "size": 4066,
+          "crc32": 1612853389
+        },
+        {
+          "bundle_index": 364067,
+          "offset": 4749951,
+          "size": 4058,
+          "crc32": 1088693073
+        },
+        {
+          "bundle_index": 364068,
+          "offset": 4754009,
+          "size": 4065,
+          "crc32": 4088679838
+        },
+        {
+          "bundle_index": 364069,
+          "offset": 4758074,
+          "size": 4056,
+          "crc32": 3872553742
+        },
+        {
+          "bundle_index": 364070,
+          "offset": 4762130,
+          "size": 4319,
+          "crc32": 3409694788
+        },
+        {
+          "bundle_index": 364071,
+          "offset": 4766449,
+          "size": 4336,
+          "crc32": 137225145
+        },
+        {
+          "bundle_index": 364072,
+          "offset": 4770785,
+          "size": 4321,
+          "crc32": 1657336981
+        },
+        {
+          "bundle_index": 364073,
+          "offset": 4775106,
+          "size": 4330,
+          "crc32": 585934760
+        },
+        {
+          "bundle_index": 364074,
+          "offset": 4779436,
+          "size": 4322,
+          "crc32": 2045674054
+        },
+        {
+          "bundle_index": 364075,
+          "offset": 4783758,
+          "size": 4324,
+          "crc32": 1974261376
+        },
+        {
+          "bundle_index": 364076,
+          "offset": 4788082,
+          "size": 4332,
+          "crc32": 343478084
+        },
+        {
+          "bundle_index": 364077,
+          "offset": 4792414,
+          "size": 4342,
+          "crc32": 1757260765
+        },
+        {
+          "bundle_index": 364078,
+          "offset": 4796756,
+          "size": 4309,
+          "crc32": 2705794789
+        },
+        {
+          "bundle_index": 364079,
+          "offset": 4801065,
+          "size": 4331,
+          "crc32": 3455485772
+        },
+        {
+          "bundle_index": 364080,
+          "offset": 4805396,
+          "size": 4074,
+          "crc32": 1242079353
+        },
+        {
+          "bundle_index": 364081,
+          "offset": 4809470,
+          "size": 4076,
+          "crc32": 3079242498
+        },
+        {
+          "bundle_index": 364082,
+          "offset": 4813546,
+          "size": 4066,
+          "crc32": 1027714881
+        },
+        {
+          "bundle_index": 364083,
+          "offset": 4817612,
+          "size": 4056,
+          "crc32": 2895999499
+        },
+        {
+          "bundle_index": 364090,
+          "offset": 4821668,
+          "size": 4346,
+          "crc32": 137320845
+        },
+        {
+          "bundle_index": 364091,
+          "offset": 4826014,
+          "size": 4358,
+          "crc32": 1552982023
+        },
+        {
+          "bundle_index": 364092,
+          "offset": 4830372,
+          "size": 4364,
+          "crc32": 478223727
+        },
+        {
+          "bundle_index": 364093,
+          "offset": 4834736,
+          "size": 4332,
+          "crc32": 3076846567
+        },
+        {
+          "bundle_index": 364100,
+          "offset": 4839068,
+          "size": 4064,
+          "crc32": 627102150
+        },
+        {
+          "bundle_index": 364101,
+          "offset": 4843132,
+          "size": 4079,
+          "crc32": 1068257260
+        },
+        {
+          "bundle_index": 364102,
+          "offset": 4847211,
+          "size": 4068,
+          "crc32": 31290539
+        },
+        {
+          "bundle_index": 364103,
+          "offset": 4851279,
+          "size": 4089,
+          "crc32": 836836457
+        },
+        {
+          "bundle_index": 364104,
+          "offset": 4855368,
+          "size": 4087,
+          "crc32": 870037213
+        },
+        {
+          "bundle_index": 364105,
+          "offset": 4859455,
+          "size": 4070,
+          "crc32": 583025285
+        },
+        {
+          "bundle_index": 364106,
+          "offset": 4863525,
+          "size": 4099,
+          "crc32": 3007807154
+        },
+        {
+          "bundle_index": 364113,
+          "offset": 4867624,
+          "size": 4328,
+          "crc32": 3610407392
+        },
+        {
+          "bundle_index": 364114,
+          "offset": 4871952,
+          "size": 4340,
+          "crc32": 176819623
+        },
+        {
+          "bundle_index": 364115,
+          "offset": 4876292,
+          "size": 4339,
+          "crc32": 3088686518
+        },
+        {
+          "bundle_index": 364116,
+          "offset": 4880631,
+          "size": 4322,
+          "crc32": 3786577285
+        },
+        {
+          "bundle_index": 364117,
+          "offset": 4884953,
+          "size": 4350,
+          "crc32": 3953877150
+        },
+        {
+          "bundle_index": 364118,
+          "offset": 4889303,
+          "size": 4349,
+          "crc32": 2741836343
+        },
+        {
+          "bundle_index": 364119,
+          "offset": 4893652,
+          "size": 4337,
+          "crc32": 545529681
+        },
+        {
+          "bundle_index": 364306,
+          "offset": 4897989,
+          "size": 4085,
+          "crc32": 1991876944
+        },
+        {
+          "bundle_index": 364307,
+          "offset": 4902074,
+          "size": 4084,
+          "crc32": 1464469673
+        },
+        {
+          "bundle_index": 364308,
+          "offset": 4906158,
+          "size": 4068,
+          "crc32": 4037429608
+        },
+        {
+          "bundle_index": 364309,
+          "offset": 4910226,
+          "size": 4069,
+          "crc32": 3006472811
+        },
+        {
+          "bundle_index": 364310,
+          "offset": 4914295,
+          "size": 4058,
+          "crc32": 1995490247
+        },
+        {
+          "bundle_index": 364311,
+          "offset": 4918353,
+          "size": 4066,
+          "crc32": 2654219086
+        },
+        {
+          "bundle_index": 364312,
+          "offset": 4922419,
+          "size": 4060,
+          "crc32": 1358991965
+        },
+        {
+          "bundle_index": 364313,
+          "offset": 4926479,
+          "size": 4072,
+          "crc32": 3599373338
+        },
+        {
+          "bundle_index": 364314,
+          "offset": 4930551,
+          "size": 4066,
+          "crc32": 3894448634
+        },
+        {
+          "bundle_index": 364315,
+          "offset": 4934617,
+          "size": 4074,
+          "crc32": 2754478834
+        },
+        {
+          "bundle_index": 364316,
+          "offset": 4938691,
+          "size": 4329,
+          "crc32": 3481101165
+        },
+        {
+          "bundle_index": 364317,
+          "offset": 4943020,
+          "size": 4334,
+          "crc32": 3752687950
+        },
+        {
+          "bundle_index": 364318,
+          "offset": 4947354,
+          "size": 4326,
+          "crc32": 2018980292
+        },
+        {
+          "bundle_index": 364319,
+          "offset": 4951680,
+          "size": 4310,
+          "crc32": 2008626346
+        },
+        {
+          "bundle_index": 364320,
+          "offset": 4955990,
+          "size": 4320,
+          "crc32": 3187595531
+        },
+        {
+          "bundle_index": 364321,
+          "offset": 4960310,
+          "size": 4331,
+          "crc32": 156166982
+        },
+        {
+          "bundle_index": 364322,
+          "offset": 4964641,
+          "size": 4352,
+          "crc32": 2388302892
+        },
+        {
+          "bundle_index": 364323,
+          "offset": 4968993,
+          "size": 4325,
+          "crc32": 3745690995
+        },
+        {
+          "bundle_index": 364324,
+          "offset": 4973318,
+          "size": 4344,
+          "crc32": 2099441138
+        },
+        {
+          "bundle_index": 364325,
+          "offset": 4977662,
+          "size": 4310,
+          "crc32": 599195705
+        },
+        {
+          "bundle_index": 364386,
+          "offset": 4981972,
+          "size": 4058,
+          "crc32": 4037848730
+        },
+        {
+          "bundle_index": 364387,
+          "offset": 4986030,
+          "size": 4081,
+          "crc32": 1646675188
+        },
+        {
+          "bundle_index": 364388,
+          "offset": 4990111,
+          "size": 4072,
+          "crc32": 155948996
+        },
+        {
+          "bundle_index": 364389,
+          "offset": 4994183,
+          "size": 4077,
+          "crc32": 1020422186
+        },
+        {
+          "bundle_index": 364390,
+          "offset": 4998260,
+          "size": 4057,
+          "crc32": 1064440689
+        },
+        {
+          "bundle_index": 364391,
+          "offset": 5002317,
+          "size": 4070,
+          "crc32": 1298556429
+        },
+        {
+          "bundle_index": 364392,
+          "offset": 5006387,
+          "size": 4074,
+          "crc32": 4046459597
+        },
+        {
+          "bundle_index": 364393,
+          "offset": 5010461,
+          "size": 4081,
+          "crc32": 30376169
+        },
+        {
+          "bundle_index": 364394,
+          "offset": 5014542,
+          "size": 4075,
+          "crc32": 1547496957
+        },
+        {
+          "bundle_index": 364395,
+          "offset": 5018617,
+          "size": 4069,
+          "crc32": 3391465799
+        },
+        {
+          "bundle_index": 364396,
+          "offset": 5022686,
+          "size": 4310,
+          "crc32": 3014052739
+        },
+        {
+          "bundle_index": 364397,
+          "offset": 5026996,
+          "size": 4342,
+          "crc32": 1078339256
+        },
+        {
+          "bundle_index": 364398,
+          "offset": 5031338,
+          "size": 4333,
+          "crc32": 361819541
+        },
+        {
+          "bundle_index": 364399,
+          "offset": 5035671,
+          "size": 4333,
+          "crc32": 3532688217
+        },
+        {
+          "bundle_index": 364400,
+          "offset": 5040004,
+          "size": 4325,
+          "crc32": 724997255
+        },
+        {
+          "bundle_index": 364401,
+          "offset": 5044329,
+          "size": 4309,
+          "crc32": 2280687069
+        },
+        {
+          "bundle_index": 364402,
+          "offset": 5048638,
+          "size": 4341,
+          "crc32": 4190376245
+        },
+        {
+          "bundle_index": 364403,
+          "offset": 5052979,
+          "size": 4333,
+          "crc32": 1438979467
+        },
+        {
+          "bundle_index": 364404,
+          "offset": 5057312,
+          "size": 4323,
+          "crc32": 3920715794
+        },
+        {
+          "bundle_index": 364405,
+          "offset": 5061635,
+          "size": 4324,
+          "crc32": 4137050870
+        },
+        {
+          "bundle_index": 364408,
+          "offset": 5065959,
+          "size": 4083,
+          "crc32": 2048291655
+        },
+        {
+          "bundle_index": 364413,
+          "offset": 5070042,
+          "size": 4061,
+          "crc32": 1922321407
+        },
+        {
+          "bundle_index": 364414,
+          "offset": 5074103,
+          "size": 4055,
+          "crc32": 2736068806
+        },
+        {
+          "bundle_index": 364415,
+          "offset": 5078158,
+          "size": 4066,
+          "crc32": 2613237852
+        },
+        {
+          "bundle_index": 364416,
+          "offset": 5082224,
+          "size": 4066,
+          "crc32": 2664384464
+        },
+        {
+          "bundle_index": 364417,
+          "offset": 5086290,
+          "size": 4072,
+          "crc32": 2798759393
+        },
+        {
+          "bundle_index": 364418,
+          "offset": 5090362,
+          "size": 4063,
+          "crc32": 1097713309
+        },
+        {
+          "bundle_index": 364421,
+          "offset": 5094425,
+          "size": 4347,
+          "crc32": 4113276126
+        },
+        {
+          "bundle_index": 364426,
+          "offset": 5098772,
+          "size": 4334,
+          "crc32": 3811220044
+        },
+        {
+          "bundle_index": 364427,
+          "offset": 5103106,
+          "size": 4334,
+          "crc32": 674412651
+        },
+        {
+          "bundle_index": 364428,
+          "offset": 5107440,
+          "size": 4328,
+          "crc32": 4134048586
+        },
+        {
+          "bundle_index": 364429,
+          "offset": 5111768,
+          "size": 4324,
+          "crc32": 3443444609
+        },
+        {
+          "bundle_index": 364430,
+          "offset": 5116092,
+          "size": 4308,
+          "crc32": 435154324
+        },
+        {
+          "bundle_index": 364431,
+          "offset": 5120400,
+          "size": 4339,
+          "crc32": 4292221498
+        },
+        {
+          "bundle_index": 364432,
+          "offset": 5124739,
+          "size": 4069,
+          "crc32": 2071928632
+        },
+        {
+          "bundle_index": 364434,
+          "offset": 5128808,
+          "size": 4084,
+          "crc32": 689655141
+        },
+        {
+          "bundle_index": 364435,
+          "offset": 5132892,
+          "size": 4061,
+          "crc32": 2326600566
+        },
+        {
+          "bundle_index": 364436,
+          "offset": 5136953,
+          "size": 4074,
+          "crc32": 4166695090
+        },
+        {
+          "bundle_index": 364596,
+          "offset": 5141027,
+          "size": 4084,
+          "crc32": 2676412227
+        },
+        {
+          "bundle_index": 364597,
+          "offset": 5145111,
+          "size": 4074,
+          "crc32": 1616992420
+        },
+        {
+          "bundle_index": 364598,
+          "offset": 5149185,
+          "size": 4086,
+          "crc32": 2793432558
+        },
+        {
+          "bundle_index": 364599,
+          "offset": 5153271,
+          "size": 4071,
+          "crc32": 2614259445
+        },
+        {
+          "bundle_index": 364600,
+          "offset": 5157342,
+          "size": 4068,
+          "crc32": 791991811
+        },
+        {
+          "bundle_index": 364601,
+          "offset": 5161410,
+          "size": 4073,
+          "crc32": 1622144872
+        },
+        {
+          "bundle_index": 364602,
+          "offset": 5165483,
+          "size": 4069,
+          "crc32": 2333752410
+        },
+        {
+          "bundle_index": 364603,
+          "offset": 5169552,
+          "size": 4074,
+          "crc32": 1250416663
+        },
+        {
+          "bundle_index": 364604,
+          "offset": 5173626,
+          "size": 4071,
+          "crc32": 1642515584
+        },
+        {
+          "bundle_index": 364605,
+          "offset": 5177697,
+          "size": 4078,
+          "crc32": 3384162506
+        },
+        {
+          "bundle_index": 364606,
+          "offset": 5181775,
+          "size": 4087,
+          "crc32": 2688939736
+        },
+        {
+          "bundle_index": 364607,
+          "offset": 5185862,
+          "size": 4064,
+          "crc32": 236032126
+        },
+        {
+          "bundle_index": 364608,
+          "offset": 5189926,
+          "size": 4080,
+          "crc32": 970144430
+        },
+        {
+          "bundle_index": 364609,
+          "offset": 5194006,
+          "size": 4076,
+          "crc32": 1803708558
+        },
+        {
+          "bundle_index": 364610,
+          "offset": 5198082,
+          "size": 4070,
+          "crc32": 176365386
+        },
+        {
+          "bundle_index": 364611,
+          "offset": 5202152,
+          "size": 4068,
+          "crc32": 1046658000
+        },
+        {
+          "bundle_index": 364612,
+          "offset": 5206220,
+          "size": 4087,
+          "crc32": 2278443050
+        },
+        {
+          "bundle_index": 364613,
+          "offset": 5210307,
+          "size": 4093,
+          "crc32": 3530826509
+        },
+        {
+          "bundle_index": 364614,
+          "offset": 5214400,
+          "size": 4060,
+          "crc32": 2297211373
+        },
+        {
+          "bundle_index": 364615,
+          "offset": 5218460,
+          "size": 4074,
+          "crc32": 3962195347
+        },
+        {
+          "bundle_index": 364616,
+          "offset": 5222534,
+          "size": 4069,
+          "crc32": 263008126
+        },
+        {
+          "bundle_index": 364617,
+          "offset": 5226603,
+          "size": 4068,
+          "crc32": 701597970
+        },
+        {
+          "bundle_index": 364618,
+          "offset": 5230671,
+          "size": 4083,
+          "crc32": 1816105599
+        },
+        {
+          "bundle_index": 364619,
+          "offset": 5234754,
+          "size": 4078,
+          "crc32": 1118153500
+        },
+        {
+          "bundle_index": 364620,
+          "offset": 5238832,
+          "size": 4068,
+          "crc32": 1810727968
+        },
+        {
+          "bundle_index": 364621,
+          "offset": 5242900,
+          "size": 4078,
+          "crc32": 1823706120
+        },
+        {
+          "bundle_index": 364622,
+          "offset": 5246978,
+          "size": 4076,
+          "crc32": 1258868926
+        },
+        {
+          "bundle_index": 364623,
+          "offset": 5251054,
+          "size": 4079,
+          "crc32": 1556430655
+        },
+        {
+          "bundle_index": 364624,
+          "offset": 5255133,
+          "size": 4063,
+          "crc32": 489478013
+        },
+        {
+          "bundle_index": 364625,
+          "offset": 5259196,
+          "size": 4090,
+          "crc32": 1928406767
+        },
+        {
+          "bundle_index": 364626,
+          "offset": 5263286,
+          "size": 4076,
+          "crc32": 1093601430
+        },
+        {
+          "bundle_index": 364627,
+          "offset": 5267362,
+          "size": 4074,
+          "crc32": 4242783413
+        },
+        {
+          "bundle_index": 364628,
+          "offset": 5271436,
+          "size": 4085,
+          "crc32": 239046998
+        },
+        {
+          "bundle_index": 364629,
+          "offset": 5275521,
+          "size": 4069,
+          "crc32": 3564728404
+        },
+        {
+          "bundle_index": 364630,
+          "offset": 5279590,
+          "size": 4069,
+          "crc32": 3855901094
+        },
+        {
+          "bundle_index": 364631,
+          "offset": 5283659,
+          "size": 4077,
+          "crc32": 788627919
+        },
+        {
+          "bundle_index": 364632,
+          "offset": 5287736,
+          "size": 4062,
+          "crc32": 1944367597
+        },
+        {
+          "bundle_index": 364633,
+          "offset": 5291798,
+          "size": 4076,
+          "crc32": 301227747
+        },
+        {
+          "bundle_index": 364634,
+          "offset": 5295874,
+          "size": 4069,
+          "crc32": 2400160631
+        },
+        {
+          "bundle_index": 364635,
+          "offset": 5299943,
+          "size": 4090,
+          "crc32": 1165470449
+        },
+        {
+          "bundle_index": 364636,
+          "offset": 5304033,
+          "size": 4076,
+          "crc32": 3992942339
+        },
+        {
+          "bundle_index": 364637,
+          "offset": 5308109,
+          "size": 4067,
+          "crc32": 2971320296
+        },
+        {
+          "bundle_index": 364638,
+          "offset": 5312176,
+          "size": 4070,
+          "crc32": 3226062845
+        },
+        {
+          "bundle_index": 364639,
+          "offset": 5316246,
+          "size": 4075,
+          "crc32": 2477656000
+        },
+        {
+          "bundle_index": 364640,
+          "offset": 5320321,
+          "size": 4083,
+          "crc32": 3152294583
+        },
+        {
+          "bundle_index": 364641,
+          "offset": 5324404,
+          "size": 4093,
+          "crc32": 1687988249
+        },
+        {
+          "bundle_index": 364642,
+          "offset": 5328497,
+          "size": 4067,
+          "crc32": 2165061307
+        },
+        {
+          "bundle_index": 364643,
+          "offset": 5332564,
+          "size": 4090,
+          "crc32": 4110450539
+        },
+        {
+          "bundle_index": 364644,
+          "offset": 5336654,
+          "size": 4074,
+          "crc32": 2059387296
+        },
+        {
+          "bundle_index": 364645,
+          "offset": 5340728,
+          "size": 4083,
+          "crc32": 1987075722
+        },
+        {
+          "bundle_index": 364646,
+          "offset": 5344811,
+          "size": 4070,
+          "crc32": 160789262
+        },
+        {
+          "bundle_index": 364647,
+          "offset": 5348881,
+          "size": 1760,
+          "crc32": 96621246
+        },
+        {
+          "bundle_index": 364648,
+          "offset": 5350641,
+          "size": 4066,
+          "crc32": 2312764300
+        },
+        {
+          "bundle_index": 364649,
+          "offset": 5354707,
+          "size": 4065,
+          "crc32": 2195462751
+        },
+        {
+          "bundle_index": 364650,
+          "offset": 5358772,
+          "size": 4079,
+          "crc32": 935191155
+        },
+        {
+          "bundle_index": 364651,
+          "offset": 5362851,
+          "size": 4065,
+          "crc32": 3705208732
+        },
+        {
+          "bundle_index": 364655,
+          "offset": 5366916,
+          "size": 25036,
+          "crc32": 449141422
+        },
+        {
+          "bundle_index": 364656,
+          "offset": 5391952,
+          "size": 135149,
+          "crc32": 1652924989
+        },
+        {
+          "bundle_index": 364659,
+          "offset": 5527101,
+          "size": 25680,
+          "crc32": 4117517701
+        },
+        {
+          "bundle_index": 364661,
+          "offset": 5552781,
+          "size": 25392,
+          "crc32": 3162590228
+        },
+        {
+          "bundle_index": 364662,
+          "offset": 5578173,
+          "size": 32091,
+          "crc32": 228683098
+        },
+        {
+          "bundle_index": 364669,
+          "offset": 5610264,
+          "size": 11783,
+          "crc32": 3039973956
+        },
+        {
+          "bundle_index": 364674,
+          "offset": 5622047,
+          "size": 154282,
+          "crc32": 3457526199
+        },
+        {
+          "bundle_index": 364675,
+          "offset": 5776329,
+          "size": 29898,
+          "crc32": 3567734369
+        },
+        {
+          "bundle_index": 364676,
+          "offset": 5806227,
+          "size": 142099,
+          "crc32": 3752871421
+        },
+        {
+          "bundle_index": 364677,
+          "offset": 5948326,
+          "size": 30880,
+          "crc32": 2688572471
+        },
+        {
+          "bundle_index": 364678,
+          "offset": 5979206,
+          "size": 157272,
+          "crc32": 1277801050
+        },
+        {
+          "bundle_index": 364680,
+          "offset": 6136478,
+          "size": 29196,
+          "crc32": 1446744257
+        },
+        {
+          "bundle_index": 364681,
+          "offset": 6165674,
+          "size": 120625,
+          "crc32": 443292211
+        },
+        {
+          "bundle_index": 364682,
+          "offset": 6286299,
+          "size": 28814,
+          "crc32": 633539324
+        }
+      ]
+    }
+  ]
+}

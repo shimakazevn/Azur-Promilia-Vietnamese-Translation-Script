@@ -11,7 +11,7 @@ Fork của [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github
 | Ngôn ngữ | Trạng thái | Payload |
 | --- | --- | --- |
 | `zhcn` — 简体中文 | ✅ Dùng được như bản gốc | Có trong Release gốc (`AzurPromilia-Localization-Full-v3.zip`) |
-| `vi` — Tiếng Việt | ✅ Đã phát hành (JP Client `3219598` + Launcher `1.8.1`) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases) (`AzurPromilia-VI-Setup.exe` & `AzurPromilia-Localization-Full-vi-v1.0.2.zip`) |
+| `vi` — Tiếng Việt | ✅ Đã phát hành (JP PC `3219598` + Launcher `1.8.1` + **Android `3219596`**) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases) (`AzurPromilia-VI-Setup.exe`, `AzurPromilia-VI-Mobile.apk`, gói Offline PC & Android) |
 | `en` — English | 🛠️ Scaffolding only | ❌ **Not built yet** — `target_sha256` is 64 zeros, Apply refuses |
 
 Bản source Git nhỏ gọn không chứa file payload (~268 MB) — các file thay thế + bộ cài tự động cập nhật nằm tại mục **Releases**. (`tw_game` & `tw_launcher` ở bản VI vẫn giữ nguyên bản gốc).
@@ -36,8 +36,32 @@ Mỗi ngôn ngữ dùng bộ清单 riêng và thư mục riêng, để không l�
 
 Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest):
 
+### A. Trên Windows PC (`AZUPRO_JP` — Resource `3219598`)
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~40 KB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa** (tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game).
 - **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.2.zip`** (~268 MB), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+
+### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3219596`, Không cần Root)
+
+Bản Mobile áp dụng kỹ thuật CRC32 đè trực tiếp vào 7 gói `.r` trong `/Android/data/com.Yostar.AzurpromiliaJP/files/.res/` — **không chỉnh sửa hay re-sign APK gốc**, giữ nguyên chữ ký Yostar và chống vỡ kiểm tra file. Có 2 cách cài:
+
+#### Cách 1 — Cài thẳng trên điện thoại bằng App + Shizuku (Không cần PC)
+1. **Cài game gốc & tải đủ tài nguyên:** Cài *Azur Promilia JP* từ store/APKPure, đăng nhập và tải xong toàn bộ dữ liệu trong game, sau đó **đóng hẳn game**.
+2. **Cài [Shizuku](https://github.com/RikkaApps/Shizuku/releases)** (hoặc tải từ Google Play) và tải **`AzurPromilia-VI-Mobile.apk`** từ mục [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest).
+3. **Bật Shizuku bằng Wi-Fi ngay trên điện thoại:**
+   - Vào **Cài đặt → Giới thiệu điện thoại** → chạm 7 lần vào **Số bản dựng (Build number)** để mở *Tùy chọn nhà phát triển*.
+   - Vào **Hệ thống → Tùy chọn nhà phát triển** → bật **Gỡ lỗi không dây (Wireless debugging)**.
+   - Mở **Shizuku** → mục *Bắt đầu qua Gỡ lỗi không dây* → bấm **Ghép đôi (Pairing)**, nhập mã 6 số hiện trên thông báo → quay lại Shizuku bấm **Bắt đầu (Start)**.
+4. **Cài đặt Việt hóa:**
+   - Mở **`Azur Promilia Việt Hóa`** → bấm **Cấp quyền** Shizuku → bấm **Tải & Cài Đặt Việt Hóa (GitHub)**.
+   - App tự động **báo ngay khi GitHub có bản dịch hoặc APK mới**, tự sao lưu bản gốc trước khi cài và hỗ trợ nút **Khôi phục gốc** 1 chạm.
+
+#### Cách 2 — Cài nhanh qua cáp USB bằng máy tính (ADB 1-Click)
+1. Cài game gốc và tải xong tài nguyên trên điện thoại, bật **USB Debugging** trong *Tùy chọn nhà phát triển* rồi cắm cáp vào PC.
+2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.2.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`** (cần có `adb.exe` trên PATH hoặc trong `%LOCALAPPDATA%\Android\Sdk\platform-tools\`).
+
+> **Lưu ý Mobile:**
+> - Do giữ nguyên APK gốc không sửa, màn hình loading đầu tiên khi vừa khởi chạy app (chữ nằm trong `builtInLangString` của APK) vẫn giữ nguyên gốc; toàn bộ UI, kỹ năng, cốt truyện và font chữ tiếng Việt khi vào game hiển thị đầy đủ.
+> - Nếu game cập nhật phiên bản tài nguyên mới hơn `3219596`, server sẽ tải lại bundle mới — mở app **`Azur Promilia Việt Hóa`** để nhận thông báo ngay khi có bản patch mới trên GitHub.
 
 **Lưu ý:** Repo mã nguồn không đính kèm file payload nhị phân; tải Source ZIP từ nút Code sẽ không có sẵn file thay thế. Để dùng bản Trung (`zhcn`) gốc, xem [Releases bản gốc](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases).
 

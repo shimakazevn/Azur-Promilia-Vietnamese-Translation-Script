@@ -7,3 +7,10 @@ payload/
 payload-vi/
 payload-en/
 *.exe
+*.apk
+*.jks
+*.keystore
+android-installer/build/
+android-installer/.gradle/
+android-installer/app/build/
+android-installer/local.properties
