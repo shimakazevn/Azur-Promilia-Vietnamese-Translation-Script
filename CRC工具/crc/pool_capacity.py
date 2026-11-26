@@ -37,42 +37,36 @@ def choose_max_prime_capacity(hashes, hash_total: int, min_padding: int = 4, min
     unique_hashes = tuple(set(hashes))
     limit = hash_total - min_padding
     fixed_bytes = 24 + 12 * entry_count
-    if limit < fixed_bytes + 4 * min_cap + 4:
+    minimum_occupied = 1 if unique_hashes else 0
+    if min_cap < 2 or limit < fixed_bytes + 4 * min_cap + 4 * minimum_occupied:
         raise ValueError('No hash capacity fits original slot')
 
-    hi = (limit - fixed_bytes - 4) // 4
+    hi = (limit - fixed_bytes) // 4 - minimum_occupied
     if max_cap is not None:
         hi = min(hi, max_cap)
     if hi < min_cap:
         raise ValueError('No hash capacity fits original slot')
 
-    def used_bytes(cap: int) -> int:
-        occupied = len({h % cap for h in unique_hashes})
-        return fixed_bytes + 4 * cap + 4 * occupied
+    def fits(cap: int) -> bool:
+        allowed_occupied = (limit - fixed_bytes) // 4 - cap
+        if allowed_occupied >= len(unique_hashes):
+            return True
+        occupied = set()
+        # Reject over-budget candidates early, without scanning every hash.
+        for start in range(0, len(unique_hashes), 256):
+            occupied.update(h % cap for h in unique_hashes[start:start + 256])
+            if len(occupied) > allowed_occupied:
+                return False
+        return True
 
-    lo = min_cap
-    best = None
-    while lo <= hi:
-        mid = (lo + hi) // 2
-        if used_bytes(mid) <= limit:
-            best = mid
-            lo = mid + 1
-        else:
-            hi = mid - 1
-
-    if best is None:
-        raise ValueError('No hash capacity fits original slot')
-
-    # Search downward from best (plus small jitter margin) to find the largest fitting prime.
-    start = min((limit - fixed_bytes - 4) // 4, best + 64)
-    if max_cap is not None:
-        start = min(start, max_cap)
-    cand = start if (start & 1) else (start - 1)
+    # Occupied bucket counts are not monotonic in cap. Check primes from the
+    # proven upper bound downwards so a fitting interval cannot be discarded.
+    cand = hi if (hi & 1) else (hi - 1)
     while cand >= min_cap:
-        if is_prime(cand) and used_bytes(cand) <= limit:
+        if is_prime(cand) and fits(cand):
             return cand
         cand -= 2
 
-    if min_cap == 2 and used_bytes(2) <= limit:
+    if min_cap == 2 and hi >= 2 and fits(2):
         return 2
     raise ValueError('No hash capacity fits original slot')
