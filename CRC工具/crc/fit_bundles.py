@@ -123,3 +123,4 @@ def main():
  if '--static' in sys.argv and rp.exists():report=[x for x in json.loads(rp.read_text('utf-8')) if x['pack'] not in {y['pack'] for y in report}]+report
  rp.write_text(json.dumps(report,ensure_ascii=False,indent=2),'utf-8')
 if __name__=='__main__':main()
+
