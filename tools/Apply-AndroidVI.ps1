@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('Menu','Apply','Restore','Verify')][string]$Action = 'Menu'
 )
 $ErrorActionPreference = 'Stop'

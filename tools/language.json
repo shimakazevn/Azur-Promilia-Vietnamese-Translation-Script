@@ -7,8 +7,8 @@
   ],
   "default": "vi",
   "notes": {
-    "vi": "Tiếng Việt — payload chưa có, chỉ khung chọn ngôn ngữ. Apply sẽ từ chối cho tới khi build xong payload-vi.",
+    "vi": "Tiếng Việt — Đã phát hành cho JP PC (3219598), JP Launcher (1.8.1), Android Shizuku/ADB (3219596), kèm tùy chọn Bỏ làm mờ JP (mặc định tắt).",
     "en": "English — payload not built yet, scaffolding only. Apply refuses until payload-en is built.",
-    "zhcn": "简体中文 — bản gốc, payload đã có trong Release gốc."
+    "zhcn": "简体中文 — bản gốc, hỗ trợ TW/JP + Deblur."
   }
 }

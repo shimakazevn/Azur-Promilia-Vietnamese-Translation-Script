@@ -1,9 +1,19 @@
 # 忽略缓存、资源及打包文件。
 __pycache__/
 *.pyc
+.pytest_cache/
 dist/
 payload/
+tools/logs/
 *.zip
+
+# 资源解码工具的本地输入、密钥与生成文件。
+CRC工具/resource_decode/*.bin
+CRC工具/resource_decode/*.r
+CRC工具/resource_decode/*.json
+CRC工具/resource_decode/decoded/
+
+# Fork (VI/EN & Mobile Shizuku Installer) local artifacts & secrets
 payload-vi/
 payload-en/
 *.exe

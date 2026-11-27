@@ -25,7 +25,11 @@
       level==3(High) -> 再比 CRC32 -> FileCrcError
       level 1(Low)/2(Middle) -> 只比 size
 """
-import hashlib, struct, zlib
+import argparse
+import hashlib
+import json
+import struct
+import zlib
 from pathlib import Path
 
 MAGIC = 0x594F4F
@@ -44,6 +48,16 @@ def b38(n):
 
 def name_of(pack):
     return b38(pack["name0"]) + b38(pack["name1"])
+
+
+def find_pack(m, pack_path):
+    p = Path(pack_path)
+    base = p.name
+    stem = p.stem
+    idx = [i for i, pk in enumerate(m["packs"]) if name_of(pk) in (base, stem)]
+    if len(idx) != 1:
+        raise ValueError("manifest 中找不到唯一的 pack: %s (命中 %d)" % (base, len(idx)))
+    return idx[0], m["packs"][idx[0]]
 
 
 class Reader:
@@ -107,24 +121,22 @@ def rebuild(manifest_bytes, pack_path, replacements):
     m = parse(manifest_bytes)
     pack_path = Path(pack_path)
     base = pack_path.name
-    idx = [i for i, p in enumerate(m["packs"]) if name_of(p) in (base, pack_path.stem)]
-    if len(idx) != 1:
-        raise ValueError("manifest 中找不到唯一的 pack: %s (命中 %d)" % (base, len(idx)))
-    pi = idx[0]
+    pi, pk = find_pack(m, pack_path)
     old = pack_path.read_bytes()
-    pk = m["packs"][pi]
     if len(old) != pk["size"] or (zlib.crc32(old) & 0xFFFFFFFF) != pk["crc"]:
         raise ValueError("原 pack 与清单不符，先确认文件未被改过")
 
     segs = segments(m, pi)
+    mv = memoryview(old)
     for bi, _, _ in segs:
         b = m["bundles"][bi]
-        seg = old[b["offset"]:b["offset"] + b["size"]]
+        seg = mv[b["offset"]:b["offset"] + b["size"]]
         if (zlib.crc32(seg) & 0xFFFFFFFF) != b["crc"]:
             raise ValueError("原 bundle 段 %d CRC 与清单不符" % bi)
 
+    seg_ids = {s[0] for s in segs}
     for bi in replacements:
-        if bi not in {s[0] for s in segs}:
+        if bi not in seg_ids:
             raise ValueError("bundle %d 不属于该 pack" % bi)
 
     out = bytearray()
@@ -162,18 +174,48 @@ def verify(manifest_bytes, pack_path):
     """全量回验一个 pack：段 CRC、段 size、pack CRC、pack size。"""
     m = parse(manifest_bytes)
     data = Path(pack_path).read_bytes()
-    pk = [p for p in m["packs"] if name_of(p) in (Path(pack_path).name, Path(pack_path).stem)][0]
+    pi, pk = find_pack(m, pack_path)
     errs = []
     if len(data) != pk["size"]:
         errs.append("pack size %d != %d" % (len(data), pk["size"]))
     if (zlib.crc32(data) & 0xFFFFFFFF) != pk["crc"]:
         errs.append("pack crc mismatch")
-    pi = m["packs"].index(pk)
+    mv = memoryview(data)
     for bi, off, size in segments(m, pi):
         b = m["bundles"][bi]
-        seg = data[b["offset"]:b["offset"] + b["size"]]
+        seg = mv[b["offset"]:b["offset"] + b["size"]]
         if len(seg) != b["size"]:
             errs.append("bundle %d size" % bi)
         elif (zlib.crc32(seg) & 0xFFFFFFFF) != b["crc"]:
             errs.append("bundle %d crc" % bi)
     return errs
+
+
+def main():
+    parser = argparse.ArgumentParser(description="YooAsset 清单解析与包校验")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    p_insp = sub.add_parser("inspect", help="查看 manifest 摘要")
+    p_insp.add_argument("manifest", type=Path)
+    p_ver = sub.add_parser("verify", help="校验 .r 包与 manifest 是否匹配")
+    p_ver.add_argument("manifest", type=Path)
+    p_ver.add_argument("pack", type=Path)
+    args = parser.parse_args()
+
+    if args.cmd == "inspect":
+        m = parse(args.manifest)
+        print(json.dumps({
+            "package": m["package"],
+            "version": m["version"],
+            "assets": len(m["assets"]),
+            "bundles": len(m["bundles"]),
+            "packs": len(m["packs"]),
+        }, ensure_ascii=False, indent=2))
+    elif args.cmd == "verify":
+        errs = verify(args.manifest.read_bytes(), args.pack)
+        print(json.dumps({"ok": not errs, "errors": errs}, ensure_ascii=False))
+        raise SystemExit(0 if not errs else 1)
+
+
+if __name__ == "__main__":
+    main()
+

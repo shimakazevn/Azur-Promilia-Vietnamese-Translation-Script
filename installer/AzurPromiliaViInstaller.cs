@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.4.0")]
-[assembly: AssemblyFileVersion("1.0.4.0")]
+[assembly: AssemblyVersion("1.0.5.0")]
+[assembly: AssemblyFileVersion("1.0.5.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -28,7 +28,7 @@ namespace AzurPromiliaVIInstaller
         public const string RepoSlug = "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.4";
+        public const string CurrentInstallerVersion = "v1.0.5";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -344,6 +344,68 @@ namespace AzurPromiliaVIInstaller
             return "Không rõ";
         }
 
+        private static readonly string[][] FallbackDeblurEntries = new[]
+        {
+            new[] { @".res\default_package\BundleFiles\vcnqp22wy61m2n1z1kyxrg.r", "2873efc3e3e4ea8bb31c166761ebf6c59aa454aa2b390d1f50fb297a1a366296", "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3" },
+            new[] { @"StreamingAssets\.res\default_package\6ffhq8vxxcxhajv2smenba.r", "a6d16f6bf54574079699057abe500a394cd6d7f8cfef70c8a7ca9978ed07d5d6", "8f1e44219c451af2d16ac7aa14b5c1fb98d693bbe07e5b3668ad601523c516f1" },
+            new[] { @"StreamingAssets\.res\default_package\f4izs5z5g3dowxewfbsww.r", "dfca7050aa65e6370ff22b2edb7005e28328d50b400b0854cd91032a8220cda1", "1773f99f4a9861f6fa412622664192c158b461242bacfd4c5d83c21da6e5673f" },
+            new[] { @"StreamingAssets\.res\default_package\vrvljtvqpritdz11tc6eg.r", "d0a8b601a4ea6d59c04e288ae66be25de533e8c65b97ce9c7398fe6ff9a934b1", "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac" }
+        };
+
+        public static bool HasDeblurPayload(string packRoot)
+        {
+            if (string.IsNullOrEmpty(packRoot)) return false;
+            if (!File.Exists(Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1"))) return false;
+            if (!File.Exists(Path.Combine(packRoot, "tools", "jp-deblur-deployment.json"))) return false;
+            return File.Exists(Path.Combine(packRoot, "payload-vi", "jp_deblur", ".res", "default_package", "BundleFiles", "vcnqp22wy61m2n1z1kyxrg.r"))
+                || File.Exists(Path.Combine(packRoot, "payload", "jp_deblur", ".res", "default_package", "BundleFiles", "vcnqp22wy61m2n1z1kyxrg.r"));
+        }
+
+        public static string CheckDeblurStatus(string packRoot, string gameRoot)
+        {
+            if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(Path.Combine(gameRoot, "AzurPromiliaJP_Data")))
+                return "Chưa tìm thấy";
+            try
+            {
+                string dataRoot = Path.Combine(gameRoot, "AzurPromiliaJP_Data");
+                var entries = new List<string[]>();
+                string planPath = !string.IsNullOrEmpty(packRoot) ? Path.Combine(packRoot, "tools", "jp-deblur-deployment.json") : "";
+                if (!string.IsNullOrEmpty(planPath) && File.Exists(planPath))
+                {
+                    var plan = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(planPath, Encoding.UTF8));
+                    foreach (Dictionary<string, object> f in (IEnumerable)plan["files"])
+                    {
+                        entries.Add(new[] {
+                            ((string)f["relative_path"]).Replace('/', '\\'),
+                            (string)f["source_sha256"],
+                            (string)f["target_sha256"]
+                        });
+                    }
+                }
+                else
+                {
+                    entries.AddRange(FallbackDeblurEntries);
+                }
+                int on = 0, off = 0;
+                foreach (string[] e in entries)
+                {
+                    string p = Path.Combine(dataRoot, e[0]);
+                    if (!File.Exists(p)) return "Thiếu file " + Path.GetFileName(p);
+                    string h = Sha256File(p);
+                    if (string.Equals(h, e[2], StringComparison.OrdinalIgnoreCase)) on++;
+                    else if (string.Equals(h, e[1], StringComparison.OrdinalIgnoreCase)) off++;
+                    else return "File khác (" + Path.GetFileName(p) + ")";
+                }
+                if (on == entries.Count) return string.Format("Đang BẬT ({0}/{1})", on, entries.Count);
+                if (off == entries.Count) return string.Format("Đang TẮT ({0}/{1})", off, entries.Count);
+                return string.Format("Bật dở dang ({0}/{1})", on, entries.Count);
+            }
+            catch (Exception ex)
+            {
+                return "Lỗi kiểm tra: " + ex.Message;
+            }
+        }
+
         public static RemoteRelease FetchLatestRelease(int timeoutMs)
         {
             InitTls();
@@ -558,9 +620,11 @@ namespace AzurPromiliaVIInstaller
         private TextBox txtLauncherPath;
         private Label lblGameStatus;
         private Label lblLauncherStatus;
+        private Label lblDeblurStatus;
         private Label lblVersionInfo;
         private CheckBox chkShortcut;
         private CheckBox chkAutoLaunch;
+        private CheckBox chkDeblur;
         private ProgressBar progressBar;
         private Label lblProgress;
         private TextBox txtLog;
@@ -569,6 +633,7 @@ namespace AzurPromiliaVIInstaller
         private Button btnRestore;
         private Button btnVerify;
         private Button btnLaunch;
+        private Button btnDeblurToggle;
 
         private InstallerState _state;
         private string _packRoot = "";
@@ -589,7 +654,7 @@ namespace AzurPromiliaVIInstaller
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
-            ClientSize = new Size(760, 620);
+            ClientSize = new Size(760, 666);
             BackColor = Color.FromArgb(20, 23, 31);
             ForeColor = Color.FromArgb(236, 240, 248);
             Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
@@ -617,12 +682,12 @@ namespace AzurPromiliaVIInstaller
             btnCheckUpdate.Click += (s, e) => RefreshStateAndCheckAsync(true);
             Controls.Add(btnCheckUpdate);
 
-            // Paths Panel
+            // Paths & Options Panel
             Panel pnlPaths = new Panel
             {
                 BackColor = Color.FromArgb(28, 33, 45),
                 Location = new Point(22, 82),
-                Size = new Size(716, 152)
+                Size = new Size(716, 198)
             };
             Controls.Add(pnlPaths);
 
@@ -655,34 +720,64 @@ namespace AzurPromiliaVIInstaller
                 ForeColor = Color.FromArgb(200, 210, 230)
             };
 
-            pnlPaths.Controls.AddRange(new Control[] { l1, lblGameStatus, txtGamePath, btnBrowseGame, l2, lblLauncherStatus, txtLauncherPath, btnBrowseLauncher, chkShortcut, chkAutoLaunch });
+            Panel pnlDivider = new Panel
+            {
+                BackColor = Color.FromArgb(46, 54, 72),
+                Location = new Point(14, 152),
+                Size = new Size(688, 1)
+            };
+
+            chkDeblur = new CheckBox
+            {
+                Text = "Kèm Bỏ làm mờ khi cài (Mặc định Tắt)",
+                Checked = false,
+                Location = new Point(14, 163),
+                Size = new Size(310, 22),
+                ForeColor = Color.FromArgb(200, 210, 230)
+            };
+            lblDeblurStatus = new Label
+            {
+                Text = "Bỏ làm mờ: ...",
+                Location = new Point(328, 163),
+                Size = new Size(220, 22),
+                TextAlign = ContentAlignment.MiddleRight,
+                ForeColor = Color.FromArgb(160, 175, 200)
+            };
+            btnDeblurToggle = MakeButton("Bật Bỏ làm mờ", new Point(558, 159), new Size(144, 28), Color.FromArgb(52, 62, 84));
+            btnDeblurToggle.Click += (s, e) => ToggleDeblurAsync();
+
+            pnlPaths.Controls.AddRange(new Control[] {
+                l1, lblGameStatus, txtGamePath, btnBrowseGame,
+                l2, lblLauncherStatus, txtLauncherPath, btnBrowseLauncher,
+                chkShortcut, chkAutoLaunch, pnlDivider, chkDeblur, lblDeblurStatus, btnDeblurToggle
+            });
 
             // Action Buttons
-            btnInstall = MakeButton("Cài đặt / Cập nhật Việt hóa", new Point(22, 248), new Size(250, 42), Color.FromArgb(35, 122, 220));
+            btnInstall = MakeButton("Cài đặt / Cập nhật Việt hóa", new Point(22, 290), new Size(250, 42), Color.FromArgb(35, 122, 220));
             btnInstall.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             btnInstall.Click += (s, e) => StartInstallOrUpdate();
 
-            btnRestore = MakeButton("Khôi phục bản gốc", new Point(282, 248), new Size(155, 42), Color.FromArgb(135, 62, 62));
+            btnRestore = MakeButton("Khôi phục bản gốc", new Point(282, 290), new Size(155, 42), Color.FromArgb(135, 62, 62));
             btnRestore.Click += (s, e) => StartRestore();
 
-            btnVerify = MakeButton("Kiểm tra CRC", new Point(447, 248), new Size(125, 42), Color.FromArgb(55, 68, 92));
+            btnVerify = MakeButton("Kiểm tra CRC", new Point(447, 290), new Size(125, 42), Color.FromArgb(55, 68, 92));
             btnVerify.Click += (s, e) => StartVerify();
 
-            btnLaunch = MakeButton("Mở Launcher", new Point(582, 248), new Size(156, 42), Color.FromArgb(38, 138, 96));
+            btnLaunch = MakeButton("Mở Launcher", new Point(582, 290), new Size(156, 42), Color.FromArgb(38, 138, 96));
             btnLaunch.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             btnLaunch.Click += (s, e) => LaunchGame();
 
             Controls.AddRange(new Control[] { btnInstall, btnRestore, btnVerify, btnLaunch });
 
-            progressBar = new ProgressBar { Location = new Point(22, 302), Size = new Size(716, 18), Style = ProgressBarStyle.Continuous };
-            lblProgress = new Label { Text = "Sẵn sàng.", Location = new Point(22, 323), Size = new Size(716, 20), ForeColor = Color.FromArgb(170, 185, 210) };
+            progressBar = new ProgressBar { Location = new Point(22, 344), Size = new Size(716, 18), Style = ProgressBarStyle.Continuous };
+            lblProgress = new Label { Text = "Sẵn sàng.", Location = new Point(22, 365), Size = new Size(716, 20), ForeColor = Color.FromArgb(170, 185, 210) };
             Controls.Add(progressBar);
             Controls.Add(lblProgress);
 
             txtLog = new TextBox
             {
-                Location = new Point(22, 348),
-                Size = new Size(716, 250),
+                Location = new Point(22, 390),
+                Size = new Size(716, 256),
                 Multiline = true,
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
@@ -741,6 +836,8 @@ namespace AzurPromiliaVIInstaller
             btnVerify.Enabled = !busy;
             btnCheckUpdate.Enabled = !busy;
             btnLaunch.Enabled = !busy;
+            btnDeblurToggle.Enabled = !busy;
+            chkDeblur.Enabled = !busy;
             if (!string.IsNullOrEmpty(status)) lblProgress.Text = status;
         }
 
@@ -750,12 +847,21 @@ namespace AzurPromiliaVIInstaller
             string l = txtLauncherPath.Text.Trim();
             string gs = Helpers.CheckGameStatus(_packRoot, g);
             string ls = Helpers.CheckLauncherStatus(_packRoot, l);
+            string ds = Helpers.CheckDeblurStatus(_packRoot, g);
             lblGameStatus.Text = gs;
             lblGameStatus.ForeColor = gs.IndexOf("Đã cài") >= 0 ? Color.FromArgb(110, 235, 160) :
                                       gs.IndexOf("Chưa tìm") >= 0 || gs.IndexOf("chờ patch") >= 0 ? Color.FromArgb(255, 195, 95) :
                                       Color.FromArgb(160, 210, 255);
             lblLauncherStatus.Text = ls;
             lblLauncherStatus.ForeColor = ls.IndexOf("Đã cài") >= 0 ? Color.FromArgb(110, 235, 160) : Color.FromArgb(160, 210, 255);
+
+            bool deblurOn = ds.IndexOf("Đang BẬT") >= 0;
+            lblDeblurStatus.Text = "Bỏ làm mờ: " + ds;
+            lblDeblurStatus.ForeColor = deblurOn ? Color.FromArgb(255, 200, 100) :
+                                        ds.IndexOf("Đang TẮT") >= 0 ? Color.FromArgb(145, 215, 175) :
+                                        Color.FromArgb(170, 185, 210);
+            btnDeblurToggle.Text = deblurOn ? "Tắt Bỏ làm mờ" : "Bật Bỏ làm mờ";
+            btnDeblurToggle.BackColor = deblurOn ? Color.FromArgb(175, 98, 38) : Color.FromArgb(52, 62, 84);
         }
 
         private void RefreshStateAndCheckAsync(bool fetchOnline)
@@ -801,9 +907,19 @@ namespace AzurPromiliaVIInstaller
 
         private string EnsurePackageAvailable()
         {
+            return EnsurePackageAvailable(false);
+        }
+
+        private string EnsurePackageAvailable(bool requireDeblur)
+        {
             string localVer;
             string localRoot = Helpers.FindPayloadPackRoot(out localVer);
             bool needDownload = string.IsNullOrEmpty(localRoot);
+
+            if (requireDeblur && !string.IsNullOrEmpty(localRoot) && !Helpers.HasDeblurPayload(localRoot))
+            {
+                needDownload = true;
+            }
 
             if (_remote != null && !string.IsNullOrEmpty(_remote.full_zip_url) && !string.IsNullOrEmpty(_remote.version))
             {
@@ -824,7 +940,7 @@ namespace AzurPromiliaVIInstaller
                 try { _remote = Helpers.FetchLatestRelease(12000); }
                 catch (Exception ex)
                 {
-                    if (!string.IsNullOrEmpty(localRoot))
+                    if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot)))
                     {
                         Log("Lỗi tải online (" + ex.Message + "), quay lại dùng gói cục bộ.");
                         return localRoot;
@@ -835,7 +951,7 @@ namespace AzurPromiliaVIInstaller
 
             if (string.IsNullOrEmpty(_remote.full_zip_url))
             {
-                if (!string.IsNullOrEmpty(localRoot)) return localRoot;
+                if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot))) return localRoot;
                 throw new Exception("GitHub Release chưa có asset gói Full-vi-*.zip.");
             }
 
@@ -868,11 +984,96 @@ namespace AzurPromiliaVIInstaller
             return extracted;
         }
 
+        private void ToggleDeblurAsync()
+        {
+            if (_busy) return;
+            string gameDir = txtGamePath.Text.Trim();
+            if (string.IsNullOrEmpty(gameDir) || !Directory.Exists(Path.Combine(gameDir, "AzurPromiliaJP_Data")))
+            {
+                MessageBox.Show("Chưa tìm thấy thư mục AZUPRO_JP để bật/tắt Bỏ làm mờ!", "Thiếu đường dẫn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string curStatus = Helpers.CheckDeblurStatus(_packRoot, gameDir);
+            bool currentlyOn = curStatus.IndexOf("Đang BẬT") >= 0;
+
+            if (!currentlyOn)
+            {
+                if (MessageBox.Show(
+                    "Bật tính năng Bỏ làm mờ (Deblur) cho Azur Promilia JP?\n\n" +
+                    "• Tắt hiệu ứng làm mờ/ẩn nhân vật khi zoom sát hoặc xoay góc camera từ dưới lên (4 file .r, giữ nguyên dung lượng & CRC32).\n" +
+                    "• Tính năng này mặc định TẮT để an toàn tối đa; bạn có thể bấm nút 'Tắt Bỏ làm mờ' bất kỳ lúc nào để khôi phục 4 file gốc.",
+                    "Xác nhận Bật Bỏ làm mờ (Deblur)", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if (MessageBox.Show(
+                    "Tắt Bỏ làm mờ (Deblur) và khôi phục lại 4 file gốc của JP Game?",
+                    "Xác nhận Tắt Bỏ làm mờ", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            SetBusy(true, currentlyOn ? "Đang tắt Bỏ làm mờ (khôi phục 4 file gốc)..." : "Đang bật Bỏ làm mờ (Deblur)...");
+            progressBar.Value = 0;
+
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    bool hasScriptOnly = !string.IsNullOrEmpty(_packRoot)
+                        && File.Exists(Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1"))
+                        && File.Exists(Path.Combine(_packRoot, "tools", "jp-deblur-deployment.json"));
+                    string packRoot = (currentlyOn && hasScriptOnly) ? _packRoot : EnsurePackageAvailable(true);
+                    string deblurScript = Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1");
+                    if (!File.Exists(deblurScript))
+                        throw new Exception("Gói Việt hóa hiện tại không chứa Apply-JPDeblur.ps1. Vui lòng cập nhật lên bản mới nhất.");
+
+                    bool needAdmin = !Helpers.CanWriteDir(Path.Combine(gameDir, "AzurPromiliaJP_Data"));
+                    if (needAdmin && !Helpers.IsAdmin())
+                        Log("Thư mục game cần quyền Quản trị viên (UAC)...");
+
+                    string act = currentlyOn ? "Restore" : "Apply";
+                    Log((currentlyOn ? "Đang TẮT" : "Đang BẬT") + " Bỏ làm mờ (Apply-JPDeblur.ps1 -Action " + act + ")...");
+                    int rc = Helpers.RunPsScript(
+                        deblurScript,
+                        "-Action " + act + " -Language vi -Hint \"" + gameDir + "\"",
+                        Log, needAdmin && !Helpers.IsAdmin()
+                    );
+                    if (rc != 0) throw new Exception("Apply-JPDeblur.ps1 thất bại với mã " + rc);
+
+                    BeginInvoke(new Action(() =>
+                    {
+                        progressBar.Value = 100;
+                        RefreshLocalStatuses();
+                        string msg = currentlyOn ? "Đã TẮT Bỏ làm mờ (khôi phục 4 file gốc)!" : "Đã BẬT Bỏ làm mờ (Deblur) thành công!";
+                        SetBusy(false, msg);
+                        MessageBox.Show(msg, "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    Log("[LỖI Deblur] " + ex.Message);
+                    BeginInvoke(new Action(() =>
+                    {
+                        RefreshLocalStatuses();
+                        SetBusy(false, "Thao tác Bỏ làm mờ thất bại.");
+                        MessageBox.Show("Lỗi: " + ex.Message, "Thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }));
+                }
+            });
+        }
+
         private void StartInstallOrUpdate()
         {
             if (_busy) return;
             string gameDir = txtGamePath.Text.Trim();
             string launcherDir = txtLauncherPath.Text.Trim();
+            bool applyDeblur = chkDeblur.Checked;
             if (string.IsNullOrEmpty(gameDir) && string.IsNullOrEmpty(launcherDir))
             {
                 MessageBox.Show("Chưa chọn thư mục AZUPRO_JP hoặc AZUPRO_JP_Gamelauncher!", "Thiếu đường dẫn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -885,7 +1086,7 @@ namespace AzurPromiliaVIInstaller
             {
                 try
                 {
-                    string packRoot = EnsurePackageAvailable();
+                    string packRoot = EnsurePackageAvailable(applyDeblur);
                     bool needAdmin = (!string.IsNullOrEmpty(gameDir) && !Helpers.CanWriteDir(Path.Combine(gameDir, "AzurPromiliaJP_Data"))) ||
                                      (!string.IsNullOrEmpty(launcherDir) && !Helpers.CanWriteDir(Path.Combine(launcherDir, "resources")));
                     if (needAdmin && !Helpers.IsAdmin())
@@ -900,6 +1101,17 @@ namespace AzurPromiliaVIInstaller
                             Log, needAdmin && !Helpers.IsAdmin()
                         );
                         if (rc != 0) throw new Exception("Apply-JPCRCZH.ps1 thất bại với mã " + rc);
+
+                        if (applyDeblur && File.Exists(Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1")))
+                        {
+                            Log("Đang áp dụng Bỏ làm mờ (Deblur - tùy chọn người dùng bật)...");
+                            int drc = Helpers.RunPsScript(
+                                Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1"),
+                                "-Action Apply -Language vi -Hint \"" + gameDir + "\"",
+                                Log, needAdmin && !Helpers.IsAdmin()
+                            );
+                            if (drc != 0) throw new Exception("Apply-JPDeblur.ps1 thất bại với mã " + drc);
+                        }
                     }
                     if (!string.IsNullOrEmpty(launcherDir))
                     {
@@ -973,6 +1185,13 @@ namespace AzurPromiliaVIInstaller
                         int rc = Helpers.RunPsScript(Path.Combine(_packRoot, "tools", "Apply-JPCRCZH.ps1"),
                             "-Action Restore -Language vi -Hint \"" + gameDir + "\"", Log, needAdmin && !Helpers.IsAdmin());
                         if (rc != 0) throw new Exception("Restore JP Game lỗi mã " + rc);
+
+                        string deblurScript = Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1");
+                        if (File.Exists(deblurScript) && Helpers.CheckDeblurStatus(_packRoot, gameDir).IndexOf("Đang TẮT") < 0)
+                        {
+                            Log("Đang khôi phục 4 file Bỏ làm mờ (nếu có)...");
+                            Helpers.RunPsScript(deblurScript, "-Action Restore -Language vi -Hint \"" + gameDir + "\"", Log, needAdmin && !Helpers.IsAdmin());
+                        }
                     }
                     if (!string.IsNullOrEmpty(launcherDir))
                     {
@@ -1009,8 +1228,13 @@ namespace AzurPromiliaVIInstaller
                 try
                 {
                     if (!string.IsNullOrEmpty(gameDir))
+                    {
                         Helpers.RunPsScript(Path.Combine(_packRoot, "tools", "Apply-JPCRCZH.ps1"),
                             "-Action Verify -Language vi -Hint \"" + gameDir + "\"", Log, false);
+                        string deblurScript = Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1");
+                        if (File.Exists(deblurScript))
+                            Helpers.RunPsScript(deblurScript, "-Action Verify -Language vi -Hint \"" + gameDir + "\"", Log, false);
+                    }
                     if (!string.IsNullOrEmpty(launcherDir))
                         Helpers.RunPsScript(Path.Combine(_packRoot, "tools", "Apply-Launchers.ps1"),
                             "-Action Verify -Target jp_launcher -Language vi -Hint \"" + launcherDir + "\"", Log, false);

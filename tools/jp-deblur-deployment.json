@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "region": "jp",
+  "game_version": "1.0.2",
+  "resource_version": "",
+  "files": [
+    {
+      "relative_path": ".res/default_package/BundleFiles/vcnqp22wy61m2n1z1kyxrg.r",
+      "source_sha256": "2873efc3e3e4ea8bb31c166761ebf6c59aa454aa2b390d1f50fb297a1a366296",
+      "target_sha256": "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3",
+      "size": 4744949,
+      "crc32": 693078322,
+      "segments": []
+    },
+    {
+      "relative_path": "StreamingAssets/.res/default_package/6ffhq8vxxcxhajv2smenba.r",
+      "source_sha256": "a6d16f6bf54574079699057abe500a394cd6d7f8cfef70c8a7ca9978ed07d5d6",
+      "target_sha256": "8f1e44219c451af2d16ac7aa14b5c1fb98d693bbe07e5b3668ad601523c516f1",
+      "size": 5242318,
+      "crc32": 1931806871,
+      "segments": []
+    },
+    {
+      "relative_path": "StreamingAssets/.res/default_package/f4izs5z5g3dowxewfbsww.r",
+      "source_sha256": "dfca7050aa65e6370ff22b2edb7005e28328d50b400b0854cd91032a8220cda1",
+      "target_sha256": "1773f99f4a9861f6fa412622664192c158b461242bacfd4c5d83c21da6e5673f",
+      "size": 5236872,
+      "crc32": 3357752854,
+      "segments": []
+    },
+    {
+      "relative_path": "StreamingAssets/.res/default_package/vrvljtvqpritdz11tc6eg.r",
+      "source_sha256": "d0a8b601a4ea6d59c04e288ae66be25de533e8c65b97ce9c7398fe6ff9a934b1",
+      "target_sha256": "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac",
+      "size": 4744960,
+      "crc32": 4132850739,
+      "segments": []
+    }
+  ],
+  "readonly_files": [],
+  "runtime_login_verified": false
+}
