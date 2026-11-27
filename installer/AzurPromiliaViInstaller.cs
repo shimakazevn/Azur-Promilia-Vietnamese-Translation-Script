@@ -25,8 +25,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.12.0")]
-[assembly: AssemblyFileVersion("1.0.12.0")]
+[assembly: AssemblyVersion("1.0.13.0")]
+[assembly: AssemblyFileVersion("1.0.13.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -36,7 +36,7 @@ namespace AzurPromiliaVIInstaller
         public const string ReleaseLatestJsonUrl = "https://github.com/" + RepoSlug + "/releases/latest/download/latest-vi.json";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.12";
+        public const string CurrentInstallerVersion = "v1.0.13";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"

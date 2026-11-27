@@ -454,7 +454,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Thêm Mod Đồ Họa Performance cho Mobile (5 preset Render GPU + tùy chỉnh FPS tới 120 FPS + mở khóa Tỷ lệ kết xuất 50%-170% và cài đặt đồ họa nâng cao in-game).',
+            'notes': f'{args.version}: Nâng cấp Mod Đồ Họa & Hiệu Năng đa thiết bị cho Mobile (hỗ trợ cả máy yếu MediaTek/Helio/XOS/HyperOS qua WM Downscale + Dọn RAM lẫn máy Gaming/Flagship qua Thermal Unlock + mở khóa giới hạn 60Hz Android 15+/GameMode 120 FPS; sửa lỗi Reset & giữ nguyên Mod Mở Khóa Đồ Họa In-Game 50%-170%).',
         }
         if android_obj:
             latest['android'] = android_obj

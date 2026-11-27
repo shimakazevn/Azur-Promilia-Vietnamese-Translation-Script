@@ -20,7 +20,7 @@ Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Tr
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~5.2 MB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa**.
   - Giao diện Launcher kèm ảnh động & nhạc nền chính thức Azur Promilia (có nút bật/tắt ngay trên thanh tiêu đề), tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA-256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game.
   - **Tùy chọn Bỏ làm mờ (Deblur — Tắt làm mờ nhân vật khi zoom gần / ngước camera):** **Mặc định TẮT** để an toàn tối đa. Bạn có thể bật/tắt bất kỳ lúc nào bằng nút **`Bật / Tắt Bỏ làm mờ`** ngay trong giao diện GUI cài đặt.
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.12.zip`** (~288 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.13.zip`** (~288 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 ### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3219596`, Không cần Root)
 
@@ -36,11 +36,11 @@ Bản Mobile áp dụng kỹ thuật CRC32 đè trực tiếp vào 7 gói `.r` t
 4. **Cài đặt Việt hóa & Mod Đồ Họa Performance (Tùy chọn):**
    - Mở **`Azur Promilia Việt Hóa`** → bấm **Cấp quyền** Shizuku → bấm **Tải & Cài Đặt Việt Hóa (GitHub)**.
    - App tự báo khi GitHub có bản dịch hoặc APK mới, tự sao lưu bản gốc trước khi cài và hỗ trợ nút **Khôi phục gốc** 1 chạm.
-   - **Mục (3) Mod Đồ Họa & Hiệu Năng:** Tùy chọn **5 Preset Render GPU** (Siêu nhẹ `0.60×`, Cân bằng `0.75×`, Nguyên bản `1.00×`, Siêu nét `1.25×`, **Tùy chỉnh Custom `0.50×–1.25×`**) + chọn **Giới hạn FPS** (Theo game hoặc `30/45/60/90/120 FPS` không ép cứng) qua Shizuku GameMode; kèm nút **Bật / Tắt Mở Khóa Đồ Họa In-Game** (~15 MB, mở khóa *Tỷ lệ kết xuất 50%-170%*, *SSAA OFF*, *Chiếu sáng toàn cục / AO / Phản chiếu*, *DoF*, *LightShaft / LensFlare / UVDistort*, *ASM|CSM*).
+   - **Mục (3) Mod Đồ Họa & Hiệu Năng (Đa thiết bị):** Tự nhận diện khả năng máy (máy yếu MediaTek/XOS/HyperOS, Snapdragon hay Gaming/Flagship) với **5 Preset** (Máy yếu `0.60×`, Cân bằng `0.75×`, Nguyên bản `1.00×`, Gaming Max + Mở khóa nhiệt/120Hz, **Tùy chỉnh Custom `0.45×–1.50×`**), chọn **Giới hạn FPS** (tới `120 FPS` + mở khóa giới hạn 60Hz Android 15+), **Hạ độ phân giải màn hình WM** cho máy yếu không có GameMode, **Thermal Unlock**, **Dọn RAM nền**, và nút **Bật / Tắt Mở Khóa Đồ Họa In-Game** (~24 MB, mở khóa *Tỷ lệ kết xuất 50%-170%*, *SSAA OFF*, *Chiếu sáng toàn cục / AO / Phản chiếu*, *DoF*, *LightShaft / LensFlare / UVDistort*, *ASM|CSM*).
 
 #### Cách 2 — Cài nhanh qua cáp USB bằng máy tính (ADB 1-Click)
 1. Bật **USB Debugging** trên điện thoại rồi cắm cáp vào PC.
-2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.12.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`**.
+2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.13.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`**.
 
 ## Thao tác bằng script (`双击运行.bat` — PC)
 
@@ -66,5 +66,5 @@ Khi dùng bản Full ZIP offline, chạy **`双击运行.bat`** (hỗ trợ kéo
 
 ## Phát triển & Tự build
 - Chi tiết thuật toán CRC32, bộ giải mã (`CRC工具/resource_decode/` gồm `nofog.py`, `decode_mmap.py`, `reencrypt_bundle.py`) và kiểm thử tự động nằm trong [tools/README.md](tools/README.md) và `tests/run_tests.py`.
-- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.12 --language vi`
+- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.13 --language vi`
 - Báo lỗi tại [Issues](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/issues). Mã nguồn theo giấy phép [LICENSE](LICENSE) (Apache 2.0).

@@ -1,52 +1,52 @@
 {
   "schema_version": 1,
   "language": "vi",
-  "version": "v1.0.12",
-  "published_at": "2026-11-27T12:57:44Z",
+  "version": "v1.0.13",
+  "published_at": "2026-11-27T14:32:41Z",
   "repo": "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script",
   "jp_resource_version": "3219598",
   "jp_builtin_version": "3075915",
   "jp_launcher_version": "1.8.1",
   "deblur_supported": true,
   "full_package": {
-    "filename": "AzurPromilia-Localization-Full-vi-v1.0.12.zip",
-    "size": 289332580,
-    "sha256": "ba7ad875b2e2975f6cf4dc2f017e06a47db9870cebdbf72e54c25e7a70c50b13",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.12/AzurPromilia-Localization-Full-vi-v1.0.12.zip"
+    "filename": "AzurPromilia-Localization-Full-vi-v1.0.13.zip",
+    "size": 289332579,
+    "sha256": "20efb7683a50d0ba6abd3ed7d76825983dc5ec36ba5a2e018603d1a37e32ca65",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.13/AzurPromilia-Localization-Full-vi-v1.0.13.zip"
   },
   "installer": {
     "filename": "AzurPromilia-VI-Setup.exe",
     "size": 5492224,
-    "sha256": "e38e81bef34deef6593de8300f3a41c3502875fb8b74fb9e706c8a663303ae02",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.12/AzurPromilia-VI-Setup.exe"
+    "sha256": "a4cb325162fe1eafd4ad39ffbc21d212f7e60b33d5dfc7f0821ff0277493e2c9",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.13/AzurPromilia-VI-Setup.exe"
   },
-  "notes": "v1.0.12: Thêm Mod Đồ Họa Performance cho Mobile (5 preset Render GPU + tùy chỉnh FPS tới 120 FPS + mở khóa Tỷ lệ kết xuất 50%-170% và cài đặt đồ họa nâng cao in-game).",
+  "notes": "v1.0.13: Nâng cấp Mod Đồ Họa & Hiệu Năng đa thiết bị cho Mobile (hỗ trợ cả máy yếu MediaTek/Helio/XOS/HyperOS qua WM Downscale + Dọn RAM lẫn máy Gaming/Flagship qua Thermal Unlock + mở khóa giới hạn 60Hz Android 15+/GameMode 120 FPS; sửa lỗi Reset & giữ nguyên Mod Mở Khóa Đồ Họa In-Game 50%-170%).",
   "android": {
     "package_name": "com.Yostar.AzurpromiliaJP",
     "resource_version": "3219596",
     "payload_hash": "c73679b68da0553cdb6013c759cf9455e9a030a2f7b3b090dc176250d6766bc2",
-    "filename": "AzurPromilia-Localization-Android-vi-v1.0.12.zip",
+    "filename": "AzurPromilia-Localization-Android-vi-v1.0.13.zip",
     "size": 162772153,
     "sha256": "3ebca6a833639e5a1ba4f4292c6bf39b6bb9989030197081565a01ebb0a05227",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.12/AzurPromilia-Localization-Android-vi-v1.0.12.zip",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.13/AzurPromilia-Localization-Android-vi-v1.0.13.zip",
     "perf": {
       "relative_path": "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r",
       "source_sha256": "3d9fd2444d625ce66d65b516e7662581fd197716303fd2697df01c0478efac5e",
       "base_vi_sha256": "a29d4678d66b583c80bf2a881c47930b6193300abcafddb070784b146970f0b4",
       "perf_target_sha256": "763b07b6a4ef9d50b32e376291ccd48c83476226f5d725946ed3b88471b80310",
       "size": 28840170,
-      "filename": "AzurPromilia-Localization-Android-Perf-vi-v1.0.12.zip",
+      "filename": "AzurPromilia-Localization-Android-Perf-vi-v1.0.13.zip",
       "zip_size": 24368239,
       "sha256": "b6e5d26c1c48939b0a1aa5475222159cf20351152ee6de0dcedc5fb9d6dbc052",
-      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.12/AzurPromilia-Localization-Android-Perf-vi-v1.0.12.zip"
+      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.13/AzurPromilia-Localization-Android-Perf-vi-v1.0.13.zip"
     },
     "apk": {
-      "version": "v1.0.12",
-      "version_code": 112,
+      "version": "v1.0.13",
+      "version_code": 113,
       "filename": "AzurPromilia-VI-Mobile.apk",
-      "size": 1568176,
-      "sha256": "6f975b5011122a7b19807576d30771512a414f6124143e96ed236de1ff5264b6",
-      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.12/AzurPromilia-VI-Mobile.apk"
+      "size": 1577144,
+      "sha256": "d9bc0056dbfe58efbf081be02cb9846b82aaacf7c9d7186458b014497036ab80",
+      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.13/AzurPromilia-VI-Mobile.apk"
     }
   }
 }

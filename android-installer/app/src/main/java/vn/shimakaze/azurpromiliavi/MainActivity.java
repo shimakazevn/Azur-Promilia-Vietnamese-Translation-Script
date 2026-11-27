@@ -28,6 +28,7 @@ import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -93,13 +94,15 @@ public class MainActivity extends Activity {
     private static final String KEY_PERF_PRESET = "perf_preset_idx";
     private static final String KEY_PERF_FPS = "perf_fps_idx";
     private static final String KEY_PERF_CUSTOM_PCT = "perf_custom_pct";
+    private static final String KEY_PERF_THERMAL = "perf_thermal_unlock";
+    private static final String KEY_PERF_WM = "perf_wm_downscale";
 
     private static final String[] PERF_PRESET_LABELS = {
-            "1. Siêu nhẹ / Chống lag (GPU 0.60×)",
-            "2. Cân bằng / Mượt & Rõ (GPU 0.75×)",
-            "3. Nguyên bản / Mặc định hệ thống (1.00×)",
-            "4. Siêu nét / Đồ họa cao (GPU 1.25×)",
-            "5. Tùy chỉnh (Custom GPU Scale)"
+            "🔋 Máy yếu / Chống lag (Render 0.60× + Dọn RAM)",
+            "⚡ Cân bằng / Mượt & Rõ (Render 0.75× + Dọn RAM)",
+            "⚖️ Nguyên bản / Mặc định hệ thống (1.00×)",
+            "🔥 Gaming Max / Flagship (1.00× + Mở khóa nhiệt & Hz)",
+            "✏️ Tùy chỉnh (Custom GPU Scale 0.45×–1.50×)"
     };
     private static final String[] PERF_FPS_LABELS = {
             "Mặc định game (Không ép FPS)",
@@ -131,6 +134,8 @@ public class MainActivity extends Activity {
     private Spinner spPerfFps;
     private LinearLayout layoutCustomScale;
     private SeekBar sbCustomScale;
+    private CheckBox cbThermalUnlock;
+    private CheckBox cbWmDownscale;
 
     private Button btnOpenShizuku;
     private Button btnGrantShizuku;
@@ -144,6 +149,8 @@ public class MainActivity extends Activity {
     private Button btnToggleInGamePerf;
 
     private volatile JSONObject lastGameMode = null;
+    private volatile JSONObject lastPerfCaps = null;   // detectPerfCapabilities() result
+    private volatile JSONObject lastPerfState = null;  // probeUniversalPerfState() result (background thread)
 
     private volatile IViPatchService patchService = null;
     private volatile boolean serviceBound = false;
@@ -207,6 +214,9 @@ public class MainActivity extends Activity {
         shellUid = "";
         serviceBindingInFlight = false;
         lastConnectError = "";
+        lastPerfCaps = null;
+        lastPerfState = null;
+        lastGameMode = null;
         runOnUiThread(this::updateShizukuUi);
     };
 
@@ -417,15 +427,17 @@ public class MainActivity extends Activity {
         btnRestore.setOnClickListener(v -> confirmRestore());
         btnOpenGame.setOnClickListener(v -> launchGame());
 
-        // Card 3: Performance & Graphics Mod
-        LinearLayout cPerf = makeCard(root, "3. Mod Đồ Họa & Hiệu Năng (Tùy chọn)");
-        tvGameModeStatus = makeBodyText(cPerf, "⏳ Bật Shizuku để chỉnh Preset Render GPU & Giới hạn FPS (max 120 FPS).");
+        // Card 3: Performance & Graphics Mod (Multi-Device: Low-End + Gaming)
+        LinearLayout cPerf = makeCard(root, "3. Mod Đồ Họa & Hiệu Năng (Đa thiết bị)");
+        tvGameModeStatus = makeBodyText(cPerf, "⏳ Bật Shizuku để nhận diện phần cứng & tối ưu FPS (hỗ trợ cả máy yếu lẫn máy Gaming).");
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         int savedPreset = Math.max(0, Math.min(4, prefs.getInt(KEY_PERF_PRESET, 2)));
         int savedFpsIdx = Math.max(0, Math.min(PERF_FPS_VALUES.length - 1, prefs.getInt(KEY_PERF_FPS, 0)));
-        int savedCustomPct = Math.max(50, Math.min(125, prefs.getInt(KEY_PERF_CUSTOM_PCT, 85)));
+        int savedCustomPct = Math.max(45, Math.min(150, prefs.getInt(KEY_PERF_CUSTOM_PCT, 85)));
+        boolean savedThermal = prefs.getBoolean(KEY_PERF_THERMAL, savedPreset == 3);
+        boolean savedWm = prefs.getBoolean(KEY_PERF_WM, true);
 
-        makeSmallLabel(cPerf, "Preset Đồ họa Render GPU (5 mức — không tự ép FPS):");
+        makeSmallLabel(cPerf, "Preset hiệu năng (tự động chọn phương thức phù hợp với máy):");
         spPerfPreset = makeDarkSpinner(cPerf, PERF_PRESET_LABELS, savedPreset);
 
         layoutCustomScale = new LinearLayout(this);
@@ -435,16 +447,37 @@ public class MainActivity extends Activity {
         tvCustomScaleLabel = makeBodyText(layoutCustomScale,
                 String.format(Locale.ROOT, "Tỷ lệ Render GPU tùy chỉnh: %.2f×", savedCustomPct / 100.0));
         sbCustomScale = new SeekBar(this);
-        sbCustomScale.setMax(15); // 50%..125% step 5%
-        sbCustomScale.setProgress((savedCustomPct - 50) / 5);
+        sbCustomScale.setMax(21); // 45%..150% step 5% -> (150-45)/5 = 21 steps
+        sbCustomScale.setProgress((savedCustomPct - 45) / 5);
         layoutCustomScale.addView(sbCustomScale);
         cPerf.addView(layoutCustomScale);
 
+        cbThermalUnlock = makeCheckBox(cPerf,
+                "🌡️ Mở khóa nhiệt độ (Thermal Unlock — chống bóp FPS máy Gaming / nóng máy)",
+                savedThermal);
+        cbWmDownscale = makeCheckBox(cPerf,
+                "📐 Hạ phân giải màn hình WM khi máy yếu không hỗ trợ GameMode (nhắc trước khi đổi)",
+                savedWm);
+
+        cbThermalUnlock.setOnCheckedChangeListener((buttonView, isChecked) ->
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_PERF_THERMAL, isChecked).apply());
+        cbWmDownscale.setOnCheckedChangeListener((buttonView, isChecked) ->
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_PERF_WM, isChecked).apply());
+
+        final int[] prevPreset = new int[]{savedPreset};
         spPerfPreset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
                 layoutCustomScale.setVisibility(pos == 4 ? View.VISIBLE : View.GONE);
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(KEY_PERF_PRESET, pos).apply();
+                if (pos != prevPreset[0]) {
+                    prevPreset[0] = pos;
+                    boolean autoThermal = (pos == 3);
+                    cbThermalUnlock.setChecked(autoThermal);
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                            .putInt(KEY_PERF_PRESET, pos)
+                            .putBoolean(KEY_PERF_THERMAL, autoThermal)
+                            .apply();
+                }
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
@@ -452,8 +485,8 @@ public class MainActivity extends Activity {
         sbCustomScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                int pct = 50 + progress * 5;
-                String note = pct == 100 ? " (Native gốc)" : (pct > 100 ? " (Thử Supersample nếu ROM cho)" : "");
+                int pct = 45 + progress * 5; // 45%–150%
+                String note = pct == 100 ? " (Native gốc)" : (pct > 100 ? " (Siêu nét — tùy ROM/In-Game)" : " (Giảm tải GPU máy yếu)");
                 tvCustomScaleLabel.setText(String.format(Locale.ROOT, "Tỷ lệ Render GPU tùy chỉnh: %.2f×%s", pct / 100.0, note));
                 if (fromUser) {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(KEY_PERF_CUSTOM_PCT, pct).apply();
@@ -463,7 +496,7 @@ public class MainActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        makeSmallLabel(cPerf, "Giới hạn FPS hệ thống (tự chọn theo máy, tới 120 FPS):");
+        makeSmallLabel(cPerf, "Giới hạn / Mở khóa FPS hệ thống (Android 15+ mở khóa 60Hz, tới 120 FPS):");
         spPerfFps = makeDarkSpinner(cPerf, PERF_FPS_LABELS, savedFpsIdx);
         spPerfFps.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -487,7 +520,7 @@ public class MainActivity extends Activity {
         cPerf.addView(div, dlp);
 
         tvInGamePerfStatus = makeBodyText(cPerf,
-                "🎨 Mở Khóa Đồ Họa In-Game: Tùy chọn tải gói mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI/AO/Phản chiếu, DoF, LightShaft.");
+                "🎨 Mở Khóa Đồ Họa In-Game (Mọi máy): Tải riêng 1 file (~24 MB) mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI/AO/Phản chiếu, DoF, LightShaft.");
         btnToggleInGamePerf = makeButton(cPerf, "Bật Mở Khóa Đồ Họa In-Game", "#0F766E", "#FFFFFF", 0);
         btnToggleInGamePerf.setOnClickListener(v -> toggleInGamePerfMod());
 
@@ -578,6 +611,19 @@ public class MainActivity extends Activity {
         lp.bottomMargin = dp(3);
         parent.addView(tv, lp);
         return tv;
+    }
+
+    private CheckBox makeCheckBox(LinearLayout parent, String text, boolean checked) {
+        CheckBox cb = new CheckBox(this);
+        cb.setText(text);
+        cb.setChecked(checked);
+        cb.setTextColor(Color.parseColor("#CBD5E1"));
+        cb.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(4);
+        parent.addView(cb, lp);
+        return cb;
     }
 
     private Spinner makeDarkSpinner(LinearLayout parent, String[] items, int selectedIdx) {
@@ -705,12 +751,14 @@ public class MainActivity extends Activity {
         setBtnEnabled(btnInstallOffline, ready);
         setBtnEnabled(btnRestore, ready);
         setBtnEnabled(btnOpenGame, isPackageInstalled(GAME_PKG));
-        boolean sysReady = binderAlive && permGranted && isPackageInstalled(GAME_PKG) && !busy;
+        boolean sysReady = binderAlive && permGranted && backendReady && isPackageInstalled(GAME_PKG) && !busy;
         setBtnEnabled(btnApplyGameMode, sysReady);
         setBtnEnabled(btnResetGameMode, sysReady);
         updateInGamePerfUi();
-        if (!binderAlive || !permGranted) {
+        if (!binderAlive || !permGranted || !backendReady) {
             lastGameMode = null;
+            lastPerfCaps = null;
+            lastPerfState = null;
             updateGameModeUi();
         }
     }
@@ -920,8 +968,13 @@ public class MainActivity extends Activity {
         final int seq = ++probeSeq;
         workerExecutor.execute(() -> {
             try {
-                JSONObject gm = ShizukuShellBackend.probeGameMode(GAME_PKG);
+                JSONObject caps = ShizukuShellBackend.detectPerfCapabilities(GAME_PKG);
+                lastPerfCaps = caps;
+                JSONObject gm = caps.optBoolean("has_game_mode", false)
+                        ? ShizukuShellBackend.probeGameMode(GAME_PKG)
+                        : new JSONObject("{\"supported\":false,\"reason\":\"ROM không bật GameManagerService\"}");
                 lastGameMode = gm;
+                lastPerfState = ShizukuShellBackend.probeUniversalPerfState(GAME_PKG, caps);
                 String res = backendProbeGameState(getGameFilesDir(), currentPlanJson);
                 if (seq != probeSeq) return;
                 android.util.Log.i("AzurVI", "Probe(" + (patchService != null && !shellBackendReady ? "UserService" : "Shell") + "): " + res);
@@ -1358,30 +1411,73 @@ public class MainActivity extends Activity {
     }
 
     // -------------------------------------------------------------------------
-    // Graphics / Performance Mod (5 Presets GameMode + In-Game Unlock)
+    // Graphics / Performance Mod (Cross-Device Engine + In-Game Unlock)
     // -------------------------------------------------------------------------
     private void updateGameModeUi() {
         if (tvGameModeStatus == null) return;
-        if (lastGameMode == null) {
-            tvGameModeStatus.setText("⏳ Bật Shizuku để chỉnh Preset Render GPU & Giới hạn FPS (max 120 FPS).");
+        JSONObject caps = lastPerfCaps;
+        if (caps == null) {
+            tvGameModeStatus.setText("⏳ Bật Shizuku để nhận diện phần cứng & tối ưu FPS (hỗ trợ cả máy yếu lẫn máy Gaming).");
             return;
         }
-        if (!lastGameMode.optBoolean("supported", false)) {
-            tvGameModeStatus.setText("⚠️ Máy không hỗ trợ GameMode hệ thống ("
-                    + lastGameMode.optString("reason", "ROM đã tắt")
-                    + "). Bạn vẫn dùng được Mod Mở Khóa Đồ Họa In-Game bên dưới!");
-            return;
+
+        StringBuilder badge = new StringBuilder();
+        boolean hasGM = caps.optBoolean("has_game_mode", false);
+        boolean hasDC = caps.optBoolean("has_device_config", false);
+        boolean hasWM = caps.optBoolean("has_wm", false);
+        boolean hasTH = caps.optBoolean("has_thermal", false);
+        boolean hasFU = caps.optBoolean("has_fps_unlock", false);
+
+        if (hasGM) badge.append("GameMode");
+        if (hasDC) { if (badge.length() > 0) badge.append(" + "); badge.append("DevCfg"); }
+        if (hasWM) { if (badge.length() > 0) badge.append(" + "); badge.append("WM"); }
+        if (hasTH) { if (badge.length() > 0) badge.append(" + "); badge.append("Thermal"); }
+        if (hasFU) { if (badge.length() > 0) badge.append(" + "); badge.append("Unlock120Hz"); }
+        if (badge.length() > 0) badge.append(" + ");
+        badge.append("RAM");
+
+        if (cbThermalUnlock != null) cbThermalUnlock.setEnabled(hasTH && !busy);
+        if (cbWmDownscale != null) {
+            boolean wmNeeded = !hasGM && !hasDC && hasWM;
+            cbWmDownscale.setVisibility(wmNeeded ? View.VISIBLE : View.GONE);
+            cbWmDownscale.setEnabled(wmNeeded && !busy);
         }
-        String mode = lastGameMode.optString("mode", "standard").toUpperCase(Locale.ROOT);
-        String sc = lastGameMode.optString("scaling", "-1");
-        String fps = lastGameMode.optString("fps", "-1");
-        if ("STANDARD".equals(mode) && (sc.startsWith("-") || fps.startsWith("-"))) {
-            tvGameModeStatus.setText("🎮 Hệ thống: Nguyên bản (1.00× Native · FPS theo game)");
-            return;
+
+        JSONObject st = lastPerfState;
+        String dcConfig = st != null ? st.optString("dc_config", "") : "";
+        boolean wmOvr   = st != null && st.optBoolean("wm_override", false);
+        String wmSize   = st != null ? st.optString("wm_size", "") : "";
+        boolean thOvr   = st != null && st.optBoolean("thermal_override", false);
+        boolean fpsUnl  = st != null && st.optBoolean("fps_unlocked", false);
+
+        String gmMode = "";
+        if (hasGM && lastGameMode != null && lastGameMode.optBoolean("supported", false)) {
+            String mode = lastGameMode.optString("mode", "standard");
+            String sc   = lastGameMode.optString("scaling", "-1");
+            String fps  = lastGameMode.optString("fps", "-1");
+            if (!"standard".equalsIgnoreCase(mode) || (!sc.startsWith("-") && !sc.isEmpty())) {
+                gmMode = "GameMode(" + mode.toUpperCase(Locale.ROOT)
+                        + (sc.startsWith("-") ? "" : " " + sc + "×")
+                        + (fps.startsWith("-") || "0".equals(fps) ? "" : " " + fps + "FPS") + ")";
+            }
         }
-        String scLabel = (sc.isEmpty() || sc.startsWith("-")) ? "1.00× Native" : (sc + "×");
-        String fpsLabel = (fps.isEmpty() || fps.startsWith("-") || "0".equals(fps)) ? "Theo game" : (fps + " FPS");
-        tvGameModeStatus.setText("⚡ Hệ thống: Mode " + mode + " · GPU " + scLabel + " · Giới hạn " + fpsLabel);
+
+        StringBuilder active = new StringBuilder();
+        if (!gmMode.isEmpty()) active.append(gmMode);
+        if (!dcConfig.isEmpty()) { if (active.length() > 0) active.append(" · "); active.append("DevCfg=").append(dcConfig); }
+        if (wmOvr && !wmSize.isEmpty()) { if (active.length() > 0) active.append(" · "); active.append("⚠️ WM=").append(wmSize); }
+        if (thOvr) { if (active.length() > 0) active.append(" · "); active.append("🌡️ ThermalUnlock"); }
+        if (fpsUnl) { if (active.length() > 0) active.append(" · "); active.append("⚡ >60Hz ON"); }
+
+        String modeNote = hasGM
+                ? "Hỗ trợ GameMode chuẩn theo app"
+                : "ROM không bật GameMode → tự chuyển sang chế độ Máy yếu (WM) / Gaming (Thermal + Hz)";
+
+        if (active.length() == 0) {
+            tvGameModeStatus.setText("🛡️ [" + badge + "]\n• " + modeNote + "\n• Trạng thái: Nguyên bản.");
+        } else {
+            tvGameModeStatus.setText("🛡️ [" + badge + "]\n⚡ Đang bật: " + active);
+        }
     }
 
     private void updateInGamePerfUi() {
@@ -1393,7 +1489,7 @@ public class MainActivity extends Activity {
         boolean ready = isBackendReady() && gameInstalled && !busy && gameVi;
 
         if (!gameInstalled || !isBackendReady()) {
-            tvInGamePerfStatus.setText("🎨 Mở Khóa Đồ Họa In-Game: Tải riêng 1 file (~15 MB) mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI, AO, Phản chiếu, DoF, LightShaft.");
+            tvInGamePerfStatus.setText("🎨 Mở Khóa Đồ Họa In-Game (Mọi máy): Tải riêng 1 file (~24 MB) mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI/AO/Phản chiếu, DoF, LightShaft.");
         } else if (!gameVi) {
             tvInGamePerfStatus.setText("🔒 Cần cài Việt hóa 7/7 ở mục (2) trước khi bật/tắt Mod Mở Khóa Đồ Họa In-Game.");
         } else if (perfOn) {
@@ -1422,31 +1518,99 @@ public class MainActivity extends Activity {
         int fpsIdx = spPerfFps.getSelectedItemPosition();
         int fps = PERF_FPS_VALUES[Math.max(0, Math.min(PERF_FPS_VALUES.length - 1, fpsIdx))];
 
-        String downscaleArg;
-        if (pIdx == 0) downscaleArg = "0.60";
-        else if (pIdx == 1) downscaleArg = "0.75";
-        else if (pIdx == 2) downscaleArg = "disable";
-        else if (pIdx == 3) downscaleArg = "1.25";
-        else {
-            int pct = 50 + sbCustomScale.getProgress() * 5;
-            downscaleArg = (pct == 100) ? "disable" : String.format(Locale.ROOT, "%.2f", pct / 100.0);
+        double customScale = 1.0;
+        if (pIdx == 4) {
+            int pct = 45 + sbCustomScale.getProgress() * 5; // 45%–150%
+            customScale = pct / 100.0;
         }
 
-        final String finalScale = downscaleArg;
+        boolean thermal = cbThermalUnlock != null && cbThermalUnlock.isChecked();
+        boolean allowWm = cbWmDownscale == null || cbWmDownscale.isChecked();
+
+        final int finalPIdx = pIdx;
+        final double finalScale = customScale;
         final int finalFps = fps;
+        final boolean finalThermal = thermal;
+        final boolean finalWm = allowWm;
+
+        if (lastPerfCaps == null) {
+            setBusy(true);
+            workerExecutor.execute(() -> {
+                JSONObject caps = ShizukuShellBackend.detectPerfCapabilities(GAME_PKG);
+                lastPerfCaps = caps;
+                lastPerfState = ShizukuShellBackend.probeUniversalPerfState(GAME_PKG, caps);
+                runOnUiThread(() -> {
+                    setBusy(false);
+                    confirmOrApplyUniversalPreset(finalPIdx, finalScale, finalFps, finalWm, finalThermal);
+                });
+            });
+        } else {
+            confirmOrApplyUniversalPreset(finalPIdx, finalScale, finalFps, finalWm, finalThermal);
+        }
+    }
+
+    private void confirmOrApplyUniversalPreset(int pIdx, double customScale, int fps,
+                                               boolean allowWm, boolean thermal) {
+        JSONObject caps = lastPerfCaps;
+        if (caps == null) {
+            toast("Không phát hiện được khả năng thiết bị.");
+            return;
+        }
+        double scale = ShizukuShellBackend.presetScaleForIndex(pIdx, customScale);
+        boolean willUseWm = !caps.optBoolean("has_game_mode", false)
+                && !caps.optBoolean("has_device_config", false)
+                && caps.optBoolean("has_wm", false)
+                && scale < 0.99 && allowWm;
+        boolean alreadyWm = lastPerfState != null && lastPerfState.optBoolean("wm_override", false);
+
+        if (willUseWm && !alreadyWm) {
+            int nw = caps.optInt("native_width", 0);
+            int nh = caps.optInt("native_height", 0);
+            int nd = caps.optInt("native_density", 0);
+            int[] dim = ShizukuShellBackend.computeScaledWmDimensions(nw, nh, nd, scale);
+            new AlertDialog.Builder(this)
+                    .setTitle("Hạ độ phân giải màn hình cho máy yếu?")
+                    .setMessage("Thiết bị không bật GameMode theo từng app.\n\n"
+                            + "App sẽ tạm thời hạ độ phân giải màn hình từ " + nw + "×" + nh
+                            + " xuống " + dim[0] + "×" + dim[1] + " (~" + Math.round(scale * 100) + "%) "
+                            + "và dọn RAM nền để giảm tối đa tải GPU.\n\n"
+                            + "⚠️ Toàn giao diện máy sẽ nhỏ/to hơn một chút trong lúc chơi. "
+                            + "Sau khi chơi xong hãy bấm 'Về mặc định' để trả về độ phân giải gốc!")
+                    .setPositiveButton("Hạ phân giải + Giảm lag",
+                            (d, w) -> doApplyUniversalPreset(pIdx, customScale, fps, true, thermal, true))
+                    .setNeutralButton("Chỉ dọn RAM / Không đổi màn",
+                            (d, w) -> doApplyUniversalPreset(pIdx, customScale, fps, false, thermal, true))
+                    .setNegativeButton("Hủy", null)
+                    .show();
+            return;
+        }
+        doApplyUniversalPreset(pIdx, customScale, fps, allowWm, thermal, true);
+    }
+
+    private void doApplyUniversalPreset(int pIdx, double customScale, int fps,
+                                        boolean allowWm, boolean thermal, boolean clearRam) {
+        JSONObject caps = lastPerfCaps;
+        if (caps == null) {
+            toast("Không phát hiện được khả năng thiết bị.");
+            return;
+        }
         setBusy(true);
         workerExecutor.execute(() -> {
             try {
-                log("Áp dụng Mod hệ thống: GPU=" + ("disable".equals(finalScale) ? "1.00× Native" : finalScale + "×")
-                        + ", FPS=" + (finalFps > 0 ? finalFps : "Theo game") + "...");
-                String res = ShizukuShellBackend.applyGameMode(GAME_PKG, finalScale, finalFps);
-                lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+                String res = ShizukuShellBackend.applyUniversalPreset(
+                        GAME_PKG, caps, pIdx, customScale, fps, allowWm, thermal, clearRam);
+                lastPerfCaps = ShizukuShellBackend.detectPerfCapabilities(GAME_PKG);
+                if (lastPerfCaps.optBoolean("has_game_mode", false)) {
+                    lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+                }
+                lastPerfState = ShizukuShellBackend.probeUniversalPerfState(GAME_PKG, lastPerfCaps);
                 runOnUiThread(() -> {
                     setBusy(false);
                     updateGameModeUi();
                     if (res.startsWith("OK:")) {
-                        log("✅ Đã áp dụng GameMode (" + res.substring(3).trim() + "). Hãy mở/khởi động lại game để áp dụng!");
-                        toast("Đã áp dụng Preset đồ họa & FPS! Nếu game đang chạy, hãy đóng mở lại game.");
+                        String detail = res.substring(3).trim();
+                        log("✅ Đã áp dụng [" + detail + "]. Hãy mở/khởi động lại game!");
+                        toast("Áp dụng thành công! Nếu game đang chạy hãy đóng mở lại game.");
                     } else {
                         String msg = res.replaceFirst("^ERR:", "");
                         log("⚠️ " + msg);
@@ -1454,11 +1618,8 @@ public class MainActivity extends Activity {
                     }
                 });
             } catch (Throwable t) {
-                log("❌ Lỗi GameMode: " + t.getMessage());
-                runOnUiThread(() -> {
-                    setBusy(false);
-                    toast("Lỗi: " + t.getMessage());
-                });
+                log("❌ Lỗi áp preset: " + t.getMessage());
+                runOnUiThread(() -> { setBusy(false); toast("Lỗi: " + t.getMessage()); });
             }
         });
     }
@@ -1471,20 +1632,28 @@ public class MainActivity extends Activity {
         }
         setBusy(true);
         workerExecutor.execute(() -> {
-            String res = ShizukuShellBackend.resetGameMode(GAME_PKG);
-            lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+            JSONObject caps = lastPerfCaps != null ? lastPerfCaps
+                    : ShizukuShellBackend.detectPerfCapabilities(GAME_PKG);
+            lastPerfCaps = caps;
+            String res = ShizukuShellBackend.resetUniversalPreset(GAME_PKG, caps);
+            if (caps.optBoolean("has_game_mode", false)) {
+                lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+            }
+            lastPerfState = ShizukuShellBackend.probeUniversalPerfState(GAME_PKG, caps);
             runOnUiThread(() -> {
                 spPerfPreset.setSelection(2, false);
                 spPerfFps.setSelection(0, false);
+                if (cbThermalUnlock != null) cbThermalUnlock.setChecked(false);
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                         .putInt(KEY_PERF_PRESET, 2)
                         .putInt(KEY_PERF_FPS, 0)
+                        .putBoolean(KEY_PERF_THERMAL, false)
                         .apply();
                 setBusy(false);
                 updateGameModeUi();
                 if (res.startsWith("OK:")) {
-                    log("🔄 Đã đưa GameMode hệ thống về Nguyên bản (STANDARD).");
-                    toast("Đã tắt ép GPU / FPS hệ thống.");
+                    log("🔄 Đã reset về mặc định hệ thống (" + res.substring(3).trim() + ").");
+                    toast("Đã về mặc định — tắt ép GPU / WM / Thermal / FPS.");
                 } else {
                     log("⚠️ " + res);
                     toast(res);

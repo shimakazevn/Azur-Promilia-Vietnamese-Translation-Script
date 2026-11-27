@@ -1,5 +1,6 @@
 package vn.shimakaze.azurpromiliavi;
 
+import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 
@@ -571,6 +572,15 @@ final class ShizukuShellBackend {
         }
     }
 
+    private static String formatDownscaleArg(double scale) {
+        if (scale >= 0.99 && scale <= 1.01) return "disable";
+        // Snap to 0.05 step and trim trailing .0 zeros ("0.60" -> "0.6") for strict Android 13 parsers
+        double snapped = Math.round(scale * 20.0) / 20.0;
+        String s = String.format(Locale.ROOT, "%.2f", snapped);
+        if (s.endsWith("0")) s = s.substring(0, s.length() - 1);
+        return s;
+    }
+
     static String applyGameMode(String packageName, String downscaleArg, int fps) {
         try {
             boolean noScale = downscaleArg == null || downscaleArg.isEmpty()
@@ -581,22 +591,19 @@ final class ShizukuShellBackend {
             }
             exec("cmd", "game", "reset", packageName);
 
-            List<String> argv = new ArrayList<>();
-            argv.add("cmd");
-            argv.add("game");
-            argv.add("set");
-            argv.add("--downscale");
-            argv.add(noScale ? "disable" : downscaleArg);
-            if (fps > 0) {
-                argv.add("--fps");
-                argv.add(Integer.toString(fps));
-            }
-            argv.add(packageName);
-
-            ExecResult setRes = exec(argv.toArray(new String[0]));
+            ExecResult setRes = runCmdGameSet(packageName, noScale ? "disable" : downscaleArg, fps);
             String out = (setRes.stdout + " " + setRes.stderr).trim();
             if (setRes.exitCode != 0 || out.toLowerCase(Locale.ROOT).contains("error")) {
-                return "ERR:Thiết bị không chấp nhận cấu hình (" + (out.isEmpty() ? "exit " + setRes.exitCode : out) + ")";
+                // On strict Android 13/14 ROMs, values > 0.9 may be rejected; fallback to native "disable"
+                double parsed = -1;
+                try { if (!noScale) parsed = Double.parseDouble(downscaleArg); } catch (NumberFormatException ignored) {}
+                if (parsed > 0.9) {
+                    setRes = runCmdGameSet(packageName, "disable", fps);
+                    out = (setRes.stdout + " " + setRes.stderr).trim();
+                }
+                if (setRes.exitCode != 0 || out.toLowerCase(Locale.ROOT).contains("error")) {
+                    return "ERR:Thiết bị không chấp nhận cấu hình (" + (out.isEmpty() ? "exit " + setRes.exitCode : out) + ")";
+                }
             }
 
             ExecResult modeRes = exec("cmd", "game", "mode", "custom", packageName);
@@ -608,6 +615,21 @@ final class ShizukuShellBackend {
         } catch (Throwable t) {
             return "ERR:" + t.getMessage();
         }
+    }
+
+    private static ExecResult runCmdGameSet(String packageName, String scaleArg, int fps) throws Exception {
+        List<String> argv = new ArrayList<>();
+        argv.add("cmd");
+        argv.add("game");
+        argv.add("set");
+        argv.add("--downscale");
+        argv.add(scaleArg);
+        if (fps > 0) {
+            argv.add("--fps");
+            argv.add(Integer.toString(fps));
+        }
+        argv.add(packageName);
+        return exec(argv.toArray(new String[0]));
     }
 
     static String resetGameMode(String packageName) {
@@ -622,5 +644,390 @@ final class ShizukuShellBackend {
         } catch (Throwable t) {
             return "ERR:" + t.getMessage();
         }
+    }
+
+    // =========================================================================
+    // Universal Multi-Layer Performance Engine (Weak devices + Gaming devices)
+    // =========================================================================
+
+    static double presetScaleForIndex(int presetIdx, double customScale) {
+        switch (presetIdx) {
+            case 0: return 0.60; // Máy yếu / Chống lag
+            case 1: return 0.75; // Cân bằng mượt
+            case 2: return 1.00; // Nguyên bản
+            case 3: return 1.00; // Gaming Max
+            default: return Math.max(0.45, Math.min(1.50, customScale));
+        }
+    }
+
+    static int[] computeScaledWmDimensions(int nw, int nh, int nd, double scale) {
+        if (nw <= 0 || nh <= 0 || scale >= 0.99) return new int[]{nw, nh, nd};
+        int tw = Math.max(360, ((int) Math.round(nw * scale) / 8) * 8);
+        int th = Math.max(640, ((int) Math.round(nh * scale) / 8) * 8);
+        if (tw >= nw) tw = ((int) Math.round(nw * scale) / 4) * 4;
+        if (th >= nh) th = ((int) Math.round(nh * scale) / 4) * 4;
+        int td = nd > 0 ? Math.max(160, (int) Math.round(nd * scale)) : 0;
+        return new int[]{tw, th, td};
+    }
+
+    /**
+     * Phát hiện khả năng thực tế của thiết bị (không đánh dấu ảo):
+     *   sdk, has_game_service, has_game_mode, has_device_config,
+     *   has_wm, native_width, native_height, native_density,
+     *   has_thermal, has_fps_unlock
+     */
+    static JSONObject detectPerfCapabilities(String packageName) {
+        JSONObject out = new JSONObject();
+        try {
+            out.put("sdk", Build.VERSION.SDK_INT);
+
+            boolean hasGameService = false;
+            try {
+                ExecResult svc = exec("service", "check", "game");
+                String s = (svc.stdout + "\n" + svc.stderr).toLowerCase(Locale.ROOT);
+                hasGameService = s.contains("found") && !s.contains("not found");
+            } catch (Throwable ignored) {
+            }
+
+            boolean hasGameMode = false;
+            try {
+                ExecResult r = exec("cmd", "game", "list-modes", packageName);
+                String s = (r.stdout + "\n" + r.stderr).trim().toLowerCase(Locale.ROOT);
+                hasGameMode = r.exitCode == 0 && !s.contains("unknown command")
+                        && !s.contains("can't find service") && !s.isEmpty();
+                if (hasGameMode) hasGameService = true;
+            } catch (Throwable ignored) {
+            }
+            out.put("has_game_service", hasGameService);
+            out.put("has_game_mode", hasGameMode);
+
+            // device_config game_overlay ONLY works if GameManagerService exists and OS isn't blocking writes
+            // On Android 14+, allowlist restrictions commonly throw SecurityException on device_config put;
+            // we treat it strictly as secondary fallback for Android 12/13 (API 31-33) when cmd game failed.
+            boolean hasDc = !hasGameMode && hasGameService && Build.VERSION.SDK_INT >= 31 && Build.VERSION.SDK_INT <= 33;
+            out.put("has_device_config", hasDc);
+
+            int nw = 0, nh = 0, nd = 0;
+            try {
+                ExecResult rSize = exec("wm", "size");
+                Matcher mPhys = Pattern.compile("Physical size:\\s*(\\d+)x(\\d+)", Pattern.CASE_INSENSITIVE)
+                        .matcher(rSize.stdout);
+                if (mPhys.find()) {
+                    nw = Integer.parseInt(mPhys.group(1));
+                    nh = Integer.parseInt(mPhys.group(2));
+                }
+                ExecResult rDens = exec("wm", "density");
+                Matcher mDens = Pattern.compile("Physical density:\\s*(\\d+)", Pattern.CASE_INSENSITIVE)
+                        .matcher(rDens.stdout);
+                if (mDens.find()) {
+                    nd = Integer.parseInt(mDens.group(1));
+                }
+                out.put("has_wm", nw > 0 && nh > 0);
+            } catch (Throwable t) {
+                out.put("has_wm", false);
+            }
+            out.put("native_width", nw);
+            out.put("native_height", nh);
+            out.put("native_density", nd);
+
+            boolean hasThermal = false;
+            try {
+                ExecResult svc = exec("service", "check", "thermalservice");
+                String s = (svc.stdout + "\n" + svc.stderr).toLowerCase(Locale.ROOT);
+                hasThermal = s.contains("found") && !s.contains("not found");
+                if (!hasThermal) {
+                    ExecResult h = exec("cmd", "thermalservice", "help");
+                    String hs = (h.stdout + "\n" + h.stderr).toLowerCase(Locale.ROOT);
+                    hasThermal = h.exitCode == 0 && !hs.contains("can't find service") && !hs.contains("unknown command");
+                }
+            } catch (Throwable ignored) {
+            }
+            out.put("has_thermal", hasThermal);
+
+            // Android 15+ (SDK >= 35) SurfaceFlinger 60Hz game cap unlock via Shizuku setprop
+            boolean hasFpsUnlock = false;
+            if (Build.VERSION.SDK_INT >= 35) {
+                try {
+                    ExecResult g1 = exec("getprop", "debug.graphics.game_default_frame_rate.disabled");
+                    ExecResult g2 = exec("getprop", "ro.surface_flinger.game_default_frame_rate_override");
+                    String v1 = g1.stdout.trim();
+                    String v2 = g2.stdout.trim();
+                    hasFpsUnlock = !v1.isEmpty() || !v2.isEmpty();
+                } catch (Throwable ignored) {
+                }
+            }
+            out.put("has_fps_unlock", hasFpsUnlock);
+        } catch (Throwable t) {
+            try { out.put("error", t.getMessage()); } catch (Throwable ignored) {}
+        }
+        return out;
+    }
+
+    /**
+     * Áp dụng preset hiệu năng cross-device.
+     */
+    static String applyUniversalPreset(String packageName, JSONObject caps,
+                                        int presetIdx, double customScale, int fpsTarget,
+                                        boolean allowWmResize, boolean thermalOverride, boolean clearRam) {
+        try {
+            double scale = presetScaleForIndex(presetIdx, customScale);
+            String presetName;
+            switch (presetIdx) {
+                case 0: presetName = "Máy yếu / Chống lag"; break;
+                case 1: presetName = "Cân bằng mượt"; break;
+                case 2: presetName = "Nguyên bản"; break;
+                case 3: presetName = "Gaming Max"; break;
+                default: presetName = "Tùy chỉnh"; break;
+            }
+
+            boolean hasGameMode  = caps.optBoolean("has_game_mode", false);
+            boolean hasDc        = caps.optBoolean("has_device_config", false);
+            boolean hasWm        = caps.optBoolean("has_wm", false);
+            boolean hasThermal   = caps.optBoolean("has_thermal", false);
+            boolean hasFpsUnlock = caps.optBoolean("has_fps_unlock", false);
+
+            StringBuilder applied = new StringBuilder();
+            boolean gameModeOk = false;
+            boolean dcOk = false;
+
+            // === Layer 1: Per-app GameMode (Pixel / AOSP GameManager) ===
+            if (hasGameMode) {
+                try {
+                    String downscaleArg = (presetIdx == 2 || presetIdx == 3)
+                            ? "disable"
+                            : formatDownscaleArg(scale);
+                    String gmRes = applyGameMode(packageName, downscaleArg, fpsTarget);
+                    if (gmRes.startsWith("OK:")) {
+                        gameModeOk = true;
+                        applied.append("GameMode(")
+                                .append("disable".equals(downscaleArg) ? "1.0×" : (downscaleArg + "×"))
+                                .append(fpsTarget > 0 ? "/" + fpsTarget + "fps" : "")
+                                .append(")");
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+
+            // === Layer 2: device_config game_overlay (fallback Android 12/13 with game service) ===
+            if (!gameModeOk && hasDc) {
+                try {
+                    if (presetIdx == 2 && fpsTarget <= 0) {
+                        exec("device_config", "delete", "game_overlay", packageName);
+                        dcOk = true;
+                        applied.append("DeviceConfig(Reset)");
+                    } else {
+                        StringBuilder cfg = new StringBuilder();
+                        cfg.append("mode=").append(presetIdx == 0 ? 3 : 2);
+                        if (scale < 0.99) {
+                            cfg.append(",downscaleFactor=").append(formatDownscaleArg(scale));
+                        }
+                        if (fpsTarget > 0) {
+                            cfg.append(",fps=").append(fpsTarget);
+                        }
+                        ExecResult r = exec("device_config", "put", "game_overlay", packageName, cfg.toString());
+                        String s = (r.stdout + " " + r.stderr).toLowerCase(Locale.ROOT);
+                        if (r.exitCode == 0 && !s.contains("exception") && !s.contains("permission denial") && !s.contains("error")) {
+                            dcOk = true;
+                            applied.append("DeviceConfig");
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+
+            // === Layer 3: WM Resolution Scaling (Universal fallback for non-GameMode devices) ===
+            if (!gameModeOk && !dcOk && hasWm) {
+                JSONObject st = probeUniversalPerfState(packageName, caps);
+                boolean currentlyOverridden = st.optBoolean("wm_override", false) || st.optBoolean("wm_density_override", false);
+                if (scale < 0.99 && allowWmResize) {
+                    int nw = caps.optInt("native_width", 0);
+                    int nh = caps.optInt("native_height", 0);
+                    int nd = caps.optInt("native_density", 0);
+                    int[] dim = computeScaledWmDimensions(nw, nh, nd, scale);
+                    if (dim[0] > 0 && dim[1] > 0) {
+                        ExecResult r1 = exec("wm", "size", dim[0] + "x" + dim[1]);
+                        if (r1.exitCode == 0) {
+                            if (dim[2] > 0) exec("wm", "density", Integer.toString(dim[2]));
+                            if (applied.length() > 0) applied.append(" + ");
+                            applied.append("WM(").append(dim[0]).append("×").append(dim[1]).append(")");
+                        }
+                    }
+                } else if (currentlyOverridden && (scale >= 0.99 || !allowWmResize)) {
+                    exec("wm", "size", "reset");
+                    exec("wm", "density", "reset");
+                    if (applied.length() > 0) applied.append(" + ");
+                    applied.append("WM(Gốc)");
+                }
+            }
+
+            // === Layer 4: Thermal Unlock (cmd thermalservice — Snapdragon / MediaTek / Pixel) ===
+            if (hasThermal) {
+                if (thermalOverride) {
+                    try {
+                        ExecResult r = exec("cmd", "thermalservice", "override-status", "0");
+                        if (r.exitCode == 0) {
+                            if (applied.length() > 0) applied.append(" + ");
+                            applied.append("ThermalUnlock");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                } else {
+                    try {
+                        JSONObject st = probeUniversalPerfState(packageName, caps);
+                        if (st.optBoolean("thermal_override", false)) {
+                            exec("cmd", "thermalservice", "reset");
+                            if (applied.length() > 0) applied.append(" + ");
+                            applied.append("ThermalAuto");
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+
+            // === Layer 5: Android 15+ 60Hz Game Cap Unlock (all OEMs) ===
+            if (hasFpsUnlock) {
+                boolean wantUnlock = fpsTarget > 60 || (presetIdx == 3 && fpsTarget == 0);
+                try {
+                    ExecResult r = exec("setprop", "debug.graphics.game_default_frame_rate.disabled",
+                            wantUnlock ? "true" : "false");
+                    if (r.exitCode == 0 && wantUnlock) {
+                        if (applied.length() > 0) applied.append(" + ");
+                        applied.append("Unlock120Hz");
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+
+            // === Layer 6: Background RAM Purge (Universal — helps 4GB/6GB/8GB phones) ===
+            if (clearRam && presetIdx != 2) {
+                try {
+                    ExecResult r = exec("am", "kill-all");
+                    if (r.exitCode == 0) {
+                        if (applied.length() > 0) applied.append(" + ");
+                        applied.append("DọnRAM");
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+
+            if (applied.length() == 0) {
+                if (presetIdx == 2) {
+                    return "OK:Nguyên bản";
+                }
+                return "ERR:Không áp dụng được layer hệ thống nào trên ROM này. Hãy dùng Mod Mở Khóa Đồ Họa In-Game bên dưới!";
+            }
+            return "OK:" + applied + " · " + presetName
+                    + (fpsTarget > 0 ? " (" + fpsTarget + " FPS)" : "");
+        } catch (Throwable t) {
+            return "ERR:" + t.getMessage();
+        }
+    }
+
+    /**
+     * Reset toàn bộ các layer đang bật về mặc định hệ thống an toàn.
+     */
+    static String resetUniversalPreset(String packageName, JSONObject caps) {
+        StringBuilder done = new StringBuilder();
+        JSONObject st = probeUniversalPerfState(packageName, caps);
+
+        if (caps != null && caps.optBoolean("has_game_mode", false)) {
+            try {
+                resetGameMode(packageName);
+                done.append("GameMode ");
+            } catch (Throwable ignored) {
+            }
+        }
+        if (caps != null && caps.optBoolean("has_device_config", false) && !st.optString("dc_config", "").isEmpty()) {
+            try {
+                exec("device_config", "delete", "game_overlay", packageName);
+                done.append("DeviceConfig ");
+            } catch (Throwable ignored) {
+            }
+        }
+        if (st.optBoolean("wm_override", false) || st.optBoolean("wm_density_override", false)) {
+            try {
+                exec("wm", "size", "reset");
+                exec("wm", "density", "reset");
+                done.append("WM ");
+            } catch (Throwable ignored) {
+            }
+        }
+        if (caps != null && caps.optBoolean("has_thermal", false)) {
+            try {
+                exec("cmd", "thermalservice", "reset");
+                done.append("Thermal ");
+            } catch (Throwable ignored) {
+            }
+        }
+        if (caps != null && caps.optBoolean("has_fps_unlock", false)) {
+            try {
+                exec("setprop", "debug.graphics.game_default_frame_rate.disabled", "false");
+                done.append("FPSLock60Hz ");
+            } catch (Throwable ignored) {
+            }
+        }
+        return "OK:" + (done.length() > 0 ? done.toString().trim() : "Nguyên bản");
+    }
+
+    /**
+     * Probe trạng thái hiệu năng hiện tại (ONLY call from worker thread!).
+     */
+    static JSONObject probeUniversalPerfState(String packageName, JSONObject caps) {
+        JSONObject out = new JSONObject();
+        try {
+            if (caps != null && caps.optBoolean("has_device_config", false)) {
+                try {
+                    ExecResult r = exec("device_config", "get", "game_overlay", packageName);
+                    String v = r.stdout.trim();
+                    out.put("dc_config", (r.exitCode == 0 && !v.equalsIgnoreCase("null")) ? v : "");
+                } catch (Throwable t) {
+                    out.put("dc_config", "");
+                }
+            } else {
+                out.put("dc_config", "");
+            }
+
+            try {
+                ExecResult r = exec("wm", "size");
+                String s = r.stdout.trim();
+                Matcher m = Pattern.compile("Override size:\\s*(\\d+x\\d+)", Pattern.CASE_INSENSITIVE).matcher(s);
+                boolean hasOvr = m.find();
+                out.put("wm_override", hasOvr);
+                out.put("wm_size", hasOvr ? m.group(1) : "");
+
+                ExecResult rd = exec("wm", "density");
+                out.put("wm_density_override", rd.stdout.toLowerCase(Locale.ROOT).contains("override density"));
+            } catch (Throwable t) {
+                out.put("wm_override", false);
+                out.put("wm_size", "");
+                out.put("wm_density_override", false);
+            }
+
+            if (caps != null && caps.optBoolean("has_thermal", false)) {
+                try {
+                    ExecResult r = exec("dumpsys", "thermalservice");
+                    String low = r.stdout.toLowerCase(Locale.ROOT);
+                    out.put("thermal_override", low.contains("isstatusoverride: true"));
+                } catch (Throwable t) {
+                    out.put("thermal_override", false);
+                }
+            } else {
+                out.put("thermal_override", false);
+            }
+
+            if (caps != null && caps.optBoolean("has_fps_unlock", false)) {
+                try {
+                    ExecResult r = exec("getprop", "debug.graphics.game_default_frame_rate.disabled");
+                    out.put("fps_unlocked", "true".equalsIgnoreCase(r.stdout.trim()));
+                } catch (Throwable t) {
+                    out.put("fps_unlocked", false);
+                }
+            } else {
+                out.put("fps_unlocked", false);
+            }
+        } catch (Throwable t) {
+            try { out.put("error", t.getMessage()); } catch (Throwable ignored) {}
+        }
+        return out;
     }
 }
