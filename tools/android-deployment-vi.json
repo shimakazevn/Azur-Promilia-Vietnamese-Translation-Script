@@ -28,6 +28,7 @@
       "size": 28840170,
       "source_sha256": "3d9fd2444d625ce66d65b516e7662581fd197716303fd2697df01c0478efac5e",
       "target_sha256": "a29d4678d66b583c80bf2a881c47930b6193300abcafddb070784b146970f0b4",
+      "perf_target_sha256": "763b07b6a4ef9d50b32e376291ccd48c83476226f5d725946ed3b88471b80310",
       "crc32": 3871693837,
       "manifest": "raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219596.bytes",
       "segments": [

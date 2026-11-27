@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import moe.shizuku.server.IRemoteProcess;
 import moe.shizuku.server.IShizukuService;
@@ -186,6 +188,7 @@ final class ShizukuShellBackend {
 
             int total = arr.length();
             int viCount = 0;
+            int perfCount = 0;
             int origCount = 0;
             int missingCount = 0;
             int mismatchCount = 0;
@@ -196,6 +199,7 @@ final class ShizukuShellBackend {
                 long size = item.getLong("size");
                 String srcSha = item.getString("source_sha256").toLowerCase(Locale.ROOT);
                 String tgtSha = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+                String perfSha = item.optString("perf_target_sha256", "").toLowerCase(Locale.ROOT);
 
                 String[] d = destMap.get(i);
                 if (d == null || !"1".equals(d[2])) {
@@ -207,6 +211,9 @@ final class ShizukuShellBackend {
                         mismatchCount++;
                     } else if (dHash.equals(tgtSha)) {
                         viCount++;
+                    } else if (!perfSha.isEmpty() && dHash.equals(perfSha)) {
+                        viCount++;
+                        perfCount++;
                     } else if (dHash.equals(srcSha)) {
                         origCount++;
                     } else {
@@ -226,6 +233,7 @@ final class ShizukuShellBackend {
 
             out.put("total", total);
             out.put("vi_count", viCount);
+            out.put("perf_count", perfCount);
             out.put("orig_count", origCount);
             out.put("missing_count", missingCount);
             out.put("mismatch_count", mismatchCount);
@@ -268,6 +276,9 @@ final class ShizukuShellBackend {
                 if (!staged.isFile()) {
                     staged = new File(stDir, "android_game/" + rel);
                 }
+                if (!staged.isFile()) {
+                    staged = new File(stDir, "android_perf/" + rel);
+                }
                 if (!staged.isFile() || staged.length() != size || !sha256File(staged).equals(tgtSha)) {
                     return "ERR:Gói tải về bị lỗi hoặc thiếu file: " + rel;
                 }
@@ -276,7 +287,7 @@ final class ShizukuShellBackend {
 
             // Step 2: Backup originals and write patched files atomically as UID 2000
             String script = "set -e\n"
-                    + "gf=\"$1\"; ver=\"$2\"; rel=\"$3\"; stg=\"$4\"; src_sha=\"$5\"; tgt_sha=\"$6\"; exp_sz=\"$7\"\n"
+                    + "gf=\"$1\"; ver=\"$2\"; rel=\"$3\"; stg=\"$4\"; src_sha=\"$5\"; tgt_sha=\"$6\"; exp_sz=\"$7\"; alt_sha=\"$8\"\n"
                     + "dest=\"$gf/.res/$rel\"\n"
                     + "bak=\"$gf/.vi-android-backup-$ver/$rel\"\n"
                     + "if [ ! -f \"$dest\" ]; then echo \"ERR:MISSING\"; exit 1; fi\n"
@@ -293,7 +304,7 @@ final class ShizukuShellBackend {
                     + "    bh=$(sha256sum \"$bak\" | while read h _; do echo \"$h\"; break; done)\n"
                     + "    [ \"$bh\" = \"$src_sha\" ] || { echo \"ERR:BAKSHA\"; exit 1; }\n"
                     + "  fi\n"
-                    + "elif [ \"$cur\" != \"$tgt_sha\" ]; then\n"
+                    + "elif [ \"$cur\" != \"$tgt_sha\" ] && { [ -z \"$alt_sha\" ] || [ \"$cur\" != \"$alt_sha\" ]; }; then\n"
                     + "  echo \"ERR:MISMATCH\"; exit 1\n"
                     + "fi\n"
                     + "if [ \"$cur\" = \"$tgt_sha\" ]; then echo \"OK:SKIP\"; exit 0; fi\n"
@@ -314,11 +325,12 @@ final class ShizukuShellBackend {
                 long size = item.getLong("size");
                 String srcSha = item.getString("source_sha256").toLowerCase(Locale.ROOT);
                 String tgtSha = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+                String altSha = item.optString("perf_target_sha256", "").toLowerCase(Locale.ROOT);
                 File staged = stagedFiles.get(i);
 
                 ExecResult r = exec("sh", "-c", script, "sh",
                         gameFilesDir, targetVer, rel, staged.getAbsolutePath(),
-                        srcSha, tgtSha, Long.toString(size));
+                        srcSha, tgtSha, Long.toString(size), altSha);
                 String out = r.stdout.trim();
                 if (r.exitCode != 0 || !out.startsWith("OK:")) {
                     if (out.contains("ERR:MISSING")) {
@@ -512,5 +524,103 @@ final class ShizukuShellBackend {
             sb.append(String.format(Locale.ROOT, "%02x", b & 0xFF));
         }
         return sb.toString();
+    }
+
+    static JSONObject probeGameMode(String packageName) {
+        JSONObject out = new JSONObject();
+        try {
+            ExecResult lm = exec("cmd", "game", "list-modes", packageName);
+            String mOut = (lm.stdout + "\n" + lm.stderr).trim();
+            String low = mOut.toLowerCase(Locale.ROOT);
+            if (lm.exitCode != 0 || low.contains("unknown command") || low.contains("can't find service") || mOut.isEmpty()) {
+                out.put("supported", false);
+                out.put("reason", mOut.isEmpty() ? "Thiết bị chưa bật GameManagerService (Android < 13 hoặc ROM đã tắt)" : mOut);
+                return out;
+            }
+            out.put("supported", true);
+            String curMode = "standard";
+            Matcher mm = Pattern.compile("current mode:\\s*([a-zA-Z0-9_-]+)", Pattern.CASE_INSENSITIVE).matcher(mOut);
+            if (mm.find()) {
+                curMode = mm.group(1).toLowerCase(Locale.ROOT);
+            }
+            out.put("mode", curMode);
+
+            ExecResult lc = exec("cmd", "game", "list-configs", packageName);
+            String cOut = (lc.stdout + "\n" + lc.stderr).trim();
+            out.put("raw_configs", cOut);
+            String scaling = "-1";
+            String fps = "-1";
+            Matcher mc = Pattern.compile("Game Mode:\\s*4\\b[^\\]]*", Pattern.CASE_INSENSITIVE).matcher(cOut);
+            if (mc.find()) {
+                String seg = mc.group(0);
+                Matcher ms = Pattern.compile("Scaling:\\s*([0-9.\\-]+)").matcher(seg);
+                if (ms.find()) scaling = ms.group(1);
+                Matcher mf = Pattern.compile("Fps:\\s*([0-9\\-]+)").matcher(seg);
+                if (mf.find()) fps = mf.group(1);
+            }
+            out.put("scaling", scaling);
+            out.put("fps", fps);
+            return out;
+        } catch (Throwable t) {
+            try {
+                out.put("supported", false);
+                out.put("reason", String.valueOf(t.getMessage()));
+            } catch (Throwable ignored) {
+            }
+            return out;
+        }
+    }
+
+    static String applyGameMode(String packageName, String downscaleArg, int fps) {
+        try {
+            boolean noScale = downscaleArg == null || downscaleArg.isEmpty()
+                    || "disable".equalsIgnoreCase(downscaleArg)
+                    || "1.0".equals(downscaleArg) || "1.00".equals(downscaleArg);
+            if (noScale && fps <= 0) {
+                return resetGameMode(packageName);
+            }
+            exec("cmd", "game", "reset", packageName);
+
+            List<String> argv = new ArrayList<>();
+            argv.add("cmd");
+            argv.add("game");
+            argv.add("set");
+            argv.add("--downscale");
+            argv.add(noScale ? "disable" : downscaleArg);
+            if (fps > 0) {
+                argv.add("--fps");
+                argv.add(Integer.toString(fps));
+            }
+            argv.add(packageName);
+
+            ExecResult setRes = exec(argv.toArray(new String[0]));
+            String out = (setRes.stdout + " " + setRes.stderr).trim();
+            if (setRes.exitCode != 0 || out.toLowerCase(Locale.ROOT).contains("error")) {
+                return "ERR:Thiết bị không chấp nhận cấu hình (" + (out.isEmpty() ? "exit " + setRes.exitCode : out) + ")";
+            }
+
+            ExecResult modeRes = exec("cmd", "game", "mode", "custom", packageName);
+            String mOut = (modeRes.stdout + " " + modeRes.stderr).trim();
+            if (modeRes.exitCode != 0) {
+                return "ERR:Không chuyển được GameMode custom (" + mOut + ")";
+            }
+            return "OK:" + out;
+        } catch (Throwable t) {
+            return "ERR:" + t.getMessage();
+        }
+    }
+
+    static String resetGameMode(String packageName) {
+        try {
+            exec("cmd", "game", "reset", packageName);
+            ExecResult res = exec("cmd", "game", "mode", "standard", packageName);
+            String out = (res.stdout + " " + res.stderr).trim();
+            if (res.exitCode != 0) {
+                return "ERR:" + (out.isEmpty() ? "exit " + res.exitCode : out);
+            }
+            return "OK:STANDARD";
+        } catch (Throwable t) {
+            return "ERR:" + t.getMessage();
+        }
     }
 }

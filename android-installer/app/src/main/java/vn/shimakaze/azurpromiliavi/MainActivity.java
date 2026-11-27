@@ -25,10 +25,14 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -85,6 +89,27 @@ public class MainActivity extends Activity {
     private static final String KEY_INSTALLED_ZIP_SHA = "installed_patch_zip_sha256";
     private static final String KEY_INSTALLED_PAYLOAD_HASH = "installed_patch_payload_hash";
     private static final String KEY_CACHED_PLAN = "cached_deployment_json";
+    private static final String KEY_CACHED_PLAN_APK_VER = "cached_plan_apk_ver";
+    private static final String KEY_PERF_PRESET = "perf_preset_idx";
+    private static final String KEY_PERF_FPS = "perf_fps_idx";
+    private static final String KEY_PERF_CUSTOM_PCT = "perf_custom_pct";
+
+    private static final String[] PERF_PRESET_LABELS = {
+            "1. Siêu nhẹ / Chống lag (GPU 0.60×)",
+            "2. Cân bằng / Mượt & Rõ (GPU 0.75×)",
+            "3. Nguyên bản / Mặc định hệ thống (1.00×)",
+            "4. Siêu nét / Đồ họa cao (GPU 1.25×)",
+            "5. Tùy chỉnh (Custom GPU Scale)"
+    };
+    private static final String[] PERF_FPS_LABELS = {
+            "Mặc định game (Không ép FPS)",
+            "Giới hạn 30 FPS",
+            "Giới hạn 45 FPS",
+            "Giới hạn 60 FPS",
+            "Giới hạn 90 FPS",
+            "Giới hạn 120 FPS"
+    };
+    private static final int[] PERF_FPS_VALUES = {0, 30, 45, 60, 90, 120};
 
     private final ExecutorService workerExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService netExecutor = Executors.newSingleThreadExecutor();
@@ -97,7 +122,15 @@ public class MainActivity extends Activity {
     private TextView tvRemoteStatus;
     private TextView tvProgressLabel;
     private ProgressBar progressBar;
+    private TextView tvGameModeStatus;
+    private TextView tvCustomScaleLabel;
+    private TextView tvInGamePerfStatus;
     private TextView tvLog;
+
+    private Spinner spPerfPreset;
+    private Spinner spPerfFps;
+    private LinearLayout layoutCustomScale;
+    private SeekBar sbCustomScale;
 
     private Button btnOpenShizuku;
     private Button btnGrantShizuku;
@@ -106,6 +139,11 @@ public class MainActivity extends Activity {
     private Button btnRestore;
     private Button btnOpenGame;
     private Button btnCheckUpdate;
+    private Button btnApplyGameMode;
+    private Button btnResetGameMode;
+    private Button btnToggleInGamePerf;
+
+    private volatile JSONObject lastGameMode = null;
 
     private volatile IViPatchService patchService = null;
     private volatile boolean serviceBound = false;
@@ -238,13 +276,33 @@ public class MainActivity extends Activity {
     private String loadInitialPlanJson() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String cached = prefs.getString(KEY_CACHED_PLAN, "");
-        if (!cached.isEmpty()) return cached;
+        String bundled = "";
         try (InputStream is = getAssets().open("android-deployment-vi.json")) {
-            byte[] data = readAllBytes(is);
-            return new String(data, StandardCharsets.UTF_8);
-        } catch (Throwable t) {
-            return "";
+            bundled = new String(readAllBytes(is), StandardCharsets.UTF_8);
+        } catch (Throwable ignored) {
         }
+        if (cached.isEmpty()) {
+            return bundled;
+        }
+        if (!bundled.isEmpty()) {
+            try {
+                long cachedApkVer = prefs.getLong(KEY_CACHED_PLAN_APK_VER, 0);
+                JSONObject cObj = new JSONObject(cached);
+                JSONObject bObj = new JSONObject(bundled);
+                String cVer = cObj.optString("resource_version", "");
+                String bVer = bObj.optString("resource_version", "");
+                boolean missingPerfHash = bundled.contains("perf_target_sha256") && !cached.contains("perf_target_sha256");
+                if (bVer.equals(cVer) && (cachedApkVer < BuildConfig.VERSION_CODE || missingPerfHash)) {
+                    prefs.edit()
+                            .putString(KEY_CACHED_PLAN, bundled)
+                            .putLong(KEY_CACHED_PLAN_APK_VER, BuildConfig.VERSION_CODE)
+                            .apply();
+                    return bundled;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return cached;
     }
 
     // -------------------------------------------------------------------------
@@ -359,7 +417,81 @@ public class MainActivity extends Activity {
         btnRestore.setOnClickListener(v -> confirmRestore());
         btnOpenGame.setOnClickListener(v -> launchGame());
 
-        // Card 3: Activity Log
+        // Card 3: Performance & Graphics Mod
+        LinearLayout cPerf = makeCard(root, "3. Mod Đồ Họa & Hiệu Năng (Tùy chọn)");
+        tvGameModeStatus = makeBodyText(cPerf, "⏳ Bật Shizuku để chỉnh Preset Render GPU & Giới hạn FPS (max 120 FPS).");
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int savedPreset = Math.max(0, Math.min(4, prefs.getInt(KEY_PERF_PRESET, 2)));
+        int savedFpsIdx = Math.max(0, Math.min(PERF_FPS_VALUES.length - 1, prefs.getInt(KEY_PERF_FPS, 0)));
+        int savedCustomPct = Math.max(50, Math.min(125, prefs.getInt(KEY_PERF_CUSTOM_PCT, 85)));
+
+        makeSmallLabel(cPerf, "Preset Đồ họa Render GPU (5 mức — không tự ép FPS):");
+        spPerfPreset = makeDarkSpinner(cPerf, PERF_PRESET_LABELS, savedPreset);
+
+        layoutCustomScale = new LinearLayout(this);
+        layoutCustomScale.setOrientation(LinearLayout.VERTICAL);
+        layoutCustomScale.setVisibility(savedPreset == 4 ? View.VISIBLE : View.GONE);
+        layoutCustomScale.setPadding(0, dp(4), 0, dp(4));
+        tvCustomScaleLabel = makeBodyText(layoutCustomScale,
+                String.format(Locale.ROOT, "Tỷ lệ Render GPU tùy chỉnh: %.2f×", savedCustomPct / 100.0));
+        sbCustomScale = new SeekBar(this);
+        sbCustomScale.setMax(15); // 50%..125% step 5%
+        sbCustomScale.setProgress((savedCustomPct - 50) / 5);
+        layoutCustomScale.addView(sbCustomScale);
+        cPerf.addView(layoutCustomScale);
+
+        spPerfPreset.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                layoutCustomScale.setVisibility(pos == 4 ? View.VISIBLE : View.GONE);
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(KEY_PERF_PRESET, pos).apply();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+        sbCustomScale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int pct = 50 + progress * 5;
+                String note = pct == 100 ? " (Native gốc)" : (pct > 100 ? " (Thử Supersample nếu ROM cho)" : "");
+                tvCustomScaleLabel.setText(String.format(Locale.ROOT, "Tỷ lệ Render GPU tùy chỉnh: %.2f×%s", pct / 100.0, note));
+                if (fromUser) {
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(KEY_PERF_CUSTOM_PCT, pct).apply();
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        makeSmallLabel(cPerf, "Giới hạn FPS hệ thống (tự chọn theo máy, tới 120 FPS):");
+        spPerfFps = makeDarkSpinner(cPerf, PERF_FPS_LABELS, savedFpsIdx);
+        spPerfFps.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(KEY_PERF_FPS, pos).apply();
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        LinearLayout rowGameMode = makeRow(cPerf);
+        btnApplyGameMode = makeButton(rowGameMode, "Áp dụng Preset GPU/FPS", "#0284C7", "#FFFFFF", 1);
+        btnResetGameMode = makeButton(rowGameMode, "Về mặc định", "#334155", "#E2E8F0", 1);
+        btnApplyGameMode.setOnClickListener(v -> applySelectedGameMode());
+        btnResetGameMode.setOnClickListener(v -> resetSelectedGameMode());
+
+        View div = new View(this);
+        div.setBackgroundColor(Color.parseColor("#23304A"));
+        LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        dlp.topMargin = dp(10);
+        dlp.bottomMargin = dp(8);
+        cPerf.addView(div, dlp);
+
+        tvInGamePerfStatus = makeBodyText(cPerf,
+                "🎨 Mở Khóa Đồ Họa In-Game: Tùy chọn tải gói mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI/AO/Phản chiếu, DoF, LightShaft.");
+        btnToggleInGamePerf = makeButton(cPerf, "Bật Mở Khóa Đồ Họa In-Game", "#0F766E", "#FFFFFF", 0);
+        btnToggleInGamePerf.setOnClickListener(v -> toggleInGamePerfMod());
+
+        // Card 4: Activity Log
         LinearLayout cLog = makeCard(root, "Nhật ký xử lý");
         tvLog = new TextView(this);
         tvLog.setTextColor(Color.parseColor("#CBD5E1"));
@@ -433,6 +565,55 @@ public class MainActivity extends Activity {
         }
         parent.addView(b, lp);
         return b;
+    }
+
+    private TextView makeSmallLabel(LinearLayout parent, String text) {
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(Color.parseColor("#94A3B8"));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(6);
+        lp.bottomMargin = dp(3);
+        parent.addView(tv, lp);
+        return tv;
+    }
+
+    private Spinner makeDarkSpinner(LinearLayout parent, String[] items, int selectedIdx) {
+        Spinner sp = new Spinner(this);
+        sp.setBackground(makeCardBg("#1E293B", "#334155", 10));
+        int p = dp(6);
+        sp.setPadding(p, dp(2), p, dp(2));
+        ArrayAdapter<String> ad = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parentView) {
+                TextView tv = (TextView) super.getView(position, convertView, parentView);
+                tv.setTextColor(Color.parseColor("#F8FAFC"));
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                tv.setPadding(dp(8), dp(8), dp(8), dp(8));
+                return tv;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, ViewGroup parentView) {
+                TextView tv = (TextView) super.getDropDownView(position, convertView, parentView);
+                tv.setBackgroundColor(Color.parseColor("#1E293B"));
+                tv.setTextColor(Color.parseColor("#F8FAFC"));
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                tv.setPadding(dp(12), dp(12), dp(12), dp(12));
+                return tv;
+            }
+        };
+        sp.setAdapter(ad);
+        if (selectedIdx >= 0 && selectedIdx < items.length) {
+            sp.setSelection(selectedIdx, false);
+        }
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(4);
+        parent.addView(sp, lp);
+        return sp;
     }
 
     private GradientDrawable makeCardBg(String fillHex, String strokeHex, int radiusDp) {
@@ -524,6 +705,14 @@ public class MainActivity extends Activity {
         setBtnEnabled(btnInstallOffline, ready);
         setBtnEnabled(btnRestore, ready);
         setBtnEnabled(btnOpenGame, isPackageInstalled(GAME_PKG));
+        boolean sysReady = binderAlive && permGranted && isPackageInstalled(GAME_PKG) && !busy;
+        setBtnEnabled(btnApplyGameMode, sysReady);
+        setBtnEnabled(btnResetGameMode, sysReady);
+        updateInGamePerfUi();
+        if (!binderAlive || !permGranted) {
+            lastGameMode = null;
+            updateGameModeUi();
+        }
     }
 
     private void ensureServiceBound(boolean forceRetry) {
@@ -731,12 +920,17 @@ public class MainActivity extends Activity {
         final int seq = ++probeSeq;
         workerExecutor.execute(() -> {
             try {
+                JSONObject gm = ShizukuShellBackend.probeGameMode(GAME_PKG);
+                lastGameMode = gm;
                 String res = backendProbeGameState(getGameFilesDir(), currentPlanJson);
                 if (seq != probeSeq) return;
                 android.util.Log.i("AzurVI", "Probe(" + (patchService != null && !shellBackendReady ? "UserService" : "Shell") + "): " + res);
                 JSONObject obj = new JSONObject(res);
                 lastProbe = obj;
-                runOnUiThread(() -> renderProbeState(obj));
+                runOnUiThread(() -> {
+                    renderProbeState(obj);
+                    updateGameModeUi();
+                });
             } catch (Throwable t) {
                 log("Lỗi kiểm tra thư mục game: " + t.getMessage());
             }
@@ -744,6 +938,7 @@ public class MainActivity extends Activity {
     }
 
     private void renderProbeState(JSONObject obj) {
+        updateInGamePerfUi();
         if (!isPackageInstalled(GAME_PKG)) {
             tvGameStatus.setText("❌ Chưa cài game Azur Promilia JP (" + GAME_PKG + ").");
             return;
@@ -769,6 +964,7 @@ public class MainActivity extends Activity {
         String det = obj.optString("detected_version", "");
         int total = obj.optInt("total", 0);
         int vi = obj.optInt("vi_count", 0);
+        int perf = obj.optInt("perf_count", 0);
         int orig = obj.optInt("orig_count", 0);
         int bak = obj.optInt("backup_count", 0);
         String verInstalled = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_INSTALLED_VER, "");
@@ -779,6 +975,7 @@ public class MainActivity extends Activity {
             if (vi == total) {
                 sb.append("✅ Đã Việt hóa ").append(vi).append("/").append(total).append(" file");
                 if (!verInstalled.isEmpty()) sb.append(" (").append(verInstalled).append(")");
+                if (perf > 0) sb.append(" · +Mod Đồ họa");
             } else if (orig == total) {
                 sb.append("📦 Đang ở bản gốc JP (").append(orig).append("/").append(total).append(" file) — sẵn sàng cài!");
             } else {
@@ -792,6 +989,7 @@ public class MainActivity extends Activity {
             }
         }
         tvGameStatus.setText(sb.toString());
+        updateInGamePerfUi();
     }
 
     // -------------------------------------------------------------------------
@@ -989,6 +1187,7 @@ public class MainActivity extends Activity {
         if (lastProbe != null) {
             updateGameStatusText(lastProbe);
         }
+        updateInGamePerfUi();
         boolean gameAlreadyVi = lastProbe != null
                 && lastProbe.optInt("total", 0) > 0
                 && lastProbe.optInt("vi_count", 0) == lastProbe.optInt("total", 0);
@@ -1156,6 +1355,322 @@ public class MainActivity extends Activity {
             log("Không mở được bộ cài trực tiếp (" + t.getMessage() + "), mở trình duyệt...");
             openUrl(RELEASES_PAGE_URL);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Graphics / Performance Mod (5 Presets GameMode + In-Game Unlock)
+    // -------------------------------------------------------------------------
+    private void updateGameModeUi() {
+        if (tvGameModeStatus == null) return;
+        if (lastGameMode == null) {
+            tvGameModeStatus.setText("⏳ Bật Shizuku để chỉnh Preset Render GPU & Giới hạn FPS (max 120 FPS).");
+            return;
+        }
+        if (!lastGameMode.optBoolean("supported", false)) {
+            tvGameModeStatus.setText("⚠️ Máy không hỗ trợ GameMode hệ thống ("
+                    + lastGameMode.optString("reason", "ROM đã tắt")
+                    + "). Bạn vẫn dùng được Mod Mở Khóa Đồ Họa In-Game bên dưới!");
+            return;
+        }
+        String mode = lastGameMode.optString("mode", "standard").toUpperCase(Locale.ROOT);
+        String sc = lastGameMode.optString("scaling", "-1");
+        String fps = lastGameMode.optString("fps", "-1");
+        if ("STANDARD".equals(mode) && (sc.startsWith("-") || fps.startsWith("-"))) {
+            tvGameModeStatus.setText("🎮 Hệ thống: Nguyên bản (1.00× Native · FPS theo game)");
+            return;
+        }
+        String scLabel = (sc.isEmpty() || sc.startsWith("-")) ? "1.00× Native" : (sc + "×");
+        String fpsLabel = (fps.isEmpty() || fps.startsWith("-") || "0".equals(fps)) ? "Theo game" : (fps + " FPS");
+        tvGameModeStatus.setText("⚡ Hệ thống: Mode " + mode + " · GPU " + scLabel + " · Giới hạn " + fpsLabel);
+    }
+
+    private void updateInGamePerfUi() {
+        if (tvInGamePerfStatus == null || btnToggleInGamePerf == null) return;
+        boolean gameInstalled = isPackageInstalled(GAME_PKG);
+        boolean gameVi = lastProbe != null && lastProbe.optInt("total", 0) > 0
+                && lastProbe.optInt("vi_count", 0) == lastProbe.optInt("total", 0);
+        boolean perfOn = lastProbe != null && lastProbe.optInt("perf_count", 0) > 0;
+        boolean ready = isBackendReady() && gameInstalled && !busy && gameVi;
+
+        if (!gameInstalled || !isBackendReady()) {
+            tvInGamePerfStatus.setText("🎨 Mở Khóa Đồ Họa In-Game: Tải riêng 1 file (~15 MB) mở khóa Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI, AO, Phản chiếu, DoF, LightShaft.");
+        } else if (!gameVi) {
+            tvInGamePerfStatus.setText("🔒 Cần cài Việt hóa 7/7 ở mục (2) trước khi bật/tắt Mod Mở Khóa Đồ Họa In-Game.");
+        } else if (perfOn) {
+            tvInGamePerfStatus.setText("✅ Mod Mở Khóa Đồ Họa In-Game: ĐANG BẬT (Đã mở Tỷ lệ kết xuất 50%-170%, SSAA OFF, GI/AO/Phản chiếu, DoF, LightShaft/LensFlare/UVDistort, ASM|CSM).");
+        } else {
+            tvInGamePerfStatus.setText("🎨 Mod Mở Khóa Đồ Họa In-Game: CHƯA BẬT (Bấm nút dưới để mở toàn bộ thanh chỉnh đồ họa PC bị ẩn trên Mobile).");
+        }
+
+        if (perfOn) {
+            btnToggleInGamePerf.setText("Tắt Mod In-Game (Về Việt hóa chuẩn)");
+            btnToggleInGamePerf.setBackground(makeCardBg("#7C2D12", "#334155", 10));
+        } else {
+            btnToggleInGamePerf.setText("Bật Mở Khóa Đồ Họa In-Game");
+            btnToggleInGamePerf.setBackground(makeCardBg("#0F766E", "#334155", 10));
+        }
+        setBtnEnabled(btnToggleInGamePerf, ready);
+    }
+
+    private void applySelectedGameMode() {
+        if (busy || !isPackageInstalled(GAME_PKG)) return;
+        if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            toast("Shizuku chưa sẵn sàng!");
+            return;
+        }
+        int pIdx = spPerfPreset.getSelectedItemPosition();
+        int fpsIdx = spPerfFps.getSelectedItemPosition();
+        int fps = PERF_FPS_VALUES[Math.max(0, Math.min(PERF_FPS_VALUES.length - 1, fpsIdx))];
+
+        String downscaleArg;
+        if (pIdx == 0) downscaleArg = "0.60";
+        else if (pIdx == 1) downscaleArg = "0.75";
+        else if (pIdx == 2) downscaleArg = "disable";
+        else if (pIdx == 3) downscaleArg = "1.25";
+        else {
+            int pct = 50 + sbCustomScale.getProgress() * 5;
+            downscaleArg = (pct == 100) ? "disable" : String.format(Locale.ROOT, "%.2f", pct / 100.0);
+        }
+
+        final String finalScale = downscaleArg;
+        final int finalFps = fps;
+        setBusy(true);
+        workerExecutor.execute(() -> {
+            try {
+                log("Áp dụng Mod hệ thống: GPU=" + ("disable".equals(finalScale) ? "1.00× Native" : finalScale + "×")
+                        + ", FPS=" + (finalFps > 0 ? finalFps : "Theo game") + "...");
+                String res = ShizukuShellBackend.applyGameMode(GAME_PKG, finalScale, finalFps);
+                lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+                runOnUiThread(() -> {
+                    setBusy(false);
+                    updateGameModeUi();
+                    if (res.startsWith("OK:")) {
+                        log("✅ Đã áp dụng GameMode (" + res.substring(3).trim() + "). Hãy mở/khởi động lại game để áp dụng!");
+                        toast("Đã áp dụng Preset đồ họa & FPS! Nếu game đang chạy, hãy đóng mở lại game.");
+                    } else {
+                        String msg = res.replaceFirst("^ERR:", "");
+                        log("⚠️ " + msg);
+                        toast(msg);
+                    }
+                });
+            } catch (Throwable t) {
+                log("❌ Lỗi GameMode: " + t.getMessage());
+                runOnUiThread(() -> {
+                    setBusy(false);
+                    toast("Lỗi: " + t.getMessage());
+                });
+            }
+        });
+    }
+
+    private void resetSelectedGameMode() {
+        if (busy || !isPackageInstalled(GAME_PKG)) return;
+        if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+            toast("Shizuku chưa sẵn sàng!");
+            return;
+        }
+        setBusy(true);
+        workerExecutor.execute(() -> {
+            String res = ShizukuShellBackend.resetGameMode(GAME_PKG);
+            lastGameMode = ShizukuShellBackend.probeGameMode(GAME_PKG);
+            runOnUiThread(() -> {
+                spPerfPreset.setSelection(2, false);
+                spPerfFps.setSelection(0, false);
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putInt(KEY_PERF_PRESET, 2)
+                        .putInt(KEY_PERF_FPS, 0)
+                        .apply();
+                setBusy(false);
+                updateGameModeUi();
+                if (res.startsWith("OK:")) {
+                    log("🔄 Đã đưa GameMode hệ thống về Nguyên bản (STANDARD).");
+                    toast("Đã tắt ép GPU / FPS hệ thống.");
+                } else {
+                    log("⚠️ " + res);
+                    toast(res);
+                }
+            });
+        });
+    }
+
+    private void toggleInGamePerfMod() {
+        if (busy || !isBackendReady()) return;
+        if (currentPlanJson == null || currentPlanJson.isEmpty()) {
+            toast("Chưa có manifest android-deployment-vi.json.");
+            return;
+        }
+        final boolean turnOn = !(lastProbe != null && lastProbe.optInt("perf_count", 0) > 0);
+        setBusy(true);
+        workerExecutor.execute(() -> {
+            File staging = new File(getExternalFilesDir(null), "staging_perf");
+            try {
+                JSONObject plan = new JSONObject(currentPlanJson);
+                String resVer = plan.getString("resource_version");
+                JSONArray files = plan.getJSONArray("files");
+                JSONObject perfRem = (remoteInfo != null && remoteInfo.optJSONObject("android") != null)
+                        ? remoteInfo.optJSONObject("android").optJSONObject("perf")
+                        : null;
+                JSONObject androidRem = remoteInfo != null ? remoteInfo.optJSONObject("android") : null;
+
+                String targetRel = perfRem != null
+                        ? perfRem.optString("relative_path", "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r")
+                        : "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r";
+
+                JSONObject baseItem = null;
+                for (int i = 0; i < files.length(); i++) {
+                    JSONObject it = files.getJSONObject(i);
+                    if (targetRel.equals(it.getString("relative_path").replace('\\', '/'))) {
+                        baseItem = it;
+                        break;
+                    }
+                }
+                if (baseItem == null) {
+                    throw new RuntimeException("Không tìm thấy entry " + targetRel + " trong manifest.");
+                }
+
+                String srcSha = baseItem.getString("source_sha256").toLowerCase(Locale.ROOT);
+                String viSha = baseItem.getString("target_sha256").toLowerCase(Locale.ROOT);
+                String perfSha = !baseItem.optString("perf_target_sha256", "").isEmpty()
+                        ? baseItem.optString("perf_target_sha256").toLowerCase(Locale.ROOT)
+                        : (perfRem != null ? perfRem.optString("perf_target_sha256", "").toLowerCase(Locale.ROOT) : "");
+                if (perfSha.isEmpty()) {
+                    throw new RuntimeException("Thiếu perf_target_sha256 — hãy bấm 'Check cập nhật' trước.");
+                }
+                long fileSize = baseItem.getLong("size");
+
+                String dlUrl;
+                String zipSha;
+                long dlSize;
+                File zipFile;
+                String desiredSha;
+                String altSha;
+
+                if (turnOn) {
+                    if (perfRem == null || perfRem.optString("url", "").isEmpty()) {
+                        throw new RuntimeException("Chưa có thông tin gói Mod Đồ Họa từ GitHub. Bấm 'Check cập nhật' rồi thử lại!");
+                    }
+                    dlUrl = perfRem.getString("url");
+                    zipSha = perfRem.optString("sha256", "").toLowerCase(Locale.ROOT);
+                    dlSize = perfRem.optLong("zip_size", perfRem.optLong("size", 0));
+                    zipFile = new File(getExternalFilesDir(null), "perf_patch_download.zip");
+                    desiredSha = perfSha;
+                    altSha = viSha;
+                } else {
+                    zipFile = new File(getExternalFilesDir(null), "android_patch_download.zip");
+                    desiredSha = viSha;
+                    altSha = perfSha;
+                    if (zipFile.isFile() && extractEntryMatchingSha(zipFile, targetRel, fileSize, desiredSha, null)) {
+                        dlUrl = "";
+                        zipSha = "";
+                        dlSize = 0;
+                    } else if (androidRem != null && !androidRem.optString("url", "").isEmpty()) {
+                        dlUrl = androidRem.getString("url");
+                        zipSha = androidRem.optString("sha256", "").toLowerCase(Locale.ROOT);
+                        dlSize = androidRem.optLong("size", 0);
+                    } else {
+                        throw new RuntimeException("Chưa có file gói Việt hóa chuẩn và không kết nối được GitHub. Bấm 'Check cập nhật'!");
+                    }
+                }
+
+                if (!dlUrl.isEmpty()) {
+                    boolean cachedOk = zipFile.isFile() && !zipSha.isEmpty() && sha256File(zipFile).equals(zipSha);
+                    if (cachedOk) {
+                        log("Dùng lại file ZIP đã lưu cục bộ (SHA-256 khớp).");
+                    } else {
+                        log(turnOn ? "Đang tải gói Mở Khóa Đồ Họa In-Game..." : "Đang tải lại bảng Đồ Họa chuẩn...");
+                        downloadFile(dlUrl, zipFile, dlSize, turnOn ? "Tải Mod In-Game" : "Tải gói chuẩn");
+                        if (!zipSha.isEmpty()) {
+                            String got = sha256File(zipFile);
+                            if (!got.equals(zipSha)) {
+                                zipFile.delete();
+                                throw new RuntimeException("SHA-256 file ZIP không khớp! (" + got + ")");
+                            }
+                        }
+                    }
+                }
+
+                deleteRecursive(staging);
+                staging.mkdirs();
+                File outFile = new File(staging, targetRel);
+                setProgressUi(true, 65, "Đang giải nén file cấu hình đồ họa...");
+                if (!extractEntryMatchingSha(zipFile, targetRel, fileSize, desiredSha, outFile)) {
+                    throw new RuntimeException("Không tìm thấy hoặc sai SHA-256 file " + targetRel + " trong gói ZIP.");
+                }
+
+                JSONObject singleItem = new JSONObject();
+                singleItem.put("relative_path", targetRel);
+                singleItem.put("size", fileSize);
+                singleItem.put("source_sha256", srcSha);
+                singleItem.put("target_sha256", desiredSha);
+                singleItem.put("perf_target_sha256", altSha);
+                JSONObject singlePlan = new JSONObject();
+                singlePlan.put("resource_version", resVer);
+                singlePlan.put("files", new JSONArray().put(singleItem));
+
+                log("Đang đóng game & cập nhật bảng đồ họa In-Game...");
+                backendForceStopGame(GAME_PKG);
+                setProgressUi(true, 90, "Đang ghi file & kiểm tra SHA-256...");
+                String result = backendInstallFromStaging(staging.getAbsolutePath(), getGameFilesDir(), singlePlan.toString());
+                deleteRecursive(staging);
+
+                if (result == null || !result.startsWith("OK:")) {
+                    throw new RuntimeException(result == null ? "Không nhận được phản hồi Shizuku" : result.replaceFirst("^ERR:", ""));
+                }
+                log(turnOn
+                        ? "✅ ĐÃ BẬT Mod Mở Khóa Đồ Họa In-Game! Vào game -> Cài đặt -> Đồ họa để chỉnh chi tiết."
+                        : "🔄 Đã tắt Mod In-Game, trả về bảng Đồ Họa Việt hóa chuẩn.");
+                runOnUiThread(() -> {
+                    setBusy(false);
+                    setProgressUi(false, 100, "");
+                    probeGameAsync();
+                    toast(turnOn ? "Đã bật Mod Mở Khóa Đồ Họa In-Game!" : "Đã tắt Mod In-Game!");
+                });
+            } catch (Throwable t) {
+                deleteRecursive(staging);
+                log("❌ Lỗi Mod In-Game: " + t.getMessage());
+                runOnUiThread(() -> {
+                    setBusy(false);
+                    setProgressUi(false, 0, "");
+                    toast("Lỗi: " + t.getMessage());
+                });
+            }
+        });
+    }
+
+    private static boolean extractEntryMatchingSha(File zipFile, String relPath, long expectedSize,
+                                                   String expectedSha, File destOrNull) throws Exception {
+        String normTarget = relPath.replace('\\', '/');
+        byte[] buf = new byte[524288];
+        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile)))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entry.isDirectory()) continue;
+                String name = entry.getName().replace('\\', '/');
+                if (!name.endsWith(normTarget)) continue;
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                long totalRead = 0;
+                FileOutputStream fos = null;
+                if (destOrNull != null) {
+                    destOrNull.getParentFile().mkdirs();
+                    fos = new FileOutputStream(destOrNull);
+                }
+                try {
+                    int n;
+                    while ((n = zis.read(buf)) > 0) {
+                        md.update(buf, 0, n);
+                        if (fos != null) fos.write(buf, 0, n);
+                        totalRead += n;
+                    }
+                } finally {
+                    if (fos != null) fos.close();
+                }
+                byte[] d = md.digest();
+                StringBuilder sb = new StringBuilder(64);
+                for (byte b : d) sb.append(String.format(Locale.ROOT, "%02x", b & 0xFF));
+                return totalRead == expectedSize && sb.toString().equals(expectedSha);
+            }
+        }
+        return false;
     }
 
     // -------------------------------------------------------------------------

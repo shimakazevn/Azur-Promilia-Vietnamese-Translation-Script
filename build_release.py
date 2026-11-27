@@ -404,6 +404,30 @@ def main():
                 'sha256': sha256(az_zip),
                 'url': f'{base_dl}/{az_zip.name}',
             }
+            perf_plan_path = ROOT / 'tools' / 'android-perf-vi.json'
+            perf_payload_dir = ROOT / 'payload-vi' / 'android_perf'
+            if perf_plan_path.is_file() and perf_payload_dir.is_dir():
+                perf_plan = json.loads(perf_plan_path.read_text('utf-8-sig'))
+                perf_rel = perf_plan['relative_path']
+                perf_file = child(perf_payload_dir, perf_rel)
+                if perf_file.stat().st_size != perf_plan['size'] or sha256(perf_file) != perf_plan['target_sha256']:
+                    raise ValueError(f'Android Perf payload verify failed: {perf_rel}')
+                perf_zip = output / f'AzurPromilia-Localization-Android-Perf-vi-{args.version}.zip'
+                if perf_zip.exists():
+                    perf_zip.unlink()
+                archive(perf_zip, [(perf_file, f'android_perf/{perf_rel}'), (perf_plan_path, 'tools/android-perf-vi.json')], 'AzurPromilia-VI-Android-Perf')
+                sums_items.append(perf_zip)
+                android_obj['perf'] = {
+                    'relative_path': perf_rel,
+                    'source_sha256': perf_plan['source_sha256'],
+                    'base_vi_sha256': perf_plan['base_vi_sha256'],
+                    'perf_target_sha256': perf_plan['target_sha256'],
+                    'size': perf_plan['size'],
+                    'filename': perf_zip.name,
+                    'zip_size': perf_zip.stat().st_size,
+                    'sha256': sha256(perf_zip),
+                    'url': f'{base_dl}/{perf_zip.name}',
+                }
             if apk_info:
                 android_obj['apk'] = apk_info
 
@@ -430,7 +454,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Sửa lỗi kẹt "đang kết nối UserService" trên Xiaomi HyperOS/MIUI (tự chuyển Shizuku Shell trực tiếp sau 3s), đồng bộ v1.0.11.',
+            'notes': f'{args.version}: Thêm Mod Đồ Họa Performance cho Mobile (5 preset Render GPU + tùy chỉnh FPS tới 120 FPS + mở khóa Tỷ lệ kết xuất 50%-170% và cài đặt đồ họa nâng cao in-game).',
         }
         if android_obj:
             latest['android'] = android_obj

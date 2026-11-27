@@ -1547,8 +1547,10 @@ class TestPerModuleStateAndProcesses(unittest.TestCase):
 def load_tests(loader, tests, pattern):
     from test_jp_deblur import TestJPDeblur
     from test_tw_deblur import TestTWDeblur
+    from test_android_perf import TestAndroidPerf
     tests.addTests(loader.loadTestsFromTestCase(TestJPDeblur))
     tests.addTests(loader.loadTestsFromTestCase(TestTWDeblur))
+    tests.addTests(loader.loadTestsFromTestCase(TestAndroidPerf))
     return tests
 
 

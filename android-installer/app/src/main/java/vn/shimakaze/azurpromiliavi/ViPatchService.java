@@ -76,6 +76,7 @@ public class ViPatchService extends IViPatchService.Stub {
 
             int total = arr.length();
             int viCount = 0;
+            int perfCount = 0;
             int origCount = 0;
             int missingCount = 0;
             int mismatchCount = 0;
@@ -87,6 +88,7 @@ public class ViPatchService extends IViPatchService.Stub {
                 long size = item.getLong("size");
                 String srcSha = item.getString("source_sha256").toLowerCase(Locale.ROOT);
                 String tgtSha = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+                String perfSha = item.optString("perf_target_sha256", "").toLowerCase(Locale.ROOT);
 
                 File dest = new File(resDir, rel);
                 if (!dest.isFile()) {
@@ -95,9 +97,16 @@ public class ViPatchService extends IViPatchService.Stub {
                     mismatchCount++;
                 } else {
                     String h = sha256(dest);
-                    if (h.equals(tgtSha)) viCount++;
-                    else if (h.equals(srcSha)) origCount++;
-                    else mismatchCount++;
+                    if (h.equals(tgtSha)) {
+                        viCount++;
+                    } else if (!perfSha.isEmpty() && h.equals(perfSha)) {
+                        viCount++;
+                        perfCount++;
+                    } else if (h.equals(srcSha)) {
+                        origCount++;
+                    } else {
+                        mismatchCount++;
+                    }
                 }
 
                 File bak = new File(backupRoot, rel);
@@ -108,6 +117,7 @@ public class ViPatchService extends IViPatchService.Stub {
 
             out.put("total", total);
             out.put("vi_count", viCount);
+            out.put("perf_count", perfCount);
             out.put("orig_count", origCount);
             out.put("missing_count", missingCount);
             out.put("mismatch_count", mismatchCount);
@@ -168,6 +178,9 @@ public class ViPatchService extends IViPatchService.Stub {
                 if (!staged.isFile()) {
                     staged = new File(stDir, "android_game/" + rel);
                 }
+                if (!staged.isFile()) {
+                    staged = new File(stDir, "android_perf/" + rel);
+                }
                 if (!staged.isFile() || staged.length() != size || !sha256(staged).equals(tgtSha)) {
                     return "ERR:Gói tải về bị lỗi hoặc thiếu file: " + rel;
                 }
@@ -180,6 +193,7 @@ public class ViPatchService extends IViPatchService.Stub {
                 long size = item.getLong("size");
                 String srcSha = item.getString("source_sha256").toLowerCase(Locale.ROOT);
                 String tgtSha = item.getString("target_sha256").toLowerCase(Locale.ROOT);
+                String altSha = item.optString("perf_target_sha256", "").toLowerCase(Locale.ROOT);
 
                 File dest = new File(resDir, rel);
                 if (!dest.isFile()) {
@@ -196,7 +210,7 @@ public class ViPatchService extends IViPatchService.Stub {
                             return "ERR:Lỗi tạo backup cho " + rel;
                         }
                     }
-                } else if (!curSha.equals(tgtSha)) {
+                } else if (!curSha.equals(tgtSha) && (altSha.isEmpty() || !curSha.equals(altSha))) {
                     return "ERR:File gốc trên máy không khớp baseline (" + rel + "), hãy Verify tài nguyên trong game trước.";
                 }
 
@@ -206,6 +220,7 @@ public class ViPatchService extends IViPatchService.Stub {
 
                 File staged = new File(stDir, rel);
                 if (!staged.isFile()) staged = new File(stDir, "android_game/" + rel);
+                if (!staged.isFile()) staged = new File(stDir, "android_perf/" + rel);
 
                 File tmp = new File(dest.getParentFile(), dest.getName() + ".vitmp");
                 copyFile(staged, tmp);
