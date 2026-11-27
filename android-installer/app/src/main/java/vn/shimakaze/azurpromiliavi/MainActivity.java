@@ -66,6 +66,7 @@ import rikka.shizuku.Shizuku;
 public class MainActivity extends Activity {
 
     private static final String REPO_SLUG = "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script";
+    private static final String RELEASE_LATEST_JSON_URL = "https://github.com/" + REPO_SLUG + "/releases/latest/download/latest-vi.json";
     private static final String LATEST_JSON_URL = "https://raw.githubusercontent.com/" + REPO_SLUG + "/main/latest-vi.json";
     private static final String RELEASES_API_URL = "https://api.github.com/repos/" + REPO_SLUG + "/releases/latest";
     private static final String RELEASES_PAGE_URL = "https://github.com/" + REPO_SLUG + "/releases/latest";
@@ -734,7 +735,16 @@ public class MainActivity extends Activity {
     }
 
     private JSONObject fetchRemoteInfo() {
-        // 1. Try raw latest-vi.json with cache buster
+        // 1. Try GitHub Release latest download (no 5-minute raw CDN cache lag)
+        try {
+            String relJson = httpGetString(RELEASE_LATEST_JSON_URL);
+            if (relJson != null && relJson.trim().startsWith("{")) {
+                JSONObject j = new JSONObject(relJson);
+                if (j.has("android")) return j;
+            }
+        } catch (Throwable ignored) {
+        }
+        // 2. Fallback to raw latest-vi.json with cache buster
         try {
             String raw = httpGetString(LATEST_JSON_URL + "?t=" + System.currentTimeMillis());
             if (raw != null && raw.trim().startsWith("{")) {
@@ -743,7 +753,7 @@ public class MainActivity extends Activity {
             }
         } catch (Throwable ignored) {
         }
-        // 2. Fallback to GitHub Releases API
+        // 3. Fallback to GitHub Releases API
         try {
             String api = httpGetString(RELEASES_API_URL);
             if (api != null) {

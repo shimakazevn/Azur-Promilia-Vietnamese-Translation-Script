@@ -56,6 +56,7 @@ VI_CORE_NON_PAYLOAD_PATHS = [
 SOURCE_SUFFIXES = {
     '.py', '.ps1', '.json', '.md', '.txt', '.bat', '.cs', '.java',
     '.aidl', '.gradle', '.xml', '.properties', '.yml', '.yaml',
+    '.jpg', '.mp4', '.mp3', '.ico',
 }
 SOURCE_CACHE_DIRS = {
     '__pycache__', '.pytest_cache', 'logs', 'release_test',
@@ -429,7 +430,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Hoàn thiện đồng bộ phiên bản (PC Setup + Android Companion), sửa fallback API khi thiếu latest-vi.json và sửa kiểm thử đường dẫn Windows.',
+            'notes': f'{args.version}: Giao diện PC Launcher mới (nền ảnh động & nhạc nền chính thức Azur Promilia, nút tắt/mở nhạc & nền động), kiểm tra cập nhật tức thì qua GitHub Release (không trễ cache 5 phút) & so sánh phiên bản chuẩn.',
         }
         if android_obj:
             latest['android'] = android_obj
