@@ -16,7 +16,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.text.method.ScrollingMovementMethod;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -84,7 +86,10 @@ public class MainActivity extends Activity {
     private static final String KEY_INSTALLED_PAYLOAD_HASH = "installed_patch_payload_hash";
     private static final String KEY_CACHED_PLAN = "cached_deployment_json";
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService workerExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService netExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private static final long USER_SERVICE_TIMEOUT_MS = 3000L;
 
     private TextView tvUpdateBanner;
     private TextView tvShizukuStatus;
@@ -103,7 +108,13 @@ public class MainActivity extends Activity {
     private Button btnCheckUpdate;
 
     private volatile IViPatchService patchService = null;
-    private boolean serviceBound = false;
+    private volatile boolean serviceBound = false;
+    private volatile boolean shellBackendReady = false;
+    private volatile String shellUid = "";
+    private volatile boolean serviceBindingInFlight = false;
+    private volatile boolean preferDirectShell = false;
+    private volatile String lastConnectError = "";
+    private volatile int probeSeq = 0;
     private boolean busy = false;
     private boolean autoUpdateDialogShown = false;
 
@@ -111,6 +122,8 @@ public class MainActivity extends Activity {
     private String currentPlanJson = "";
     private JSONObject lastProbe = null;
     private File pendingInstallApk = null;
+
+    private final Runnable bindTimeoutRunnable = this::onUserServiceBindTimeout;
 
     private final Shizuku.UserServiceArgs userServiceArgs =
             new Shizuku.UserServiceArgs(new ComponentName(BuildConfig.APPLICATION_ID, ViPatchService.class.getName()))
@@ -122,9 +135,14 @@ public class MainActivity extends Activity {
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
+            mainHandler.removeCallbacks(bindTimeoutRunnable);
             patchService = IViPatchService.Stub.asInterface(binder);
             serviceBound = true;
-            log("Đã kết nối Shizuku UserService (UID 2000).");
+            serviceBindingInFlight = false;
+            lastConnectError = "";
+            if (!shellBackendReady) {
+                log("Đã kết nối Shizuku UserService (UID 2000).");
+            }
             runOnUiThread(() -> updateShizukuUi());
             probeGameAsync();
         }
@@ -133,18 +151,24 @@ public class MainActivity extends Activity {
         public void onServiceDisconnected(ComponentName name) {
             patchService = null;
             serviceBound = false;
+            serviceBindingInFlight = false;
             runOnUiThread(() -> updateShizukuUi());
         }
     };
 
     private final Shizuku.OnBinderReceivedListener binderReceivedListener = () -> runOnUiThread(() -> {
         updateShizukuUi();
-        ensureServiceBound();
+        ensureServiceBound(false);
     });
 
     private final Shizuku.OnBinderDeadListener binderDeadListener = () -> {
+        mainHandler.removeCallbacks(bindTimeoutRunnable);
         patchService = null;
         serviceBound = false;
+        shellBackendReady = false;
+        shellUid = "";
+        serviceBindingInFlight = false;
+        lastConnectError = "";
         runOnUiThread(this::updateShizukuUi);
     };
 
@@ -152,8 +176,9 @@ public class MainActivity extends Activity {
         if (requestCode == REQ_SHIZUKU_PERM) {
             boolean granted = grantResult == PackageManager.PERMISSION_GRANTED;
             log(granted ? "Đã cấp quyền Shizuku!" : "Bạn đã từ chối quyền Shizuku.");
+            lastConnectError = "";
             runOnUiThread(this::updateShizukuUi);
-            if (granted) ensureServiceBound();
+            if (granted) ensureServiceBound(true);
         }
     };
 
@@ -167,6 +192,7 @@ public class MainActivity extends Activity {
         }
 
         currentPlanJson = loadInitialPlanJson();
+        preferDirectShell = getIntent() != null && getIntent().getBooleanExtra("force_shell", false);
         buildUi();
 
         Shizuku.addBinderReceivedListenerSticky(binderReceivedListener);
@@ -175,7 +201,7 @@ public class MainActivity extends Activity {
 
         updateShizukuUi();
         probeGameAsync();
-        ensureServiceBound();
+        ensureServiceBound(false);
         checkUpdatesAsync(true);
     }
 
@@ -183,7 +209,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         updateShizukuUi();
-        ensureServiceBound();
+        ensureServiceBound(false);
         if (pendingInstallApk != null && pendingInstallApk.isFile()
                 && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls())) {
             File toInstall = pendingInstallApk;
@@ -195,6 +221,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mainHandler.removeCallbacks(bindTimeoutRunnable);
         Shizuku.removeBinderReceivedListener(binderReceivedListener);
         Shizuku.removeBinderDeadListener(binderDeadListener);
         Shizuku.removeRequestPermissionResultListener(permListener);
@@ -204,7 +231,8 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         }
-        executor.shutdownNow();
+        workerExecutor.shutdownNow();
+        netExecutor.shutdownNow();
     }
 
     private String loadInitialPlanJson() {
@@ -436,6 +464,10 @@ public class MainActivity extends Activity {
         b.setAlpha(enabled ? 1.0f : 0.42f);
     }
 
+    private boolean isBackendReady() {
+        return (serviceBound && patchService != null) || shellBackendReady;
+    }
+
     private void updateShizukuUi() {
         boolean shizukuInstalled = isPackageInstalled(SHIZUKU_PKG);
         boolean binderAlive = false;
@@ -448,45 +480,126 @@ public class MainActivity extends Activity {
         } catch (Throwable ignored) {
         }
 
+        boolean backendReady = isBackendReady();
+
         if (!shizukuInstalled) {
             tvShizukuStatus.setText("🔴 Chưa cài ứng dụng Shizuku.\nNhấn 'Tải Shizuku' hoặc xem 'Hướng dẫn'.");
             btnOpenShizuku.setText("Tải Shizuku");
+            btnGrantShizuku.setText("Cấp quyền");
             setBtnEnabled(btnGrantShizuku, false);
         } else if (!binderAlive) {
             tvShizukuStatus.setText("🟡 Đã cài Shizuku nhưng CHƯA BẬT.\nHãy mở Shizuku → Ghép đôi / Bắt đầu bằng Gỡ lỗi không dây.");
             btnOpenShizuku.setText("Mở Shizuku");
+            btnGrantShizuku.setText("Cấp quyền");
             setBtnEnabled(btnGrantShizuku, false);
         } else if (!permGranted) {
             tvShizukuStatus.setText("🟡 Shizuku đang chạy! Cần bấm 'Cấp quyền' cho tool.");
             btnOpenShizuku.setText("Mở Shizuku");
+            btnGrantShizuku.setText("Cấp quyền");
             setBtnEnabled(btnGrantShizuku, true);
-        } else if (!serviceBound || patchService == null) {
-            tvShizukuStatus.setText("🟡 Đã cấp quyền Shizuku, đang kết nối UserService...");
+        } else if (backendReady) {
+            if (serviceBound && patchService != null) {
+                tvShizukuStatus.setText("🟢 Shizuku sẵn sàng (UID 2000 — đọc/ghi được Android/data)");
+            } else {
+                tvShizukuStatus.setText("🟢 Shizuku sẵn sàng (Shell UID " + shellUid + " — chế độ tương thích Android 16 / XOS / HyperOS)");
+            }
             btnOpenShizuku.setText("Mở Shizuku");
+            btnGrantShizuku.setText("Đã sẵn sàng");
             setBtnEnabled(btnGrantShizuku, false);
-        } else {
-            tvShizukuStatus.setText("🟢 Shizuku sẵn sàng (UID 2000 — đọc/ghi được Android/data)");
+        } else if (!lastConnectError.isEmpty()) {
+            tvShizukuStatus.setText("🔴 Không kết nối được dịch vụ Shizuku (" + lastConnectError + ").\n"
+                    + "Infinix XOS / Oppo / Realme: bật 'Tắt theo dõi quyền' (Disable permission monitoring) · Xiaomi: bật 'Gỡ lỗi USB (Cài đặt bảo mật)' & Pin 'Không hạn chế' cho Shizuku rồi bấm 'Thử lại'.");
             btnOpenShizuku.setText("Mở Shizuku");
+            btnGrantShizuku.setText("Thử lại");
+            setBtnEnabled(btnGrantShizuku, true);
+        } else {
+            tvShizukuStatus.setText("🟡 Đã cấp quyền Shizuku, đang kết nối (tự chuyển Shell sau 3s nếu ROM chặn)...");
+            btnOpenShizuku.setText("Mở Shizuku");
+            btnGrantShizuku.setText("Đang kết nối...");
             setBtnEnabled(btnGrantShizuku, false);
         }
 
-        boolean ready = binderAlive && permGranted && serviceBound && patchService != null && !busy;
+        boolean ready = binderAlive && permGranted && backendReady && !busy;
         setBtnEnabled(btnInstallOnline, ready);
         setBtnEnabled(btnInstallOffline, ready);
         setBtnEnabled(btnRestore, ready);
         setBtnEnabled(btnOpenGame, isPackageInstalled(GAME_PKG));
     }
 
-    private void ensureServiceBound() {
+    private void ensureServiceBound(boolean forceRetry) {
         try {
             if (!Shizuku.pingBinder()) return;
             if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) return;
-            if (!serviceBound) {
-                Shizuku.bindUserService(userServiceArgs, serviceConnection);
+            if (isBackendReady() || serviceBindingInFlight) return;
+            if (!forceRetry && !lastConnectError.isEmpty()) return;
+
+            serviceBindingInFlight = true;
+            lastConnectError = "";
+            runOnUiThread(this::updateShizukuUi);
+            if (preferDirectShell) {
+                log("Đang kết nối trực tiếp Shizuku Shell (chế độ tương thích)...");
+                tryActivateShellFallbackAsync("prefer_direct_shell");
+                return;
             }
+            log("Đang kết nối dịch vụ Shizuku (UserService)...");
+
+            mainHandler.removeCallbacks(bindTimeoutRunnable);
+            mainHandler.postDelayed(bindTimeoutRunnable, USER_SERVICE_TIMEOUT_MS);
+
+            Shizuku.bindUserService(userServiceArgs, serviceConnection);
         } catch (Throwable t) {
-            log("Lỗi kết nối Shizuku: " + t.getMessage());
+            mainHandler.removeCallbacks(bindTimeoutRunnable);
+            tryActivateShellFallbackAsync("bindUserService lỗi: " + t.getMessage());
         }
+    }
+
+    private void onUserServiceBindTimeout() {
+        try {
+            if (!Shizuku.pingBinder() || Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                serviceBindingInFlight = false;
+                runOnUiThread(this::updateShizukuUi);
+                return;
+            }
+            if ((serviceBound && patchService != null) || shellBackendReady) {
+                serviceBindingInFlight = false;
+                return;
+            }
+            log("⚠️ UserService không phản hồi sau 3s (thường gặp trên XOS / HyperOS / Android 16) → tự động chuyển sang Shizuku Shell trực tiếp...");
+            try {
+                Shizuku.unbindUserService(userServiceArgs, serviceConnection, true);
+            } catch (Throwable ignored) {
+            }
+            tryActivateShellFallbackAsync("UserService timeout 3s");
+        } catch (Throwable t) {
+            tryActivateShellFallbackAsync("Timeout handler lỗi: " + t.getMessage());
+        }
+    }
+
+    private void tryActivateShellFallbackAsync(String reason) {
+        workerExecutor.execute(() -> {
+            try {
+                if ((serviceBound && patchService != null) || shellBackendReady) {
+                    serviceBindingInFlight = false;
+                    return;
+                }
+                String uid = ShizukuShellBackend.probeShellUid();
+                shellUid = uid;
+                shellBackendReady = true;
+                serviceBindingInFlight = false;
+                lastConnectError = "";
+                log("🟢 Đã kết nối Shizuku Shell trực tiếp (UID " + uid + ")!");
+                runOnUiThread(this::updateShizukuUi);
+                probeGameAsync();
+            } catch (Throwable t) {
+                serviceBindingInFlight = false;
+                shellBackendReady = false;
+                String msg = t.getMessage() != null ? t.getMessage().trim() : "";
+                lastConnectError = msg.isEmpty() ? reason : msg;
+                log("❌ Không kết nối được UserService & Shell: " + lastConnectError);
+                log("💡 Khắc phục trên Infinix XOS / Oppo / Xiaomi: vào Tùy chọn nhà phát triển bật 'Tắt theo dõi quyền' (Disable permission monitoring) hoặc 'Gỡ lỗi USB (Cài đặt bảo mật)'; đặt Pin 'Không hạn chế' cho Shizuku + dùng Shizuku bản GitHub mới nhất.");
+                runOnUiThread(this::updateShizukuUi);
+            }
+        });
     }
 
     private void requestShizukuPermission() {
@@ -496,7 +609,13 @@ public class MainActivity extends Activity {
                 return;
             }
             if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-                ensureServiceBound();
+                lastConnectError = "";
+                serviceBindingInFlight = false;
+                if (!serviceBound && patchService == null && shellBackendReady) {
+                    probeGameAsync();
+                } else {
+                    ensureServiceBound(true);
+                }
                 return;
             }
             Shizuku.requestPermission(REQ_SHIZUKU_PERM);
@@ -532,7 +651,9 @@ public class MainActivity extends Activity {
                 "4️⃣ Quay lại app này:\n" +
                 "   • Bấm 'Cấp quyền' Shizuku (chọn Cho phép).\n" +
                 "   • Bấm 'Tải & Cài Đặt Việt Hóa (GitHub)' → đợi 15-30s là xong!\n\n" +
-                "ℹ️ Lưu ý:\n" +
+                "ℹ️ Lưu ý (Infinix XOS 16 / Xiaomi HyperOS / Realme / Oppo / Android 16):\n" +
+                "   • Nếu bị kẹt kết nối Shizuku: vào Tùy chọn nhà phát triển bật 'Tắt theo dõi quyền' (Disable permission monitoring) hoặc 'Gỡ lỗi USB (Cài đặt bảo mật)', đặt Pin cho Shizuku thành 'Không hạn chế' và cho phép chạy nền.\n" +
+                "   • App sẽ tự động chuyển sang chế độ Shizuku Shell trực tiếp sau 3 giây nếu ROM chặn UserService.\n" +
                 "   • Không sửa/ký lại APK nên an toàn chữ ký gốc.\n" +
                 "   • Khi có bản mới trên GitHub, mở app lên sẽ báo tự động ngay để cập nhật 1 chạm!";
         new AlertDialog.Builder(this)
@@ -549,9 +670,55 @@ public class MainActivity extends Activity {
         return Environment.getExternalStorageDirectory().getAbsolutePath() + "/Android/data/" + GAME_PKG + "/files";
     }
 
-    private void probeGameAsync() {
+    private String backendProbeGameState(String gameFilesDir, String manifestJson) throws Exception {
         final IViPatchService svc = patchService;
-        if (svc == null) {
+        if (svc != null) {
+            try {
+                return svc.probeGameState(gameFilesDir, manifestJson);
+            } catch (Throwable t) {
+                if (!shellBackendReady) throw new RuntimeException(t);
+            }
+        }
+        return ShizukuShellBackend.probeGameState(gameFilesDir, manifestJson);
+    }
+
+    private String backendForceStopGame(String pkg) {
+        final IViPatchService svc = patchService;
+        if (svc != null) {
+            try {
+                return svc.forceStopGame(pkg);
+            } catch (Throwable ignored) {
+            }
+        }
+        return ShizukuShellBackend.forceStopGame(pkg);
+    }
+
+    private String backendInstallFromStaging(String stagingDir, String gameFilesDir, String manifestJson) throws Exception {
+        final IViPatchService svc = patchService;
+        if (svc != null) {
+            try {
+                return svc.installFromStaging(stagingDir, gameFilesDir, manifestJson);
+            } catch (Throwable t) {
+                if (!shellBackendReady) throw new RuntimeException(t);
+            }
+        }
+        return ShizukuShellBackend.installFromStaging(stagingDir, gameFilesDir, manifestJson);
+    }
+
+    private String backendRestoreFromBackup(String gameFilesDir, String manifestJson) throws Exception {
+        final IViPatchService svc = patchService;
+        if (svc != null) {
+            try {
+                return svc.restoreFromBackup(gameFilesDir, manifestJson);
+            } catch (Throwable t) {
+                if (!shellBackendReady) throw new RuntimeException(t);
+            }
+        }
+        return ShizukuShellBackend.restoreFromBackup(gameFilesDir, manifestJson);
+    }
+
+    private void probeGameAsync() {
+        if (!isBackendReady()) {
             runOnUiThread(() -> {
                 if (!isPackageInstalled(GAME_PKG)) {
                     tvGameStatus.setText("❌ Chưa cài game Azur Promilia JP (" + GAME_PKG + ").");
@@ -561,9 +728,12 @@ public class MainActivity extends Activity {
             });
             return;
         }
-        executor.execute(() -> {
+        final int seq = ++probeSeq;
+        workerExecutor.execute(() -> {
             try {
-                String res = svc.probeGameState(getGameFilesDir(), currentPlanJson);
+                String res = backendProbeGameState(getGameFilesDir(), currentPlanJson);
+                if (seq != probeSeq) return;
+                android.util.Log.i("AzurVI", "Probe(" + (patchService != null && !shellBackendReady ? "UserService" : "Shell") + "): " + res);
                 JSONObject obj = new JSONObject(res);
                 lastProbe = obj;
                 runOnUiThread(() -> renderProbeState(obj));
@@ -710,7 +880,7 @@ public class MainActivity extends Activity {
     }
 
     private void checkUpdatesAsync(boolean showPopupIfNew) {
-        executor.execute(() -> {
+        netExecutor.execute(() -> {
             try {
                 log("Đang kiểm tra bản mới trên GitHub...");
                 JSONObject data = fetchRemoteInfo();
@@ -913,7 +1083,7 @@ public class MainActivity extends Activity {
             return;
         }
         setBusy(true);
-        executor.execute(() -> {
+        netExecutor.execute(() -> {
             try {
                 File dir = new File(getExternalFilesDir(null), "updates");
                 dir.mkdirs();
@@ -993,7 +1163,7 @@ public class MainActivity extends Activity {
     // -------------------------------------------------------------------------
     private void startOnlineInstall() {
         if (busy) return;
-        if (patchService == null) {
+        if (!isBackendReady()) {
             toast("Shizuku chưa sẵn sàng!");
             return;
         }
@@ -1008,7 +1178,7 @@ public class MainActivity extends Activity {
         String ver = remoteInfo.optString("version", getAppVersionName());
 
         setBusy(true);
-        executor.execute(() -> {
+        workerExecutor.execute(() -> {
             File zipFile = new File(getExternalFilesDir(null), "android_patch_download.zip");
             try {
                 boolean cachedOk = zipFile.isFile() && !expectedSha.isEmpty() && sha256File(zipFile).equals(expectedSha);
@@ -1052,12 +1222,12 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_PICK_ZIP && resultCode == RESULT_OK && data != null && data.getData() != null) {
             final Uri uri = data.getData();
-            if (patchService == null) {
+            if (!isBackendReady()) {
                 toast("Shizuku chưa sẵn sàng!");
                 return;
             }
             setBusy(true);
-            executor.execute(() -> {
+            workerExecutor.execute(() -> {
                 try {
                     log("Đang giải nén file ZIP đã chọn...");
                     InputStream is = getContentResolver().openInputStream(uri);
@@ -1127,10 +1297,10 @@ public class MainActivity extends Activity {
         }
 
         log("Đang đóng game nếu còn chạy ngầm...");
-        patchService.forceStopGame(GAME_PKG);
+        backendForceStopGame(GAME_PKG);
 
         setProgressUi(true, 85, "Đang sao lưu bản gốc & chép file Việt hóa (Shizuku)...");
-        String result = patchService.installFromStaging(staging.getAbsolutePath(), getGameFilesDir(), extractedManifest);
+        String result = backendInstallFromStaging(staging.getAbsolutePath(), getGameFilesDir(), extractedManifest);
         deleteRecursive(staging);
 
         if (result == null || !result.startsWith("OK:")) {
@@ -1165,7 +1335,7 @@ public class MainActivity extends Activity {
     }
 
     private void confirmRestore() {
-        if (busy || patchService == null) return;
+        if (busy || !isBackendReady()) return;
         int total = lastProbe != null ? lastProbe.optInt("total", 7) : 7;
         int bak = lastProbe != null ? lastProbe.optInt("backup_count", -1) : -1;
         if (bak >= 0 && bak < total) {
@@ -1190,11 +1360,11 @@ public class MainActivity extends Activity {
             return;
         }
         setBusy(true);
-        executor.execute(() -> {
+        workerExecutor.execute(() -> {
             try {
-                patchService.forceStopGame(GAME_PKG);
+                backendForceStopGame(GAME_PKG);
                 setProgressUi(true, 50, "Đang khôi phục bản gốc...");
-                String res = patchService.restoreFromBackup(getGameFilesDir(), currentPlanJson);
+                String res = backendRestoreFromBackup(getGameFilesDir(), currentPlanJson);
                 if (res == null || !res.startsWith("OK:")) {
                     throw new RuntimeException(res == null ? "Shizuku null" : res.replaceFirst("^ERR:", ""));
                 }
@@ -1370,6 +1540,7 @@ public class MainActivity extends Activity {
     }
 
     private void log(String s) {
+        android.util.Log.i("AzurVI", s);
         String ts = new SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(new Date());
         runOnUiThread(() -> {
             tvLog.append("[" + ts + "] " + s + "\n");

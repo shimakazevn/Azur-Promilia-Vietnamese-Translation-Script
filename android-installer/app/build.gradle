@@ -10,8 +10,8 @@ android {
         applicationId "vn.shimakaze.azurpromiliavi"
         minSdk 26
         targetSdk 35
-        versionCode 110
-        versionName "v1.0.10"
+        versionCode 111
+        versionName "v1.0.11"
     }
 
     signingConfigs {

@@ -430,7 +430,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Việt hóa 4 nút bấm & toàn bộ giao diện Yostar Launcher (TRANG CHỦ, BẮT ĐẦU), Việt hóa toàn bộ nhật ký (log) PC Setup, đồng bộ v1.0.10.',
+            'notes': f'{args.version}: Sửa lỗi kẹt "đang kết nối UserService" trên Xiaomi HyperOS/MIUI (tự chuyển Shizuku Shell trực tiếp sau 3s), đồng bộ v1.0.11.',
         }
         if android_obj:
             latest['android'] = android_obj
