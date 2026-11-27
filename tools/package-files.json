@@ -180,8 +180,8 @@
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 71250,
-      "sha256": "353ec32668f1a7e0ff48ed5b1dd4a78e5e9c27b577306025a731e1854ba64bf1"
+      "size": 73672,
+      "sha256": "46d57c3ceb9a8ebf9388a982c131477ec2b734086b8cdf8114ec9066e513cb0a"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -195,8 +195,8 @@
     },
     {
       "path": "tools/jp-deblur-deployment.json",
-      "size": 1574,
-      "sha256": "4247625c3df9987ef836cbe3ae81d59b74eff45116ff6631cd0d51e418a28223"
+      "size": 1627,
+      "sha256": "ca34aa45cdd165e12288f0f9aa0bfc0799325ba009d1aacd24e871f0ff0d175d"
     },
     {
       "path": "tools/jp-deployment.json",

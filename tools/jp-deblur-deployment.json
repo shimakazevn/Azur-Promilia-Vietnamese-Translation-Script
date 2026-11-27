@@ -5,12 +5,12 @@
   "resource_version": "",
   "files": [
     {
-      "relative_path": ".res/default_package/BundleFiles/vcnqp22wy61m2n1z1kyxrg.r",
-      "source_sha256": "2873efc3e3e4ea8bb31c166761ebf6c59aa454aa2b390d1f50fb297a1a366296",
-      "target_sha256": "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3",
-      "size": 4744949,
-      "crc32": 693078322,
-      "segments": []
+      "relative_path": ".res/default_package/BundleFiles/35uofy8njbg1s8dfdjtvq.r",
+      "kind": "bundle_container",
+      "size": 4744961,
+      "source_sha256": "c49e2051a93b43e064c2ff6f585f914a4152d7b564d9f0ac4b3ff904d14b3630",
+      "target_sha256": "cf3048e1cf461425bc2481bcbe887aaab219dc0cc4945e642b27559c48626b34",
+      "crc32": 498035275
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/6ffhq8vxxcxhajv2smenba.r",

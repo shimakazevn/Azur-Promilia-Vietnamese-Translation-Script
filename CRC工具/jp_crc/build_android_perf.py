@@ -13,7 +13,7 @@ sys.path.insert(0, str(HERE))
 import vi_codec as V  # noqa: E402
 from build_vi_raw import read_table_index, solve_columns  # noqa: E402
 
-TABLE_REL = "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r"
+TABLE_REL = "raw_streaming_package/BundleFiles/siybjb4yevdjs7yv6iiw.r"
 ANDROID_DEPLOY_JSON = REPO / "tools" / "android-deployment-vi.json"
 ANDROID_BASE_VI = REPO / "payload-vi" / "android_game" / TABLE_REL
 ANDROID_PERF_OUT = REPO / "payload-vi" / "android_perf" / TABLE_REL

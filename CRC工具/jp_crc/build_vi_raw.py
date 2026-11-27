@@ -21,16 +21,16 @@ LIVE = Path(r"E:\YostarGames\AZUPRO_JP\AzurPromiliaJP_Data")
 WORK = Path(r"C:\Users\Shimakaze\.gemini\antigravity\brain\6277206b-4249-4355-8158-74755c1fe94b\scratch\vi_build")
 PAY = REPO / "payload-vi" / "jp_game"
 
-POOL_REL = ".res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r"
-TABLE_REL = ".res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r"
+POOL_REL = ".res/raw_base_package/BundleFiles/heqmts9lcjdvbupu0x2wpg.r"
+TABLE_REL = ".res/raw_streaming_package/BundleFiles/5g1m5b4sbqlfalcxoaquw.r"
 
 
-def read_orig(rel: str, expected_sha: str) -> bytes:
+def read_orig(rel: str, expected_sha: str | None = None) -> bytes:
     for base in (LIVE, LIVE.parent / ".vi-jp-crc-readonly-3219598-backup", LIVE.parent / ".jp-crc-readonly-3219598-backup"):
         p = base / rel
         if p.is_file():
             b = p.read_bytes()
-            if hashlib.sha256(b).hexdigest() == expected_sha:
+            if expected_sha is None or hashlib.sha256(b).hexdigest() == expected_sha:
                 return b
     raise FileNotFoundError(f"Original baseline not found for {rel} ({expected_sha})")
 
@@ -116,10 +116,18 @@ def sanitize_translations() -> dict[str, str]:
     for idx, (_, src) in enumerate(vstr_unique):
         if str(idx) in vstr_vi_raw:
             mapping[src] = clean(src, vstr_vi_raw[str(idx)])
+    new_u_path = WORK / "new_3273853_unique.json"
+    new_v_path = WORK / "new_3273853_vi.json"
+    if new_u_path.is_file() and new_v_path.is_file():
+        new_unique = json.loads(new_u_path.read_text("utf-8"))
+        new_vi = json.loads(new_v_path.read_text("utf-8"))
+        for idx, src in enumerate(new_unique):
+            if str(idx) in new_vi:
+                mapping[src] = clean(src, new_vi[str(idx)])
     return mapping
 
 
-def build_pool(trans_map: dict[str, str], jp_kids: dict[int, str], src_sha: str):
+def build_pool(trans_map: dict[str, str], jp_kids: dict[int, str], src_sha: str | None = None):
     orig_raw = read_orig(POOL_REL, src_sha)
     plain = V.decode_mmap(orig_raw)
     ht, b0, os0, hs0, cap0, cnt0 = struct.unpack_from("<6I", plain, 0)
@@ -172,7 +180,7 @@ def build_pool(trans_map: dict[str, str], jp_kids: dict[int, str], src_sha: str)
     print(f"Pool: old_cnt={st_cnt}, added_unique_vi={len(vi_to_new_id)}, new_payload={len(new_payload)} B, hash_total={hash_total}")
 
     chosen = None
-    for cap in (524287, 393209, 262139, 196597, 131071, 65521):
+    for cap in (1048573, 786433, 524287, 393209, 262139, 196597, 131071, 65521):
         occupied = len({h % cap for h, _ in items})
         used = 24 + 4 * cap + 4 * occupied + 12 * len(items)
         if hash_total - used >= 4:
@@ -228,13 +236,13 @@ def build_pool(trans_map: dict[str, str], jp_kids: dict[int, str], src_sha: str)
     # Roundtrip check (excluding the 4-byte CRC32 fixup inside unused hash padding)
     chk = V.decode_mmap(bytes(candidate))
     assert chk[:used] == raw_plain[:used] and chk[used + 4 :] == raw_plain[used + 4 :]
-    mp = LIVE / ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.bytes"
+    mp = LIVE / ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3273853.bytes"
     assert not C.verify(mp.read_bytes(), dest)
     print("[OK] VStringPool CRC & manifest verified!")
     return kid_map, vi_to_new_id
 
 
-def build_table(kid_map: dict[int, int], src_sha: str):
+def build_table(kid_map: dict[int, int], src_sha: str | None = None):
     orig_raw = read_orig(TABLE_REL, src_sha)
     source_plain = V.decode_mmap(orig_raw)
     plain = bytearray(source_plain)
@@ -303,20 +311,50 @@ def build_table(kid_map: dict[int, int], src_sha: str):
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(final_cand)
     assert V.decode_mmap(final_cand) == bytes(plain)
-    mp = LIVE / ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.bytes"
+    mp = LIVE / ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3273853.bytes"
     assert not C.verify(mp.read_bytes(), dest)
     print(f"[OK] Language tables CRC & manifest verified! rank={rank}, swaps={swapped}")
 
 
+def extract_live_jp_kids(pool_raw: bytes, table_raw: bytes) -> dict[int, str]:
+    pool_plain = V.decode_mmap(pool_raw)
+    table_plain = V.decode_mmap(table_raw)
+    ht, _, _, _, _, _ = struct.unpack_from("<6I", pool_plain, 0)
+    _, _, st_offs, _, st_cnt = struct.unpack_from("<5I", pool_plain, ht)
+    offs = struct.unpack_from(f"<{st_cnt}I", pool_plain, st_offs - 4120)
+    si = read_table_index(table_plain)
+    jp_kids: dict[int, str] = {}
+    for _, toff in si[1]["jp"].items():
+        p = toff - 4120
+        n = struct.unpack_from("<I", table_plain, p)[0]
+        t_start = p + 4
+        _, _, *lens = struct.unpack_from(">6I", table_plain, t_start + 8)
+        s = t_start + 36 + sum(lens)
+        _, idx_sz = struct.unpack_from("<II", table_plain, s)
+        d_pos = s + 8 + idx_sz
+        d_end = t_start + n
+        for pos in range(d_pos, d_end, 12):
+            kid = struct.unpack_from("<i", table_plain, pos + 8)[0]
+            if 0 <= kid < st_cnt and kid not in jp_kids:
+                o = offs[kid] - 4120
+                slen = struct.unpack_from("<i", pool_plain, o)[0]
+                if slen > 0:
+                    val = pool_plain[o + 4 : o + 4 + slen].decode("utf-8", "replace")
+                    if val:
+                        jp_kids[kid] = val
+    return jp_kids
+
+
 def main():
-    plan = json.loads((REPO / "tools" / "jp-deployment-vi.json").read_text("utf-8-sig"))
-    entries = {e["relative_path"]: e for e in plan["files"]}
-    jp_v = json.loads((WORK / "jp_vstrings.json").read_text("utf-8"))
-    jp_kids = {kid: s for _, kid, s in jp_v if s}
+    pool_sha = "60e09fa31ac7e43e2a74cb7e722cf19b3331a188817125a086a57a17a34987ee"
+    table_sha = "4369839fd46cd2c821f33dc2b92c46cc87f4413a215be0abe17461ec743896c2"
+    orig_pool = read_orig(POOL_REL, pool_sha)
+    orig_table = read_orig(TABLE_REL, table_sha)
+    jp_kids = extract_live_jp_kids(orig_pool, orig_table)
     trans_map = sanitize_translations()
     print(f"Loaded {len(trans_map)} translations for {len(jp_kids)} non-empty JP kids")
-    kid_map, _ = build_pool(trans_map, jp_kids, entries[POOL_REL]["source_sha256"])
-    build_table(kid_map, entries[TABLE_REL]["source_sha256"])
+    kid_map, _ = build_pool(trans_map, jp_kids, pool_sha)
+    build_table(kid_map, table_sha)
 
 
 if __name__ == "__main__":

@@ -77,13 +77,27 @@ final class ShizukuShellBackend {
                     + "  n=\"${n#0release_raw_base_package_}\"\n"
                     + "  n=\"${n%.bytes}\"\n"
                     + "  printf '%s\\n' \"$n\"\n"
-                    + "  break\n"
                     + "done\n";
             ExecResult res = exec("sh", "-c", script, "sh", gameFilesDir);
             if (res.exitCode != 0) return "";
-            String line = res.stdout.trim();
-            int nl = line.indexOf('\n');
-            return nl >= 0 ? line.substring(0, nl).trim() : line;
+            String best = "";
+            long bestNum = Long.MIN_VALUE;
+            for (String raw : res.stdout.split("\n")) {
+                String cand = raw.trim();
+                if (cand.isEmpty()) continue;
+                try {
+                    long v = Long.parseLong(cand);
+                    if (v > bestNum) {
+                        bestNum = v;
+                        best = cand;
+                    }
+                } catch (NumberFormatException ignored) {
+                    if (best.isEmpty() || cand.compareTo(best) > 0) {
+                        best = cand;
+                    }
+                }
+            }
+            return best;
         } catch (Throwable t) {
             return "";
         }

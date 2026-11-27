@@ -25,8 +25,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.13.0")]
-[assembly: AssemblyFileVersion("1.0.13.0")]
+[assembly: AssemblyVersion("1.0.14.0")]
+[assembly: AssemblyFileVersion("1.0.14.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -36,7 +36,7 @@ namespace AzurPromiliaVIInstaller
         public const string ReleaseLatestJsonUrl = "https://github.com/" + RepoSlug + "/releases/latest/download/latest-vi.json";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.13";
+        public const string CurrentInstallerVersion = "v1.0.14";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -491,7 +491,7 @@ namespace AzurPromiliaVIInstaller
 
         private static readonly string[][] FallbackDeblurEntries = new[]
         {
-            new[] { @".res\default_package\BundleFiles\vcnqp22wy61m2n1z1kyxrg.r", "2873efc3e3e4ea8bb31c166761ebf6c59aa454aa2b390d1f50fb297a1a366296", "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3" },
+            new[] { @".res\default_package\BundleFiles\35uofy8njbg1s8dfdjtvq.r", "c49e2051a93b43e064c2ff6f585f914a4152d7b564d9f0ac4b3ff904d14b3630", "cf3048e1cf461425bc2481bcbe887aaab219dc0cc4945e642b27559c48626b34" },
             new[] { @"StreamingAssets\.res\default_package\6ffhq8vxxcxhajv2smenba.r", "a6d16f6bf54574079699057abe500a394cd6d7f8cfef70c8a7ca9978ed07d5d6", "8f1e44219c451af2d16ac7aa14b5c1fb98d693bbe07e5b3668ad601523c516f1" },
             new[] { @"StreamingAssets\.res\default_package\f4izs5z5g3dowxewfbsww.r", "dfca7050aa65e6370ff22b2edb7005e28328d50b400b0854cd91032a8220cda1", "1773f99f4a9861f6fa412622664192c158b461242bacfd4c5d83c21da6e5673f" },
             new[] { @"StreamingAssets\.res\default_package\vrvljtvqpritdz11tc6eg.r", "d0a8b601a4ea6d59c04e288ae66be25de533e8c65b97ce9c7398fe6ff9a934b1", "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac" }
@@ -502,8 +502,8 @@ namespace AzurPromiliaVIInstaller
             if (string.IsNullOrEmpty(packRoot)) return false;
             if (!File.Exists(Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1"))) return false;
             if (!File.Exists(Path.Combine(packRoot, "tools", "jp-deblur-deployment.json"))) return false;
-            return File.Exists(Path.Combine(packRoot, "payload-vi", "jp_deblur", ".res", "default_package", "BundleFiles", "vcnqp22wy61m2n1z1kyxrg.r"))
-                || File.Exists(Path.Combine(packRoot, "payload", "jp_deblur", ".res", "default_package", "BundleFiles", "vcnqp22wy61m2n1z1kyxrg.r"));
+            return File.Exists(Path.Combine(packRoot, "payload-vi", "jp_deblur", ".res", "default_package", "BundleFiles", "35uofy8njbg1s8dfdjtvq.r"))
+                || File.Exists(Path.Combine(packRoot, "payload", "jp_deblur", ".res", "default_package", "BundleFiles", "35uofy8njbg1s8dfdjtvq.r"));
         }
 
         public static string CheckDeblurStatus(string packRoot, string gameRoot)

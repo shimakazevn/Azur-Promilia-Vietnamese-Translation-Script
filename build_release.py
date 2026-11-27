@@ -397,7 +397,7 @@ def main():
 
             android_obj = {
                 'package_name': android_plan.get('package_name', 'com.Yostar.AzurpromiliaJP'),
-                'resource_version': android_plan.get('resource_version', '3219596'),
+                'resource_version': android_plan.get('resource_version', '3273851'),
                 'payload_hash': android_payload_hash,
                 'filename': az_zip.name,
                 'size': az_zip.stat().st_size,
@@ -438,7 +438,7 @@ def main():
             'version': args.version,
             'published_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'repo': repo_slug,
-            'jp_resource_version': '3219598',
+            'jp_resource_version': '3273853',
             'jp_builtin_version': '3075915',
             'jp_launcher_version': '1.8.1',
             'deblur_supported': deblur_included,
@@ -454,7 +454,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Nâng cấp Mod Đồ Họa & Hiệu Năng đa thiết bị cho Mobile (hỗ trợ cả máy yếu MediaTek/Helio/XOS/HyperOS qua WM Downscale + Dọn RAM lẫn máy Gaming/Flagship qua Thermal Unlock + mở khóa giới hạn 60Hz Android 15+/GameMode 120 FPS; sửa lỗi Reset & giữ nguyên Mod Mở Khóa Đồ Họa In-Game 50%-170%).',
+            'notes': f'{args.version}: Cập nhật Việt hóa cho bản game mới JP PC (3273853) & Android (3273851) kèm 2.172 chuỗi dịch mới, Bỏ làm mờ PC mới (35uofy...) & Mod Đồ Họa Performance Mobile mới (siybjb...); rà soát vá triệt để lỗi lọt mã game/thẻ màu/JSON/dấu tách hội thoại trong bản dịch; sửa lỗi nhận diện nâng cấp resource trên Android và tương thích engine v6.',
         }
         if android_obj:
             latest['android'] = android_obj

@@ -301,8 +301,13 @@ public class MainActivity extends Activity {
                 JSONObject bObj = new JSONObject(bundled);
                 String cVer = cObj.optString("resource_version", "");
                 String bVer = bObj.optString("resource_version", "");
+                long cNum = 0, bNum = 0;
+                try { cNum = Long.parseLong(cVer.trim()); } catch (Throwable ignored) {}
+                try { bNum = Long.parseLong(bVer.trim()); } catch (Throwable ignored) {}
                 boolean missingPerfHash = bundled.contains("perf_target_sha256") && !cached.contains("perf_target_sha256");
-                if (bVer.equals(cVer) && (cachedApkVer < BuildConfig.VERSION_CODE || missingPerfHash)) {
+                if (cachedApkVer < BuildConfig.VERSION_CODE
+                        || (bNum > cNum && bNum > 0)
+                        || (bVer.equals(cVer) && missingPerfHash)) {
                     prefs.edit()
                             .putString(KEY_CACHED_PLAN, bundled)
                             .putLong(KEY_CACHED_PLAN_APK_VER, BuildConfig.VERSION_CODE)
@@ -1214,7 +1219,7 @@ public class MainActivity extends Activity {
                     out.put("version", tag);
                     out.put("notes", rel.optString("body", ""));
                     JSONObject an = new JSONObject();
-                    an.put("resource_version", "3219596");
+                    an.put("resource_version", "3273851");
                     an.put("filename", zipName);
                     an.put("size", zipSize);
                     an.put("sha256", "");
@@ -1685,8 +1690,8 @@ public class MainActivity extends Activity {
                 JSONObject androidRem = remoteInfo != null ? remoteInfo.optJSONObject("android") : null;
 
                 String targetRel = perfRem != null
-                        ? perfRem.optString("relative_path", "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r")
-                        : "raw_streaming_package/BundleFiles/lgljnx3smdqqqfkgr8obq.r";
+                        ? perfRem.optString("relative_path", "raw_streaming_package/BundleFiles/siybjb4yevdjs7yv6iiw.r")
+                        : "raw_streaming_package/BundleFiles/siybjb4yevdjs7yv6iiw.r";
 
                 JSONObject baseItem = null;
                 for (int i = 0; i < files.length(); i++) {

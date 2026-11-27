@@ -1,37 +1,41 @@
 {
   "format": 1,
   "region": "jp",
-  "resource_version": "3219598",
+  "resource_version": "3273853",
   "builtin_version": "3075915",
   "created_at": "2026-11-26T20:44:58.263165+08:00",
   "files": [
     {
-      "relative_path": ".res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r",
-      "source_sha256": "99b8129d49586d26745630a76423609123ddcb1a7aad3e0a971886b13336a878",
-      "target_sha256": "5b5a21849e3c737212707be27b2d0b976611ed9c0dcf0a825a234439af7e0cd6",
-      "size": 133622104,
-      "crc32": 4107620273,
+      "relative_path": ".res/raw_base_package/BundleFiles/heqmts9lcjdvbupu0x2wpg.r",
+      "kind": "raw_pack",
+      "size": 134055486,
+      "source_sha256": "60e09fa31ac7e43e2a74cb7e722cf19b3331a188817125a086a57a17a34987ee",
+      "target_sha256": "dec3712b6382b9eb41449d4b32a5bc67e7348fd03641441915c4b99b35816b00",
+      "crc32": 3690334330,
+      "manifest": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3273853.bytes",
       "segments": [
         {
           "bundle_index": 12,
           "offset": 0,
-          "size": 133622104,
-          "crc32": 4107620273
+          "size": 134055486,
+          "crc32": 3690334330
         }
       ]
     },
     {
-      "relative_path": ".res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
-      "source_sha256": "296c11b437e5817ae5144ecd6096e5884f4cf9c35b630a01aa9c33024839d599",
-      "target_sha256": "b4cb96e05d4d5498dadcb38783f5760cb6c5fa95f9e5c900203d9563bf5be5a4",
-      "size": 28840170,
-      "crc32": 261862204,
+      "relative_path": ".res/raw_streaming_package/BundleFiles/5g1m5b4sbqlfalcxoaquw.r",
+      "kind": "raw_pack",
+      "size": 28840130,
+      "source_sha256": "4369839fd46cd2c821f33dc2b92c46cc87f4413a215be0abe17461ec743896c2",
+      "target_sha256": "20fb182f60a6595a15a9472f63dd4783bddb1ff29ae84a34dfb9ae028c8d66c0",
+      "crc32": 3029726429,
+      "manifest": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3273853.bytes",
       "segments": [
         {
           "bundle_index": 0,
           "offset": 0,
-          "size": 28840170,
-          "crc32": 261862204
+          "size": 28840130,
+          "crc32": 3029726429
         }
       ]
     },
@@ -171,963 +175,965 @@
       ]
     },
     {
-      "relative_path": ".res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
-      "source_sha256": "701f04842f5156da177bd4946a1cf9b7c055f2a614003c2c13c8567fa14e0fc3",
-      "target_sha256": "d4b6bb6f8c82038cb168d7092fb09146aad39a72f976d3b077ea026eee7f43dd",
-      "size": 4993892,
-      "crc32": 3326289313,
+      "relative_path": ".res/default_package/BundleFiles/h3y7ujukwn9qbhoqhzkkg.r",
+      "kind": "bundle_container",
+      "size": 4993822,
+      "source_sha256": "9771462bacb96c7ee544fe53d0d2a4e56e3576b1336d2a2ec6653bfef1a6a138",
+      "target_sha256": "678dd31bba7471025131b18c874320b8b1fbc91a3bf9346901fc28cbea381973",
+      "crc32": 196979209,
+      "manifest": ".res/default_package/ManifestFiles/0release_default_package_3273853.bytes",
       "segments": [
         {
-          "bundle_index": 369084,
+          "bundle_index": 369100,
           "offset": 0,
           "size": 274211,
           "crc32": 3704084437
         },
         {
-          "bundle_index": 369085,
+          "bundle_index": 369101,
           "offset": 274211,
           "size": 6979,
           "crc32": 990707372
         },
         {
-          "bundle_index": 369086,
+          "bundle_index": 369102,
           "offset": 281190,
           "size": 1709,
           "crc32": 1835761222
         },
         {
-          "bundle_index": 369087,
+          "bundle_index": 369103,
           "offset": 282899,
           "size": 1715,
           "crc32": 2157438930
         },
         {
-          "bundle_index": 369088,
+          "bundle_index": 369104,
           "offset": 284614,
           "size": 1714,
           "crc32": 1835916343
         },
         {
-          "bundle_index": 369089,
+          "bundle_index": 369105,
           "offset": 286328,
           "size": 1707,
           "crc32": 3491273602
         },
         {
-          "bundle_index": 369090,
+          "bundle_index": 369106,
           "offset": 288035,
           "size": 1700,
           "crc32": 442704579
         },
         {
-          "bundle_index": 369091,
+          "bundle_index": 369107,
           "offset": 289735,
           "size": 1723,
           "crc32": 15743068
         },
         {
-          "bundle_index": 369092,
+          "bundle_index": 369108,
           "offset": 291458,
           "size": 1723,
           "crc32": 3093736393
         },
         {
-          "bundle_index": 369093,
+          "bundle_index": 369109,
           "offset": 293181,
           "size": 1723,
           "crc32": 640343782
         },
         {
-          "bundle_index": 369094,
+          "bundle_index": 369110,
           "offset": 294904,
           "size": 1710,
           "crc32": 3023178464
         },
         {
-          "bundle_index": 369095,
+          "bundle_index": 369111,
           "offset": 296614,
           "size": 1713,
           "crc32": 966680411
         },
         {
-          "bundle_index": 369096,
+          "bundle_index": 369112,
           "offset": 298327,
           "size": 1724,
           "crc32": 1488722564
         },
         {
-          "bundle_index": 369097,
+          "bundle_index": 369113,
           "offset": 300051,
           "size": 1711,
           "crc32": 2658661088
         },
         {
-          "bundle_index": 369098,
+          "bundle_index": 369114,
           "offset": 301762,
           "size": 1723,
           "crc32": 922182105
         },
         {
-          "bundle_index": 369099,
+          "bundle_index": 369115,
           "offset": 303485,
           "size": 1701,
           "crc32": 3296949185
         },
         {
-          "bundle_index": 369100,
+          "bundle_index": 369116,
           "offset": 305186,
           "size": 1711,
           "crc32": 16689212
         },
         {
-          "bundle_index": 369101,
+          "bundle_index": 369117,
           "offset": 306897,
           "size": 1699,
           "crc32": 3369499794
         },
         {
-          "bundle_index": 369102,
+          "bundle_index": 369118,
           "offset": 308596,
           "size": 1699,
           "crc32": 1075198194
         },
         {
-          "bundle_index": 369103,
+          "bundle_index": 369119,
           "offset": 310295,
           "size": 1713,
           "crc32": 894746499
         },
         {
-          "bundle_index": 369104,
+          "bundle_index": 369120,
           "offset": 312008,
           "size": 1712,
           "crc32": 4026133933
         },
         {
-          "bundle_index": 369105,
+          "bundle_index": 369121,
           "offset": 313720,
           "size": 1698,
           "crc32": 1859316116
         },
         {
-          "bundle_index": 369106,
+          "bundle_index": 369122,
           "offset": 315418,
           "size": 1710,
           "crc32": 908431650
         },
         {
-          "bundle_index": 369107,
+          "bundle_index": 369123,
           "offset": 317128,
           "size": 1710,
           "crc32": 3852807196
         },
         {
-          "bundle_index": 369108,
+          "bundle_index": 369124,
           "offset": 318838,
           "size": 1726,
           "crc32": 1456897369
         },
         {
-          "bundle_index": 369109,
+          "bundle_index": 369125,
           "offset": 320564,
           "size": 1720,
           "crc32": 1014865496
         },
         {
-          "bundle_index": 369110,
+          "bundle_index": 369126,
           "offset": 322284,
           "size": 1720,
           "crc32": 1206169481
         },
         {
-          "bundle_index": 369111,
+          "bundle_index": 369127,
           "offset": 324004,
           "size": 1720,
           "crc32": 1225177503
         },
         {
-          "bundle_index": 369112,
+          "bundle_index": 369128,
           "offset": 325724,
           "size": 1720,
           "crc32": 1989689280
         },
         {
-          "bundle_index": 369113,
+          "bundle_index": 369129,
           "offset": 327444,
           "size": 1726,
           "crc32": 537965843
         },
         {
-          "bundle_index": 369114,
+          "bundle_index": 369130,
           "offset": 329170,
           "size": 1794,
           "crc32": 3037054180
         },
         {
-          "bundle_index": 369115,
+          "bundle_index": 369131,
           "offset": 330964,
           "size": 1713,
           "crc32": 947992832
         },
         {
-          "bundle_index": 369116,
+          "bundle_index": 369132,
           "offset": 332677,
           "size": 1720,
           "crc32": 817144240
         },
         {
-          "bundle_index": 369117,
+          "bundle_index": 369133,
           "offset": 334397,
           "size": 1723,
           "crc32": 524156284
         },
         {
-          "bundle_index": 369118,
+          "bundle_index": 369134,
           "offset": 336120,
           "size": 1715,
           "crc32": 1444544494
         },
         {
-          "bundle_index": 369119,
+          "bundle_index": 369135,
           "offset": 337835,
           "size": 1713,
           "crc32": 3701643190
         },
         {
-          "bundle_index": 369120,
+          "bundle_index": 369136,
           "offset": 339548,
           "size": 1721,
           "crc32": 875653780
         },
         {
-          "bundle_index": 369121,
+          "bundle_index": 369137,
           "offset": 341269,
           "size": 1710,
           "crc32": 1956698817
         },
         {
-          "bundle_index": 369122,
+          "bundle_index": 369138,
           "offset": 342979,
           "size": 1710,
           "crc32": 690423359
         },
         {
-          "bundle_index": 369123,
+          "bundle_index": 369139,
           "offset": 344689,
           "size": 1711,
           "crc32": 475437292
         },
         {
-          "bundle_index": 369124,
+          "bundle_index": 369140,
           "offset": 346400,
           "size": 1714,
           "crc32": 1459871379
         },
         {
-          "bundle_index": 369125,
+          "bundle_index": 369141,
           "offset": 348114,
           "size": 1714,
           "crc32": 523512308
         },
         {
-          "bundle_index": 369126,
+          "bundle_index": 369142,
           "offset": 349828,
           "size": 1723,
           "crc32": 4166170446
         },
         {
-          "bundle_index": 369127,
+          "bundle_index": 369143,
           "offset": 351551,
           "size": 1721,
           "crc32": 2316779689
         },
         {
-          "bundle_index": 369128,
+          "bundle_index": 369144,
           "offset": 353272,
           "size": 1723,
           "crc32": 265881904
         },
         {
-          "bundle_index": 369129,
+          "bundle_index": 369145,
           "offset": 354995,
           "size": 1723,
           "crc32": 3602137355
         },
         {
-          "bundle_index": 369130,
+          "bundle_index": 369146,
           "offset": 356718,
           "size": 1714,
           "crc32": 3908588827
         },
         {
-          "bundle_index": 369131,
+          "bundle_index": 369147,
           "offset": 358432,
           "size": 1714,
           "crc32": 1142797039
         },
         {
-          "bundle_index": 369132,
+          "bundle_index": 369148,
           "offset": 360146,
           "size": 1714,
           "crc32": 3331567800
         },
         {
-          "bundle_index": 369133,
+          "bundle_index": 369149,
           "offset": 361860,
           "size": 1702,
           "crc32": 3169717518
         },
         {
-          "bundle_index": 369134,
+          "bundle_index": 369150,
           "offset": 363562,
           "size": 1726,
           "crc32": 2822168838
         },
         {
-          "bundle_index": 369135,
+          "bundle_index": 369151,
           "offset": 365288,
           "size": 1700,
           "crc32": 598961290
         },
         {
-          "bundle_index": 369136,
+          "bundle_index": 369152,
           "offset": 366988,
           "size": 1711,
           "crc32": 4178586433
         },
         {
-          "bundle_index": 369137,
+          "bundle_index": 369153,
           "offset": 368699,
           "size": 1713,
           "crc32": 11419658
         },
         {
-          "bundle_index": 369138,
+          "bundle_index": 369154,
           "offset": 370412,
           "size": 1700,
           "crc32": 2991760162
         },
         {
-          "bundle_index": 369139,
+          "bundle_index": 369155,
           "offset": 372112,
           "size": 1700,
           "crc32": 2554437599
         },
         {
-          "bundle_index": 369140,
+          "bundle_index": 369156,
           "offset": 373812,
           "size": 1711,
           "crc32": 4007296159
         },
         {
-          "bundle_index": 369141,
+          "bundle_index": 369157,
           "offset": 375523,
           "size": 1713,
           "crc32": 875330616
         },
         {
-          "bundle_index": 369142,
+          "bundle_index": 369158,
           "offset": 377236,
           "size": 1701,
           "crc32": 1276530300
         },
         {
-          "bundle_index": 369143,
+          "bundle_index": 369159,
           "offset": 378937,
           "size": 1714,
           "crc32": 2707151831
         },
         {
-          "bundle_index": 369144,
+          "bundle_index": 369160,
           "offset": 380651,
           "size": 1714,
           "crc32": 3518664798
         },
         {
-          "bundle_index": 369145,
+          "bundle_index": 369161,
           "offset": 382365,
           "size": 1725,
           "crc32": 2719416233
         },
         {
-          "bundle_index": 369146,
+          "bundle_index": 369162,
           "offset": 384090,
           "size": 1722,
           "crc32": 2285543452
         },
         {
-          "bundle_index": 369147,
+          "bundle_index": 369163,
           "offset": 385812,
           "size": 1713,
           "crc32": 2380196991
         },
         {
-          "bundle_index": 369148,
+          "bundle_index": 369164,
           "offset": 387525,
           "size": 1721,
           "crc32": 2576177124
         },
         {
-          "bundle_index": 369149,
+          "bundle_index": 369165,
           "offset": 389246,
           "size": 1714,
           "crc32": 1418012738
         },
         {
-          "bundle_index": 369150,
+          "bundle_index": 369166,
           "offset": 390960,
           "size": 1702,
           "crc32": 1346271331
         },
         {
-          "bundle_index": 369151,
+          "bundle_index": 369167,
           "offset": 392662,
           "size": 1711,
           "crc32": 759765874
         },
         {
-          "bundle_index": 369152,
+          "bundle_index": 369168,
           "offset": 394373,
           "size": 1702,
           "crc32": 63474620
         },
         {
-          "bundle_index": 369153,
+          "bundle_index": 369169,
           "offset": 396075,
           "size": 1700,
           "crc32": 2465058151
         },
         {
-          "bundle_index": 369154,
+          "bundle_index": 369170,
           "offset": 397775,
           "size": 1700,
           "crc32": 3638640425
         },
         {
-          "bundle_index": 369155,
+          "bundle_index": 369171,
           "offset": 399475,
           "size": 1711,
           "crc32": 1693592238
         },
         {
-          "bundle_index": 369156,
+          "bundle_index": 369172,
           "offset": 401186,
           "size": 1700,
           "crc32": 1797075717
         },
         {
-          "bundle_index": 369157,
+          "bundle_index": 369173,
           "offset": 402886,
           "size": 1700,
           "crc32": 1060864430
         },
         {
-          "bundle_index": 369158,
+          "bundle_index": 369174,
           "offset": 404586,
           "size": 1713,
           "crc32": 704476855
         },
         {
-          "bundle_index": 369159,
+          "bundle_index": 369175,
           "offset": 406299,
           "size": 1727,
           "crc32": 1469119756
         },
         {
-          "bundle_index": 369160,
+          "bundle_index": 369176,
           "offset": 408026,
           "size": 1723,
           "crc32": 3417772394
         },
         {
-          "bundle_index": 369161,
+          "bundle_index": 369177,
           "offset": 409749,
           "size": 1722,
           "crc32": 3373385109
         },
         {
-          "bundle_index": 369162,
+          "bundle_index": 369178,
           "offset": 411471,
           "size": 1722,
           "crc32": 1890939697
         },
         {
-          "bundle_index": 369163,
+          "bundle_index": 369179,
           "offset": 413193,
           "size": 1707,
           "crc32": 3827696275
         },
         {
-          "bundle_index": 369164,
+          "bundle_index": 369180,
           "offset": 414900,
           "size": 1721,
           "crc32": 2731748167
         },
         {
-          "bundle_index": 369165,
+          "bundle_index": 369181,
           "offset": 416621,
           "size": 1720,
           "crc32": 1057818894
         },
         {
-          "bundle_index": 369166,
+          "bundle_index": 369182,
           "offset": 418341,
           "size": 1721,
           "crc32": 962472283
         },
         {
-          "bundle_index": 369167,
+          "bundle_index": 369183,
           "offset": 420062,
-          "size": 83151,
-          "crc32": 1935282860
+          "size": 83081,
+          "crc32": 4085354981
         },
         {
-          "bundle_index": 369168,
-          "offset": 503213,
+          "bundle_index": 369184,
+          "offset": 503143,
           "size": 8712,
           "crc32": 1969605060
         },
         {
-          "bundle_index": 369169,
-          "offset": 511925,
+          "bundle_index": 369185,
+          "offset": 511855,
           "size": 108507,
           "crc32": 4260207732
         },
         {
-          "bundle_index": 369170,
-          "offset": 620432,
+          "bundle_index": 369186,
+          "offset": 620362,
           "size": 15680,
           "crc32": 4066208038
         },
         {
-          "bundle_index": 369171,
-          "offset": 636112,
+          "bundle_index": 369187,
+          "offset": 636042,
           "size": 15659,
           "crc32": 2134860770
         },
         {
-          "bundle_index": 369172,
-          "offset": 651771,
+          "bundle_index": 369188,
+          "offset": 651701,
           "size": 15673,
           "crc32": 4031893818
         },
         {
-          "bundle_index": 369173,
-          "offset": 667444,
+          "bundle_index": 369189,
+          "offset": 667374,
           "size": 15744,
           "crc32": 146147212
         },
         {
-          "bundle_index": 369174,
-          "offset": 683188,
+          "bundle_index": 369190,
+          "offset": 683118,
           "size": 15839,
           "crc32": 1350226384
         },
         {
-          "bundle_index": 369175,
-          "offset": 699027,
+          "bundle_index": 369191,
+          "offset": 698957,
           "size": 91975,
           "crc32": 3957353926
         },
         {
-          "bundle_index": 369176,
-          "offset": 791002,
+          "bundle_index": 369192,
+          "offset": 790932,
           "size": 41592,
           "crc32": 301109011
         },
         {
-          "bundle_index": 369177,
-          "offset": 832594,
+          "bundle_index": 369193,
+          "offset": 832524,
           "size": 45368,
           "crc32": 178968767
         },
         {
-          "bundle_index": 369178,
-          "offset": 877962,
+          "bundle_index": 369194,
+          "offset": 877892,
           "size": 41474,
           "crc32": 622776141
         },
         {
-          "bundle_index": 369179,
-          "offset": 919436,
+          "bundle_index": 369195,
+          "offset": 919366,
           "size": 71593,
           "crc32": 3100792425
         },
         {
-          "bundle_index": 369180,
-          "offset": 991029,
+          "bundle_index": 369196,
+          "offset": 990959,
           "size": 50833,
           "crc32": 1237581080
         },
         {
-          "bundle_index": 369181,
-          "offset": 1041862,
+          "bundle_index": 369197,
+          "offset": 1041792,
           "size": 35091,
           "crc32": 1270611689
         },
         {
-          "bundle_index": 369182,
-          "offset": 1076953,
+          "bundle_index": 369198,
+          "offset": 1076883,
           "size": 41217,
           "crc32": 2428011442
         },
         {
-          "bundle_index": 369183,
-          "offset": 1118170,
+          "bundle_index": 369199,
+          "offset": 1118100,
           "size": 64310,
           "crc32": 1962923289
         },
         {
-          "bundle_index": 369184,
-          "offset": 1182480,
+          "bundle_index": 369200,
+          "offset": 1182410,
           "size": 175434,
           "crc32": 1837520894
         },
         {
-          "bundle_index": 369185,
-          "offset": 1357914,
+          "bundle_index": 369201,
+          "offset": 1357844,
           "size": 49454,
           "crc32": 4096365192
         },
         {
-          "bundle_index": 369186,
-          "offset": 1407368,
+          "bundle_index": 369202,
+          "offset": 1407298,
           "size": 17297,
           "crc32": 3429866080
         },
         {
-          "bundle_index": 369187,
-          "offset": 1424665,
+          "bundle_index": 369203,
+          "offset": 1424595,
           "size": 26809,
           "crc32": 3195318445
         },
         {
-          "bundle_index": 369188,
-          "offset": 1451474,
+          "bundle_index": 369204,
+          "offset": 1451404,
           "size": 96407,
           "crc32": 3594951861
         },
         {
-          "bundle_index": 369189,
-          "offset": 1547881,
+          "bundle_index": 369205,
+          "offset": 1547811,
           "size": 110539,
           "crc32": 2910860420
         },
         {
-          "bundle_index": 369190,
-          "offset": 1658420,
+          "bundle_index": 369206,
+          "offset": 1658350,
           "size": 12664,
           "crc32": 3051167492
         },
         {
-          "bundle_index": 369191,
-          "offset": 1671084,
+          "bundle_index": 369207,
+          "offset": 1671014,
           "size": 10747,
           "crc32": 565508181
         },
         {
-          "bundle_index": 369192,
-          "offset": 1681831,
+          "bundle_index": 369208,
+          "offset": 1681761,
           "size": 12661,
           "crc32": 2664150978
         },
         {
-          "bundle_index": 369193,
-          "offset": 1694492,
+          "bundle_index": 369209,
+          "offset": 1694422,
           "size": 11427,
           "crc32": 3903530797
         },
         {
-          "bundle_index": 369194,
-          "offset": 1705919,
+          "bundle_index": 369210,
+          "offset": 1705849,
           "size": 11364,
           "crc32": 3409684449
         },
         {
-          "bundle_index": 369195,
-          "offset": 1717283,
+          "bundle_index": 369211,
+          "offset": 1717213,
           "size": 247272,
           "crc32": 439875963
         },
         {
-          "bundle_index": 369196,
-          "offset": 1964555,
+          "bundle_index": 369212,
+          "offset": 1964485,
           "size": 42662,
           "crc32": 916801509
         },
         {
-          "bundle_index": 369197,
-          "offset": 2007217,
+          "bundle_index": 369213,
+          "offset": 2007147,
           "size": 63484,
           "crc32": 2988191373
         },
         {
-          "bundle_index": 369198,
-          "offset": 2070701,
+          "bundle_index": 369214,
+          "offset": 2070631,
           "size": 77711,
           "crc32": 786228415
         },
         {
-          "bundle_index": 369199,
-          "offset": 2148412,
+          "bundle_index": 369215,
+          "offset": 2148342,
           "size": 119649,
           "crc32": 4293247511
         },
         {
-          "bundle_index": 369200,
-          "offset": 2268061,
+          "bundle_index": 369216,
+          "offset": 2267991,
           "size": 32230,
           "crc32": 2901659345
         },
         {
-          "bundle_index": 369201,
-          "offset": 2300291,
+          "bundle_index": 369217,
+          "offset": 2300221,
           "size": 29134,
           "crc32": 4180812770
         },
         {
-          "bundle_index": 369202,
-          "offset": 2329425,
+          "bundle_index": 369218,
+          "offset": 2329355,
           "size": 25419,
           "crc32": 370922408
         },
         {
-          "bundle_index": 369203,
-          "offset": 2354844,
+          "bundle_index": 369219,
+          "offset": 2354774,
           "size": 24249,
           "crc32": 2536439245
         },
         {
-          "bundle_index": 369204,
-          "offset": 2379093,
+          "bundle_index": 369220,
+          "offset": 2379023,
           "size": 23505,
           "crc32": 2193891001
         },
         {
-          "bundle_index": 369205,
-          "offset": 2402598,
+          "bundle_index": 369221,
+          "offset": 2402528,
           "size": 25027,
           "crc32": 236208395
         },
         {
-          "bundle_index": 369206,
-          "offset": 2427625,
+          "bundle_index": 369222,
+          "offset": 2427555,
           "size": 111134,
           "crc32": 4157755555
         },
         {
-          "bundle_index": 369207,
-          "offset": 2538759,
+          "bundle_index": 369223,
+          "offset": 2538689,
           "size": 44592,
           "crc32": 4275710249
         },
         {
-          "bundle_index": 369208,
-          "offset": 2583351,
+          "bundle_index": 369224,
+          "offset": 2583281,
           "size": 93954,
           "crc32": 3637366967
         },
         {
-          "bundle_index": 369209,
-          "offset": 2677305,
+          "bundle_index": 369225,
+          "offset": 2677235,
           "size": 62497,
           "crc32": 1000326882
         },
         {
-          "bundle_index": 369210,
-          "offset": 2739802,
+          "bundle_index": 369226,
+          "offset": 2739732,
           "size": 114202,
           "crc32": 1051067500
         },
         {
-          "bundle_index": 369211,
-          "offset": 2854004,
+          "bundle_index": 369227,
+          "offset": 2853934,
           "size": 92988,
           "crc32": 2318285091
         },
         {
-          "bundle_index": 369212,
-          "offset": 2946992,
+          "bundle_index": 369228,
+          "offset": 2946922,
           "size": 115901,
           "crc32": 32969295
         },
         {
-          "bundle_index": 369213,
-          "offset": 3062893,
+          "bundle_index": 369229,
+          "offset": 3062823,
           "size": 106755,
           "crc32": 607834330
         },
         {
-          "bundle_index": 369214,
-          "offset": 3169648,
+          "bundle_index": 369230,
+          "offset": 3169578,
           "size": 50781,
           "crc32": 3695791574
         },
         {
-          "bundle_index": 369215,
-          "offset": 3220429,
+          "bundle_index": 369231,
+          "offset": 3220359,
           "size": 113602,
           "crc32": 3253108667
         },
         {
-          "bundle_index": 369216,
-          "offset": 3334031,
+          "bundle_index": 369232,
+          "offset": 3333961,
           "size": 52626,
           "crc32": 4124248908
         },
         {
-          "bundle_index": 369217,
-          "offset": 3386657,
+          "bundle_index": 369233,
+          "offset": 3386587,
           "size": 51497,
           "crc32": 2959942672
         },
         {
-          "bundle_index": 369218,
-          "offset": 3438154,
+          "bundle_index": 369234,
+          "offset": 3438084,
           "size": 53233,
           "crc32": 2977801064
         },
         {
-          "bundle_index": 369219,
-          "offset": 3491387,
+          "bundle_index": 369235,
+          "offset": 3491317,
           "size": 114853,
           "crc32": 1979559943
         },
         {
-          "bundle_index": 369220,
-          "offset": 3606240,
+          "bundle_index": 369236,
+          "offset": 3606170,
           "size": 129424,
           "crc32": 2076853103
         },
         {
-          "bundle_index": 369221,
-          "offset": 3735664,
+          "bundle_index": 369237,
+          "offset": 3735594,
           "size": 111435,
           "crc32": 1548141964
         },
         {
-          "bundle_index": 369222,
-          "offset": 3847099,
+          "bundle_index": 369238,
+          "offset": 3847029,
           "size": 125816,
           "crc32": 2447022184
         },
         {
-          "bundle_index": 369223,
-          "offset": 3972915,
+          "bundle_index": 369239,
+          "offset": 3972845,
           "size": 49723,
           "crc32": 496896582
         },
         {
-          "bundle_index": 369224,
-          "offset": 4022638,
+          "bundle_index": 369240,
+          "offset": 4022568,
           "size": 103213,
           "crc32": 2609615544
         },
         {
-          "bundle_index": 369225,
-          "offset": 4125851,
+          "bundle_index": 369241,
+          "offset": 4125781,
           "size": 17801,
           "crc32": 981370222
         },
         {
-          "bundle_index": 369226,
-          "offset": 4143652,
+          "bundle_index": 369242,
+          "offset": 4143582,
           "size": 157500,
           "crc32": 2474078849
         },
         {
-          "bundle_index": 369227,
-          "offset": 4301152,
+          "bundle_index": 369243,
+          "offset": 4301082,
           "size": 17520,
           "crc32": 1950558286
         },
         {
-          "bundle_index": 369228,
-          "offset": 4318672,
+          "bundle_index": 369244,
+          "offset": 4318602,
           "size": 54866,
           "crc32": 2077113900
         },
         {
-          "bundle_index": 369229,
-          "offset": 4373538,
+          "bundle_index": 369245,
+          "offset": 4373468,
           "size": 14771,
           "crc32": 2824364232
         },
         {
-          "bundle_index": 369230,
-          "offset": 4388309,
+          "bundle_index": 369246,
+          "offset": 4388239,
           "size": 31964,
           "crc32": 63442342
         },
         {
-          "bundle_index": 369231,
-          "offset": 4420273,
+          "bundle_index": 369247,
+          "offset": 4420203,
           "size": 21250,
           "crc32": 423293349
         },
         {
-          "bundle_index": 369232,
-          "offset": 4441523,
+          "bundle_index": 369248,
+          "offset": 4441453,
           "size": 23738,
           "crc32": 621174345
         },
         {
-          "bundle_index": 369233,
-          "offset": 4465261,
+          "bundle_index": 369249,
+          "offset": 4465191,
           "size": 28099,
           "crc32": 273825093
         },
         {
-          "bundle_index": 369234,
-          "offset": 4493360,
+          "bundle_index": 369250,
+          "offset": 4493290,
           "size": 30527,
           "crc32": 1475620053
         },
         {
-          "bundle_index": 369235,
-          "offset": 4523887,
+          "bundle_index": 369251,
+          "offset": 4523817,
           "size": 26156,
           "crc32": 2304479242
         },
         {
-          "bundle_index": 369236,
-          "offset": 4550043,
+          "bundle_index": 369252,
+          "offset": 4549973,
           "size": 104497,
           "crc32": 621533716
         },
         {
-          "bundle_index": 369237,
-          "offset": 4654540,
+          "bundle_index": 369253,
+          "offset": 4654470,
           "size": 11876,
           "crc32": 3194472461
         },
         {
-          "bundle_index": 369238,
-          "offset": 4666416,
+          "bundle_index": 369254,
+          "offset": 4666346,
           "size": 9691,
           "crc32": 796236737
         },
         {
-          "bundle_index": 369239,
-          "offset": 4676107,
+          "bundle_index": 369255,
+          "offset": 4676037,
           "size": 38381,
           "crc32": 1558515947
         },
         {
-          "bundle_index": 369240,
-          "offset": 4714488,
+          "bundle_index": 369256,
+          "offset": 4714418,
           "size": 83121,
           "crc32": 2512621331
         },
         {
-          "bundle_index": 369241,
-          "offset": 4797609,
+          "bundle_index": 369257,
+          "offset": 4797539,
           "size": 83774,
           "crc32": 2853336574
         },
         {
-          "bundle_index": 369242,
-          "offset": 4881383,
+          "bundle_index": 369258,
+          "offset": 4881313,
           "size": 112509,
           "crc32": 4167398875
         }
@@ -1135,10 +1141,12 @@
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/tqells6pca8ieju9qlbuw.r",
-      "source_sha256": "673cb783c35a8e1634cbd9c2c357c044b68eed96d5fb083590234f2ee8ea817d",
-      "target_sha256": "c91c514100a444e5e50bb00b8605f6ff37686f3b9953595511554809abcb97fd",
+      "kind": "bundle_container",
       "size": 4994161,
+      "source_sha256": "673cb783c35a8e1634cbd9c2c357c044b68eed96d5fb083590234f2ee8ea817d",
+      "target_sha256": "93083f003d269480b6d807f8b246fcbd6054d94c38c34e4c0c84d70a543a3b8c",
       "crc32": 4042264245,
+      "manifest": "StreamingAssets/.res/default_package/0release_default_package_3075915.bytes",
       "segments": [
         {
           "bundle_index": 342641,
@@ -2114,12 +2122,12 @@
   ],
   "readonly_files": [
     {
-      "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.bytes",
-      "sha256": "d4e93fdd9f06740e77f6bb6786ce545bc3226cebf3f760e9f1c003fde4941cf2"
+      "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3273853.bytes",
+      "sha256": "ce32d45f4efe6a3c165c8c2110999577690c4876cd9062efd182fb1fed2920a3"
     },
     {
-      "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3219598.hash",
-      "sha256": "28bd189d4e038c0966ac2fa4e818435a2e671be1b9d4bb2b1ad69fed31623615"
+      "relative_path": ".res/raw_base_package/ManifestFiles/0release_raw_base_package_3273853.hash",
+      "sha256": "2d4b57042c217775c95416dcb1d612258ce3035af5f7867b0bf09850b590837a"
     },
     {
       "relative_path": ".res/raw_base_package/ManifestFiles/ApplicationFootPrint.bytes",
@@ -2130,12 +2138,12 @@
       "sha256": "9690e7beb474b475fd0fc78e96943ac3498b351ce0617be31d59fddc03163553"
     },
     {
-      "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.bytes",
-      "sha256": "d962180d504e9c03f970f85d68815dcd0368db6d62a629b1af56e0d617bf86c4"
+      "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3273853.bytes",
+      "sha256": "51d0a73b27433e7970f90ae400d9c8763aa9872db3ce5c0c26822fbb41954e67"
     },
     {
-      "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3219598.hash",
-      "sha256": "83208f16c0affccfb710ad128abe4d294c8336acc46562b2494cbb4084ddd449"
+      "relative_path": ".res/raw_streaming_package/ManifestFiles/0release_raw_streaming_package_3273853.hash",
+      "sha256": "b4655d77ce69478b73486a89af844155b5c5dc5f508941e9b94a6110c7c7bb3b"
     },
     {
       "relative_path": ".res/raw_streaming_package/ManifestFiles/ApplicationFootPrint.bytes",
@@ -2146,12 +2154,12 @@
       "sha256": "9690e7beb474b475fd0fc78e96943ac3498b351ce0617be31d59fddc03163553"
     },
     {
-      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3219598.bytes",
-      "sha256": "04c56291c844a923928332277943ddf40866a12276b5842bbc76fa659c999799"
+      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3273853.bytes",
+      "sha256": "eb011bfc46886ec1b313a9414a4ea19eab461431e17cb9b499520f05defeffb2"
     },
     {
-      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3219598.hash",
-      "sha256": "d152ba5609d951ff77d9d06d0fe229b72350df03ff57b0f8c069519d54073bfb"
+      "relative_path": ".res/default_package/ManifestFiles/0release_default_package_3273853.hash",
+      "sha256": "49effb70a2ce08e6ef801c6d6677d84eb265ae555c6ca86f263aabbd0fa367d1"
     },
     {
       "relative_path": ".res/default_package/ManifestFiles/ApplicationFootPrint.bytes",
@@ -2160,14 +2168,6 @@
     {
       "relative_path": ".res/default_package/UnpackManifestFiles/ApplicationFootPrint.bytes",
       "sha256": "9690e7beb474b475fd0fc78e96943ac3498b351ce0617be31d59fddc03163553"
-    },
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.bytes",
-      "sha256": "7e900b3856690bf5b6c07e7ad66f8552f971893ec1105ac91309a12e18ed2457"
-    },
-    {
-      "relative_path": "StreamingAssets/.res/default_package/0release_default_package_3075915.hash",
-      "sha256": "e576411e02d3f99a5fe1cf8e708dd24fc6403b34efefd0851490fc923892e274"
     },
     {
       "relative_path": "StreamingAssets/.res/default_package/BuildinCatalog.bytes",

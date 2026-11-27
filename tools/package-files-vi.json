@@ -11,9 +11,9 @@
   ],
   "files": [
     {
-      "path": "payload-vi/jp_deblur/.res/default_package/BundleFiles/vcnqp22wy61m2n1z1kyxrg.r",
-      "size": 4744949,
-      "sha256": "ec89daae74c4615b4770428b34822aa0bb7d3dc088e4be45bed02d8be6a42bc3"
+      "path": "payload-vi/jp_deblur/.res/default_package/BundleFiles/35uofy8njbg1s8dfdjtvq.r",
+      "size": 4744961,
+      "sha256": "cf3048e1cf461425bc2481bcbe887aaab219dc0cc4945e642b27559c48626b34"
     },
     {
       "path": "payload-vi/jp_deblur/StreamingAssets/.res/default_package/6ffhq8vxxcxhajv2smenba.r",
@@ -31,19 +31,19 @@
       "sha256": "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac"
     },
     {
-      "path": "payload-vi/jp_game/.res/default_package/BundleFiles/yr49bxop0f3reujfsmyfca.r",
-      "size": 4993892,
-      "sha256": "d4b6bb6f8c82038cb168d7092fb09146aad39a72f976d3b077ea026eee7f43dd"
+      "path": "payload-vi/jp_game/.res/default_package/BundleFiles/h3y7ujukwn9qbhoqhzkkg.r",
+      "size": 4993822,
+      "sha256": "678dd31bba7471025131b18c874320b8b1fbc91a3bf9346901fc28cbea381973"
     },
     {
-      "path": "payload-vi/jp_game/.res/raw_base_package/BundleFiles/z5xzl3cg6ao0ilpbzykexg.r",
-      "size": 133622104,
-      "sha256": "5b5a21849e3c737212707be27b2d0b976611ed9c0dcf0a825a234439af7e0cd6"
+      "path": "payload-vi/jp_game/.res/raw_base_package/BundleFiles/heqmts9lcjdvbupu0x2wpg.r",
+      "size": 134055486,
+      "sha256": "dec3712b6382b9eb41449d4b32a5bc67e7348fd03641441915c4b99b35816b00"
     },
     {
-      "path": "payload-vi/jp_game/.res/raw_streaming_package/BundleFiles/fcl0wxz2z6hoffogv4xgzw.r",
-      "size": 28840170,
-      "sha256": "b4cb96e05d4d5498dadcb38783f5760cb6c5fa95f9e5c900203d9563bf5be5a4"
+      "path": "payload-vi/jp_game/.res/raw_streaming_package/BundleFiles/5g1m5b4sbqlfalcxoaquw.r",
+      "size": 28840130,
+      "sha256": "20fb182f60a6595a15a9472f63dd4783bddb1ff29ae84a34dfb9ae028c8d66c0"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/awcxxitzquckttvmx0c5q.r",
@@ -68,7 +68,7 @@
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/tqells6pca8ieju9qlbuw.r",
       "size": 4994161,
-      "sha256": "c91c514100a444e5e50bb00b8605f6ff37686f3b9953595511554809abcb97fd"
+      "sha256": "93083f003d269480b6d807f8b246fcbd6054d94c38c34e4c0c84d70a543a3b8c"
     },
     {
       "path": "payload-vi/jp_game/StreamingAssets/.res/default_package/xlpsyuxnoz1cjmawi1wcxa.r",
@@ -117,8 +117,8 @@
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 71250,
-      "sha256": "353ec32668f1a7e0ff48ed5b1dd4a78e5e9c27b577306025a731e1854ba64bf1"
+      "size": 73672,
+      "sha256": "46d57c3ceb9a8ebf9388a982c131477ec2b734086b8cdf8114ec9066e513cb0a"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -132,18 +132,18 @@
     },
     {
       "path": "tools/jp-deblur-deployment.json",
-      "size": 1574,
-      "sha256": "4247625c3df9987ef836cbe3ae81d59b74eff45116ff6631cd0d51e418a28223"
+      "size": 1627,
+      "sha256": "ca34aa45cdd165e12288f0f9aa0bfc0799325ba009d1aacd24e871f0ff0d175d"
     },
     {
       "path": "tools/jp-deployment-vi.json",
-      "size": 56026,
-      "sha256": "d3901fa495db219b14d02e256e7c0fefae7d90a6b83d07ac1ec5e0864de6d1d8"
+      "size": 56146,
+      "sha256": "567d57e1d340c6774a9d808419b35e9049224c3b96b027e031a19f76dee55f76"
     },
     {
       "path": "tools/language.json",
       "size": 471,
-      "sha256": "3e458beb802f3fa5416cb85f0183872535d4d4089915136b17e87bfb2444c645"
+      "sha256": "bf9535b1d77b17f6027c88d4c75356fda797da66ea875a8557a9090a14a82aef"
     },
     {
       "path": "tools/launcher-deployment-vi.json",

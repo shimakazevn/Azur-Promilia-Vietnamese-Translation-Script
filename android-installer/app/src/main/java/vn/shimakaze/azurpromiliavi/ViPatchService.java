@@ -27,13 +27,26 @@ public class ViPatchService extends IViPatchService.Stub {
             if (!mfDir.isDirectory()) return "";
             File[] files = mfDir.listFiles();
             if (files == null) return "";
+            String best = "";
+            long bestNum = Long.MIN_VALUE;
             for (File f : files) {
                 String n = f.getName();
                 if (n.startsWith("0release_raw_base_package_") && n.endsWith(".bytes")) {
-                    return n.substring("0release_raw_base_package_".length(), n.length() - ".bytes".length());
+                    String cand = n.substring("0release_raw_base_package_".length(), n.length() - ".bytes".length());
+                    try {
+                        long v = Long.parseLong(cand);
+                        if (v > bestNum) {
+                            bestNum = v;
+                            best = cand;
+                        }
+                    } catch (NumberFormatException ignored) {
+                        if (best.isEmpty() || cand.compareTo(best) > 0) {
+                            best = cand;
+                        }
+                    }
                 }
             }
-            return "";
+            return best;
         } catch (Throwable t) {
             return "";
         }
