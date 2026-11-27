@@ -429,7 +429,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Sửa lỗi hiển thị/lưu phiên bản cũ trên app Windows, hỗ trợ nâng cấp thẳng từ bản cũ (v1.0.0/v1.0.1) & giữ tùy chọn Bỏ làm mờ (Deblur - mặc định tắt).',
+            'notes': f'{args.version}: Hoàn thiện đồng bộ phiên bản (PC Setup + Android Companion), sửa fallback API khi thiếu latest-vi.json và sửa kiểm thử đường dẫn Windows.',
         }
         if android_obj:
             latest['android'] = android_obj

@@ -20,7 +20,7 @@ Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Tr
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~42 KB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa**.
   - Tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA-256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game.
   - **Tùy chọn Bỏ làm mờ (Deblur — Tắt làm mờ nhân vật khi zoom gần / ngước camera):** **Mặc định TẮT** để an toàn tối đa. Bạn có thể bật/tắt bất kỳ lúc nào bằng nút **`Bỏ làm mờ`** ngay trong giao diện GUI cài đặt (hoặc tick kèm khi cài).
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.6.zip`** (~288 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.7.zip`** (~288 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 ### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3219596`, Không cần Root)
 
@@ -39,7 +39,7 @@ Bản Mobile áp dụng kỹ thuật CRC32 đè trực tiếp vào 7 gói `.r` t
 
 #### Cách 2 — Cài nhanh qua cáp USB bằng máy tính (ADB 1-Click)
 1. Bật **USB Debugging** trên điện thoại rồi cắm cáp vào PC.
-2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.6.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`**.
+2. Tải **`AzurPromilia-Localization-Android-vi-v1.0.7.zip`**, giải nén rồi chạy **`CaiDat-Android-ADB.bat`**.
 
 ## Thao tác bằng script (`双击运行.bat` — PC)
 
@@ -65,5 +65,5 @@ Khi dùng bản Full ZIP offline, chạy **`双击运行.bat`** (hỗ trợ kéo
 
 ## Phát triển & Tự build
 - Chi tiết thuật toán CRC32, bộ giải mã (`CRC工具/resource_decode/` gồm `nofog.py`, `decode_mmap.py`, `reencrypt_bundle.py`) và kiểm thử tự động nằm trong [tools/README.md](tools/README.md) và `tests/run_tests.py`.
-- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.5 --language vi`
+- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.7 --language vi`
 - Báo lỗi tại [Issues](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/issues). Mã nguồn theo giấy phép [LICENSE](LICENSE) (Apache 2.0).

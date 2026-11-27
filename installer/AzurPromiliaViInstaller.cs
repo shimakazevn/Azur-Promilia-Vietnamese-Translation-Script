@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.6.0")]
-[assembly: AssemblyFileVersion("1.0.6.0")]
+[assembly: AssemblyVersion("1.0.7.0")]
+[assembly: AssemblyFileVersion("1.0.7.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -28,7 +28,7 @@ namespace AzurPromiliaVIInstaller
         public const string RepoSlug = "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.6";
+        public const string CurrentInstallerVersion = "v1.0.7";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -876,6 +876,7 @@ namespace AzurPromiliaVIInstaller
                         ? (Helpers.FindJpGameRoot(dlg.SelectedPath) != "" ? Helpers.FindJpGameRoot(dlg.SelectedPath) : dlg.SelectedPath)
                         : (Helpers.FindJpLauncherRoot(dlg.SelectedPath, txtGamePath.Text) != "" ? Helpers.FindJpLauncherRoot(dlg.SelectedPath, txtGamePath.Text) : dlg.SelectedPath);
                     RefreshLocalStatuses();
+                    SyncLocalVersionFromStatus(null);
                 }
             }
         }
@@ -923,6 +924,35 @@ namespace AzurPromiliaVIInstaller
             btnDeblurToggle.BackColor = deblurOn ? Color.FromArgb(175, 98, 38) : Color.FromArgb(52, 62, 84);
         }
 
+        private void SyncLocalVersionFromStatus(string preferredVersion)
+        {
+            if (lblGameStatus.Text.IndexOf("Đã cài") >= 0)
+            {
+                if (!string.IsNullOrEmpty(preferredVersion))
+                {
+                    _localVersion = preferredVersion;
+                }
+                else if (string.IsNullOrEmpty(_localVersion))
+                {
+                    string tmpVer;
+                    Helpers.FindPayloadPackRoot(out tmpVer);
+                    _localVersion = !string.IsNullOrEmpty(tmpVer)
+                        ? tmpVer
+                        : (!string.IsNullOrEmpty(_state.installed_version) ? _state.installed_version : Config.CurrentInstallerVersion);
+                }
+                if (_state.installed_version != _localVersion)
+                {
+                    _state.installed_version = _localVersion;
+                    Helpers.SaveState(_state);
+                }
+            }
+            else
+            {
+                _localVersion = "";
+            }
+            UpdateHeaderLabel(lblGameStatus.Text);
+        }
+
         private void UpdateHeaderLabel(string gameStatus)
         {
             string gameVerDesc;
@@ -967,21 +997,7 @@ namespace AzurPromiliaVIInstaller
             if (string.IsNullOrEmpty(txtLauncherPath.Text))
                 txtLauncherPath.Text = Helpers.FindJpLauncherRoot(_state.jp_launcher_path, txtGamePath.Text);
             RefreshLocalStatuses();
-
-            if (lblGameStatus.Text.IndexOf("Đã cài") >= 0)
-            {
-                _localVersion = !string.IsNullOrEmpty(detectedVer) ? detectedVer : Config.CurrentInstallerVersion;
-                if (_state.installed_version != _localVersion)
-                {
-                    _state.installed_version = _localVersion;
-                    Helpers.SaveState(_state);
-                }
-            }
-            else
-            {
-                _localVersion = "";
-            }
-            UpdateHeaderLabel(lblGameStatus.Text);
+            SyncLocalVersionFromStatus(!string.IsNullOrEmpty(detectedVer) ? detectedVer : Config.CurrentInstallerVersion);
 
             if (!fetchOnline) return;
             ThreadPool.QueueUserWorkItem(_ =>
@@ -1349,6 +1365,7 @@ namespace AzurPromiliaVIInstaller
                     BeginInvoke(new Action(() =>
                     {
                         RefreshLocalStatuses();
+                        SyncLocalVersionFromStatus(null);
                         SetBusy(false, "Kiểm tra hoàn tất.");
                     }));
                 }

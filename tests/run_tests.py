@@ -263,8 +263,9 @@ $value = if ($Hint) { [IO.Path]::GetFullPath($Hint) } else { '' }
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'entry.json'), (ConvertTo-Json -InputObject $value))
 exit 3
 """)
-            cases = (('', ''), (str(pack), str(pack)),
-                     (str(pack) + '\\', str(pack)), (pack.anchor, pack.anchor))
+            resolved = str(pack.resolve())
+            cases = (('', ''), (str(pack), resolved),
+                     (str(pack) + '\\', resolved), (pack.anchor, pack.anchor))
             for hint, expected in cases:
                 with self.subTest(hint=hint):
                     result_file = pack / 'tools' / 'entry.json'

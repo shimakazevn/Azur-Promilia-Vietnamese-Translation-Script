@@ -586,6 +586,15 @@ public class MainActivity extends Activity {
             tvGameStatus.setText("⚠️ Chưa thấy thư mục .res/. Hãy mở game tải xong dữ liệu lần đầu rồi quay lại!");
             return;
         }
+        updateGameStatusText(obj);
+        evaluateUpdateNotifications();
+        maybeShowUpdatePopup();
+    }
+
+    private void updateGameStatusText(JSONObject obj) {
+        if (obj == null || !obj.optBoolean("installed", false) || !obj.optBoolean("has_res_dir", false)) {
+            return;
+        }
         String det = obj.optString("detected_version", "");
         int total = obj.optInt("total", 0);
         int vi = obj.optInt("vi_count", 0);
@@ -612,8 +621,6 @@ public class MainActivity extends Activity {
             }
         }
         tvGameStatus.setText(sb.toString());
-        evaluateUpdateNotifications();
-        maybeShowUpdatePopup();
     }
 
     // -------------------------------------------------------------------------
@@ -743,8 +750,8 @@ public class MainActivity extends Activity {
                 JSONObject rel = new JSONObject(api);
                 String tag = rel.optString("tag_name", "");
                 JSONArray assets = rel.optJSONArray("assets");
-                String zipUrl = "", zipName = "", apkUrl = "", apkName = "", latestJsonUrl = "";
-                long zipSize = 0, apkSize = 0;
+                String zipUrl = "", zipName = "", latestJsonUrl = "";
+                long zipSize = 0;
                 if (assets != null) {
                     for (int i = 0; i < assets.length(); i++) {
                         JSONObject a = assets.getJSONObject(i);
@@ -755,10 +762,6 @@ public class MainActivity extends Activity {
                             zipUrl = a.optString("browser_download_url", "");
                             zipName = n;
                             zipSize = a.optLong("size", 0);
-                        } else if (n.equals("AzurPromilia-VI-Mobile.apk")) {
-                            apkUrl = a.optString("browser_download_url", "");
-                            apkName = n;
-                            apkSize = a.optLong("size", 0);
                         }
                     }
                 }
@@ -782,15 +785,6 @@ public class MainActivity extends Activity {
                     an.put("size", zipSize);
                     an.put("sha256", "");
                     an.put("url", zipUrl);
-                    if (!apkUrl.isEmpty()) {
-                        JSONObject apk = new JSONObject();
-                        apk.put("version", tag);
-                        apk.put("filename", apkName);
-                        apk.put("size", apkSize);
-                        apk.put("sha256", "");
-                        apk.put("url", apkUrl);
-                        an.put("apk", apk);
-                    }
                     out.put("android", an);
                     return out;
                 }
@@ -812,6 +806,9 @@ public class MainActivity extends Activity {
 
         boolean hasNewApk = isRemoteApkNewer(apk);
         boolean hasNewPatch = isRemotePatchNewer(remoteInfo);
+        if (lastProbe != null) {
+            updateGameStatusText(lastProbe);
+        }
         boolean gameAlreadyVi = lastProbe != null
                 && lastProbe.optInt("total", 0) > 0
                 && lastProbe.optInt("vi_count", 0) == lastProbe.optInt("total", 0);
