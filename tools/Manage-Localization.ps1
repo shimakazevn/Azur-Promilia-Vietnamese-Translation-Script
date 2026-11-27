@@ -32,14 +32,14 @@ $script:PayloadFolder = if ($script:Language -eq 'zhcn') { 'payload' } else { 'p
 
 if ($script:Language -eq 'vi') {
     $Definitions = @(
-        [pscustomobject]@{ Id = 'tw_game'; Label = 'TW Game (Gốc)'; Script = 'tools/Apply-CRCZH.ps1'; Launcher = $false; SupportsLanguage = $true },
+        [pscustomobject]@{ Id = 'tw_game'; Label = 'TW Game (Việt hóa)'; Script = 'tools/Apply-CRCZH.ps1'; Launcher = $false; SupportsLanguage = $true },
         [pscustomobject]@{ Id = 'jp_game'; Label = 'JP Game (Việt hóa)'; Script = 'tools/Apply-JPCRCZH.ps1'; Launcher = $false; SupportsLanguage = $true },
         [pscustomobject]@{ Id = 'tw_launcher'; Label = 'TW Launcher (Gốc)'; Script = 'tools/Apply-Launchers.ps1'; Launcher = $true; SupportsLanguage = $true },
         [pscustomobject]@{ Id = 'jp_launcher'; Label = 'JP Launcher (Việt hóa)'; Script = 'tools/Apply-Launchers.ps1'; Launcher = $true; SupportsLanguage = $true }
     )
     $DeblurDefinitions = @(
         [pscustomobject]@{ Id = 'jp_deblur'; Label = 'Bỏ làm mờ JP (Deblur - Mặc định tắt)'; Script = 'tools/Apply-JPDeblur.ps1'; Launcher = $false; SupportsLanguage = $true },
-        [pscustomobject]@{ Id = 'tw_deblur'; Label = 'TW Deblur'; Script = 'tools/Apply-TWDeblur.ps1'; Launcher = $false; SupportsLanguage = $false }
+        [pscustomobject]@{ Id = 'tw_deblur'; Label = 'Bỏ làm mờ TW (Deblur - Mặc định tắt)'; Script = 'tools/Apply-TWDeblur.ps1'; Launcher = $false; SupportsLanguage = $true }
     )
 } else {
     $Definitions = @(
@@ -76,7 +76,11 @@ function Is-ModuleReady($Def) {
         $fDir = Join-Path $PackRoot 'payload\jp_deblur'
         return ([IO.Directory]::Exists($dDir) -or [IO.Directory]::Exists($fDir))
     }
-    if ($Def.Id -eq 'tw_deblur') { return $false }
+    if ($Def.Id -eq 'tw_deblur') {
+        $dDir = Join-Path $PackRoot ($script:PayloadFolder + '\tw_deblur')
+        $fDir = Join-Path $PackRoot 'payload\tw_deblur'
+        return ([IO.Directory]::Exists($dDir) -or [IO.Directory]::Exists($fDir))
+    }
     if ($Def.Launcher) {
         try {
             $lp = Get-Content -LiteralPath (Child ("tools/launcher-deployment$($script:PlanSuffix).json")) -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -369,6 +373,20 @@ function Install-Child([string]$Root, [string]$Relative) {
     return Resolve-SafeChild $Root $Relative
 }
 
+function Get-ModuleBackupDirName([string]$Id, $Plan) {
+    if ($Plan -and ($Plan.PSObject.Properties.Name -contains 'backup_dir') -and -not [string]::IsNullOrWhiteSpace([string]$Plan.backup_dir)) {
+        return [string]$Plan.backup_dir
+    }
+    if ($Id -eq 'jp_deblur') { return '.jp-deblur-1.0.2-backup' }
+    if ($Id -eq 'tw_deblur') { return '.tw-deblur-3221746-backup' }
+    if ($script:Language -eq 'zhcn') {
+        if ($Id -eq 'tw_game') { return '.zhcn-crc-readonly-3221745-backup' }
+        return '.zhcn-jp-crc-readonly-3219598-backup'
+    }
+    if ($Id -eq 'tw_game') { return ".$($script:Language)-crc-readonly-3221745-backup" }
+    return ".$($script:Language)-jp-crc-readonly-3219598-backup"
+}
+
 function Get-ItemSummary($Definition, [string]$Root) {
     try {
         if ($Definition.Launcher) {
@@ -384,23 +402,62 @@ function Get-ItemSummary($Definition, [string]$Root) {
         $plan = $gamePlans[$Definition.Id]
         $dataName = if ($Definition.Id -in @('tw_game', 'tw_deblur')) { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
         $dataRoot = Install-Child $Root $dataName
+        $backupRoot = Join-Path $Root (Get-ModuleBackupDirName $Definition.Id $plan)
         $ctx = Resolve-GameDeploymentContext $plan $dataRoot
         foreach ($guard in $ctx.ActiveGuards) {
             $file = Install-Child $dataRoot $guard.relative_path
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ((Sha $file) -ne $guard.sha256) { return '版本不匹配' }
         }
+        $orderedSummaryItems = @(
+            @($ctx.Items | Where-Object { -not ($_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry)) }) +
+            @($ctx.Items | Where-Object { $_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry) })
+        )
+        $manifestStates = @{}
         $original = 0; $localized = 0; $partial = $false
-        foreach ($item in $ctx.Items) {
+        foreach ($item in $orderedSummaryItems) {
             $file = Install-Child $dataRoot $item.TargetRelativePath
             if (-not [IO.File]::Exists($file)) { return '缺少文件' }
             if ($item.Mode -eq 'ExactFile') {
                 $entry = $item.Entry
-                if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
-                $hash = Sha $file
-                if ($hash -eq $entry.source_sha256) { $original++ }
-                elseif ($hash -eq $entry.target_sha256) { $localized++ }
-                else { return '版本不匹配' }
+                if (Test-HasManifestRanges $entry) {
+                    if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
+                    $bytes = [IO.File]::ReadAllBytes($file)
+                    $bkFile = Install-Child $backupRoot $entry.relative_path
+                    if (Test-ManifestRanges $bytes $entry.manifest_ranges) {
+                        $localized++
+                        $manifestStates[$entry.relative_path] = 'localized'
+                    } elseif ((Sha $file) -eq $entry.source_sha256) {
+                        $original++
+                        $manifestStates[$entry.relative_path] = 'original'
+                    } elseif ([IO.File]::Exists($bkFile)) {
+                        $bkBytes = [IO.File]::ReadAllBytes($bkFile)
+                        if ($bkBytes.Length -eq $entry.size -and (Test-ManifestRanges $bytes $entry.manifest_ranges $bkBytes)) {
+                            $original++
+                            $manifestStates[$entry.relative_path] = 'original'
+                        } else {
+                            return '版本不匹配'
+                        }
+                    } else {
+                        $original++
+                        $manifestStates[$entry.relative_path] = 'original'
+                    }
+                } elseif (Test-IsManifestHash $entry) {
+                    $expectedMd5 = Get-ManifestHashBytes $dataRoot ([string]$entry.manifest_hash_for)
+                    $actualBytes = [IO.File]::ReadAllBytes($file)
+                    if (-not (Test-BytesEqual $actualBytes $expectedMd5)) { return '版本不匹配' }
+                    $pState = $manifestStates[[string]$entry.manifest_hash_for]
+                    if ($pState -eq 'localized') { $localized++ }
+                    elseif ($pState -eq 'original') { $original++ }
+                    elseif ((Sha $file) -eq $entry.source_sha256) { $original++ }
+                    else { $localized++ }
+                } else {
+                    if ((Get-Item -LiteralPath $file).Length -ne $entry.size) { return '版本不匹配' }
+                    $hash = Sha $file
+                    if ($hash -eq $entry.source_sha256) { $original++ }
+                    elseif ($hash -eq $entry.target_sha256) { $localized++ }
+                    else { return '版本不匹配' }
+                }
             } else {
                 $relState = Get-RelocatedPackState $file $item
                 if ($relState -eq 'Original') { $original++ }
@@ -503,15 +560,7 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
         $dataName = if ($d.Id -in @('tw_game', 'tw_deblur')) { 'AzurPromilia_Data' } else { 'AzurPromiliaJP_Data' }
         $dataRoot = Install-Child $root $dataName
         $plan = $gamePlans[$d.Id]
-        $backupName = if ($d.Id -eq 'jp_deblur') {
-            '.jp-deblur-1.0.2-backup'
-        } elseif ($d.Id -eq 'tw_deblur') {
-            '.tw-deblur-3221746-backup'
-        } elseif ($script:Language -eq 'zhcn') {
-            if ($d.Id -eq 'tw_game') { '.zhcn-crc-readonly-3221745-backup' } else { '.zhcn-jp-crc-readonly-3219598-backup' }
-        } else {
-            if ($d.Id -eq 'tw_game') { ".$($script:Language)-crc-readonly-3221745-backup" } else { ".$($script:Language)-jp-crc-readonly-3219598-backup" }
-        }
+        $backupName = Get-ModuleBackupDirName $d.Id $plan
         $backupRoot = Join-Path $root $backupName
 
         $ctx = $null
@@ -525,19 +574,43 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
             $ctx = [PSCustomObject]@{ ActiveGuards = @($plan.readonly_files); Items = $fallbackItems; HotfixVersions = @() }
         }
 
-        $bkTotal = @($ctx.Items).Count
+        $orderedStatusItems = @(
+            @($ctx.Items | Where-Object { -not ($_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry)) }) +
+            @($ctx.Items | Where-Object { $_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry) })
+        )
+        $statusManifestStates = @{}
+        $bkTotal = @($orderedStatusItems).Count
         $bkOk = 0; $bkBad = 0
-        foreach ($item in $ctx.Items) {
+        foreach ($item in $orderedStatusItems) {
             $state = '无法读取'
             try {
                 $file = Install-Child $dataRoot $item.TargetRelativePath
+                $bkFile = Install-Child $backupRoot $item.TargetRelativePath
                 if (-not [IO.File]::Exists($file)) { $state = '缺少文件' }
                 elseif ($item.Mode -eq 'ExactFile') {
                     $e = $item.Entry
-                    $hash = Sha $file
-                    if ($hash -eq $e.target_sha256) { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
-                    elseif ($hash -eq $e.source_sha256) { $state = '原版' }
-                    else { $state = '版本不匹配' }
+                    if (Test-HasManifestRanges $e) {
+                        $bytes = [IO.File]::ReadAllBytes($file)
+                        if ($bytes.Length -ne $e.size) { $state = '版本不匹配' }
+                        elseif (Test-ManifestRanges $bytes $e.manifest_ranges) { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' }; $statusManifestStates[$e.relative_path] = 'localized' }
+                        elseif ((Sha $file) -eq $e.source_sha256) { $state = '原版'; $statusManifestStates[$e.relative_path] = 'original' }
+                        elseif ([IO.File]::Exists($bkFile) -and (Test-ManifestRanges $bytes $e.manifest_ranges ([IO.File]::ReadAllBytes($bkFile)))) { $state = '原版'; $statusManifestStates[$e.relative_path] = 'original' }
+                        elseif (-not [IO.File]::Exists($bkFile)) { $state = '原版'; $statusManifestStates[$e.relative_path] = 'original' }
+                        else { $state = '版本不匹配' }
+                    } elseif (Test-IsManifestHash $e) {
+                        $expectedMd5 = Get-ManifestHashBytes $dataRoot ([string]$e.manifest_hash_for)
+                        $actualBytes = [IO.File]::ReadAllBytes($file)
+                        if (-not (Test-BytesEqual $actualBytes $expectedMd5)) { $state = '版本不匹配' }
+                        elseif ($statusManifestStates[$e.manifest_hash_for] -eq 'localized') { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
+                        elseif ($statusManifestStates[$e.manifest_hash_for] -eq 'original') { $state = '原版' }
+                        elseif ((Sha $file) -eq $e.source_sha256) { $state = '原版' }
+                        else { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
+                    } else {
+                        $hash = Sha $file
+                        if ($hash -eq $e.target_sha256) { $state = if ($d.Id -in $DeblurDefinitions.Id) { '已反虚化' } else { '已汉化' } }
+                        elseif ($hash -eq $e.source_sha256) { $state = '原版' }
+                        else { $state = '版本不匹配' }
+                    }
                 } else {
                     $relState = Get-RelocatedPackState $file $item
                     if ($relState -eq 'Localized') { $state = ('已汉化（热更 ' + $item.ManifestVersion + '）') }
@@ -552,7 +625,13 @@ function Show-FileStatus($Items, [hashtable]$Locations) {
                 $bkFile = Install-Child $backupRoot $item.TargetRelativePath
                 if ($item.Mode -eq 'ExactFile') {
                     if ([IO.File]::Exists($bkFile)) {
-                        if ((Sha $bkFile) -eq $item.Entry.source_sha256) { $bkOk++ } else { $bkBad++ }
+                        $e = $item.Entry
+                        if (Test-HasManifestRanges $e) {
+                            $bkB = [IO.File]::ReadAllBytes($bkFile)
+                            if ($bkB.Length -eq $e.size -and ((Sha $bkFile) -eq $e.source_sha256 -or -not (Test-ManifestRanges $bkB $e.manifest_ranges))) { $bkOk++ } else { $bkBad++ }
+                        } elseif (Test-IsManifestHash $e) {
+                            if ((Get-Item -LiteralPath $bkFile).Length -eq 32) { $bkOk++ } else { $bkBad++ }
+                        } elseif ((Sha $bkFile) -eq $e.source_sha256) { $bkOk++ } else { $bkBad++ }
                     }
                 } else {
                     if ([IO.File]::Exists($bkFile)) {
@@ -744,8 +823,12 @@ try {
         Write-Host '  6. 完整校验（含分段与整包 CRC32）'
         Write-Host '  7. 手动添加/修改安装目录 (Lưu vào tools/安装路径.json)'
         if (Is-ModuleReady ($DeblurDefinitions[0])) {
-            Write-Host '  8. 日服反虚化 / BẬT Bỏ làm mờ JP (1.0.2 - Mặc định tắt)'
+            Write-Host '  8. 日服反虚化 / BẬT Bỏ làm mờ JP (Mặc định tắt)'
             Write-Host '  9. 还原日服反虚化 / TẮT Bỏ làm mờ JP'
+        }
+        if (Is-ModuleReady ($DeblurDefinitions[1])) {
+            Write-Host '  10. 台服反虚化 / BẬT Bỏ làm mờ TW (Mặc định tắt)'
+            Write-Host '  11. 还原台服反虚化 / TẮT Bỏ làm mờ TW'
         }
         Write-Host '  Q. 退出 / Thoát'
     } else {

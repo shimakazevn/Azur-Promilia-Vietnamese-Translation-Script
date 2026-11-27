@@ -1,14 +1,14 @@
-# Azur Promilia — Việt Hóa (JP PC `3273853` & Android `3273851`)
+# Azur Promilia — Việt Hóa (JP PC `3273853`, TW PC `3273850` & Android `3273851`)
 
-Fork Việt hóa & đa ngôn ngữ từ [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script).
+Fork Việt hóa & đa ngôn ngữ từ [xiayuan0817/Azur-Promilia-Chinese-Translation-Script](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script) (tương thích `v6.1`).
 
-> **Lưu ý an toàn:** Không chỉnh sửa hay ký lại APK gốc hay tệp thực thi `.exe`/`.dll`. Tất cả file `.r` Việt hóa và gói **Bỏ làm mờ (Deblur)** đều bảo toàn dung lượng và mã kiểm tra CRC32 gốc. Dự án chưa kiểm thử chống gian lận — nếu gặp lỗi đăng nhập, hãy bấm **Khôi phục bản gốc**.
+> **Lưu ý an toàn:** Không chỉnh sửa hay ký lại APK gốc hay tệp thực thi `.exe`/`.dll`. Tất cả file `.r` Việt hóa và gói **Bỏ làm mờ (Deblur)** đều bảo toàn dung lượng và mã kiểm tra CRC32 gốc (hoặc ghép `manifest_ranges` rời rạc chuẩn YooAsset cho bản TW). Dự án chưa kiểm thử chống gian lận — nếu gặp lỗi đăng nhập, hãy bấm **Khôi phục bản gốc**.
 
 ## Trạng thái các bản dịch
 
 | Ngôn ngữ | Trạng thái | Tải về & Chi tiết |
 |---|---|---|
-| `vi` — Tiếng Việt | ✅ Đã phát hành (JP PC `3273853` + Launcher `1.8.1` + **Android `3273851`** + **Bỏ làm mờ PC** + **Mod Đồ Họa Performance Mobile**) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest) (`AzurPromilia-VI-Setup.exe`, `AzurPromilia-VI-Mobile.apk`, gói Offline PC & Android) |
+| `vi` — Tiếng Việt | ✅ Đã phát hành (JP PC `3273853` + Launcher `1.8.1`, **TW PC `3273850`**, **Android `3273851`**, **Bỏ làm mờ JP/TW**, **Mod Đồ Họa Performance Mobile**) | Có trong [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest) (`AzurPromilia-VI-Setup.exe`, `AzurPromilia-VI-Mobile.apk`, gói Offline JP / TW / Android) |
 | `zhcn` — 简体中文 | 🌏 Nguyên bản từ repo gốc (TW/JP + Deblur) | Tải gói gốc tại [Releases của xiayuan0817](https://github.com/xiayuan0817/Azur-Promilia-Chinese-Translation-Script/releases) |
 | `en` — English | 🛠️ Khung chờ (`placeholder-no-payload`) | Chưa build payload |
 
@@ -16,11 +16,13 @@ Fork Việt hóa & đa ngôn ngữ từ [xiayuan0817/Azur-Promilia-Chinese-Trans
 
 Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/latest):
 
-### A. Trên Windows PC (`AZUPRO_JP` — Resource `3273853`)
-- **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~5.2 MB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa**.
-  - Giao diện Launcher kèm ảnh động & nhạc nền chính thức Azur Promilia (có nút bật/tắt ngay trên thanh tiêu đề), tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA-256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game.
-  - **Tùy chọn Bỏ làm mờ (Deblur — Tắt làm mờ nhân vật khi zoom gần / ngước camera):** **Mặc định TẮT** để an toàn tối đa. Bạn có thể bật/tắt bất kỳ lúc nào bằng nút **`Bật / Tắt Bỏ làm mờ`** ngay trong giao diện GUI cài đặt.
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.14.zip`** (~276 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+### A. Trên Windows PC (`AZUPRO_JP` `3273853` & `AzurPromilia_TC` `3273850`)
+- **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~5.2 MB) → Mở lên → Chọn Server **Nhật (JP)** hoặc **Đài (TW)** → Chọn **Cài đặt / Cập nhật Việt hóa**.
+  - Giao diện Launcher kèm ảnh động & nhạc nền chính thức Azur Promilia (có nút bật/tắt ngay trên thanh tiêu đề), tự nhận diện `AZUPRO_JP` / `AzurPromilia_TC` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA-256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game.
+  - **Tùy chọn Bỏ làm mờ (Deblur — Tắt làm mờ nhân vật khi zoom gần / ngước camera):** **Mặc định TẮT** để an toàn tối đa. Hỗ trợ cả JP (`5` file) và TW (`7` file, ghép manifest độc lập không xung đột với Việt hóa). Bạn có thể bật/tắt bất kỳ lúc nào bằng nút **`Bật / Tắt Bỏ làm mờ`** ngay trong giao diện GUI cài đặt.
+- **Cách 2 (Bản Full Offline)**:
+  - **Server Nhật (JP):** Tải **`AzurPromilia-Localization-Full-vi-v1.0.15.zip`** (kèm gói Bỏ làm mờ JP), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+  - **Server Đài Loan (TW):** Tải **`AzurPromilia-Localization-TW-vi-v1.0.15.zip`** (kèm gói Bỏ làm mờ TW), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 ### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3273851`, Không cần Root)
 
@@ -53,18 +55,19 @@ Khi dùng bản Full ZIP offline, chạy **`双击运行.bat`** (hỗ trợ kéo
 | `3` / `4` | Cài đặt / Khôi phục từng mục |
 | `5` / `6` | Xem trạng thái file & backup / Kiểm tra CRC32 đầy đủ |
 | `7` | Thêm/sửa đường dẫn game thủ công (lưu vào `tools/安装路径.json`) |
-| `8` / `9` | **BẬT / TẮT Bỏ làm mờ JP (`1.0.2`, mặc định tắt)** |
+| `8` / `9` | **BẬT / TẮT Bỏ làm mờ JP (`5` file, mặc định tắt)** |
+| `10` / `11` | **BẬT / TẮT Bỏ làm mờ TW (`7` file, mặc định tắt)** |
 
 ## 资源基线与启动器版本 / Phiên bản gốc hỗ trợ
 
 | Mục | Phiên bản |
 |---|---|
-| JP PC Game (`AZUPRO_JP`) | Resource `3273853`, Builtin `3075915` (Deblur: `1.0.2`) |
+| JP PC Game (`AZUPRO_JP`) | Resource `3273853`, Builtin `3075915` (Deblur: 5 files) |
+| TW PC Game (`AzurPromilia_TC`) | Resource `3273850`, Builtin `3060618` (VI + Deblur: 7 files) |
 | JP Android Game (`com.Yostar.AzurpromiliaJP`) | Resource `3273851`, Builtin `2929638` |
 | JP Launcher (`AZUPRO_JP_Gamelauncher`) | `1.8.1` |
-| TW Game / Launcher | Resource `3221745` (`zhcn`), Launcher `1.0.1.4` |
 
 ## Phát triển & Tự build
 - Chi tiết thuật toán CRC32, bộ giải mã (`CRC工具/resource_decode/` gồm `nofog.py`, `decode_mmap.py`, `reencrypt_bundle.py`) và kiểm thử tự động nằm trong [tools/README.md](tools/README.md) và `tests/run_tests.py`.
-- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.14 --language vi`
+- Đóng gói release Việt hóa: `python build_release.py --payload payload-vi --version v1.0.15 --language vi`
 - Báo lỗi tại [Issues](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/issues). Mã nguồn theo giấy phép [LICENSE](LICENSE) (Apache 2.0).

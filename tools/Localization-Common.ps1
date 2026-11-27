@@ -800,6 +800,7 @@ function Assert-ProcessesStopped(
 
 function Assert-AllowedGameRelative([string]$Relative) {
     if ($Relative -eq 'resources.assets') { return }
+    if ($Relative -match '^\.res/(?:raw_base_package|raw_streaming_package|default_package)/ManifestFiles/0release_(?:raw_base_package|raw_streaming_package|default_package)_\d+\.(?:bytes|hash)$') { return }
     if ($Relative -notmatch '^(?:\.res/(?:raw_base_package|raw_streaming_package|default_package)/BundleFiles|StreamingAssets/\.res/(?:default_package|static_package))/[a-z0-9]+\.r$') {
         throw "不允许写入：$Relative"
     }
@@ -836,6 +837,111 @@ function Test-PreviousGameResourceHash($Entry, [string]$Hash) {
     if ($Entry.relative_path -ne 'resources.assets') { return $false }
     if ($Entry.PSObject.Properties.Name -notcontains 'previous_sha256') { return $false }
     return ($Hash -in @($Entry.previous_sha256))
+}
+
+function Test-HasManifestRanges($Entry) {
+    return ($null -ne $Entry -and ($Entry.PSObject.Properties.Name -contains 'manifest_ranges') -and $null -ne $Entry.manifest_ranges -and @($Entry.manifest_ranges).Count -gt 0)
+}
+
+function Test-IsManifestHash($Entry) {
+    return ($null -ne $Entry -and ($Entry.PSObject.Properties.Name -contains 'manifest_hash_for') -and -not [string]::IsNullOrWhiteSpace([string]$Entry.manifest_hash_for))
+}
+
+function Convert-HexToBytes([string]$Hex) {
+    if ([string]::IsNullOrEmpty($Hex) -or ($Hex.Length % 2) -ne 0) {
+        throw "Manifest range hex 无效：$Hex"
+    }
+    $out = New-Object 'byte[]' ($Hex.Length / 2)
+    for ($i = 0; $i -lt $out.Length; $i++) {
+        $out[$i] = [Convert]::ToByte($Hex.Substring($i * 2, 2), 16)
+    }
+    return ,$out
+}
+
+function Test-ManifestRanges([byte[]]$Bytes, $Ranges, [byte[]]$Reference = $null) {
+    if ($null -eq $Bytes) { return $false }
+    foreach ($r in @($Ranges)) {
+        $off = [int]$r.offset
+        $len = [int]$r.length
+        if ($off -lt 0 -or $len -le 0 -or ($off + $len) -gt $Bytes.Length) { return $false }
+        if ($null -ne $Reference) {
+            if (($off + $len) -gt $Reference.Length) { return $false }
+            for ($i = 0; $i -lt $len; $i++) {
+                if ($Bytes[$off + $i] -ne $Reference[$off + $i]) { return $false }
+            }
+        } else {
+            $expected = Convert-HexToBytes ([string]$r.target_hex)
+            if ($expected.Length -ne $len) { return $false }
+            for ($i = 0; $i -lt $len; $i++) {
+                if ($Bytes[$off + $i] -ne $expected[$i]) { return $false }
+            }
+        }
+    }
+    return $true
+}
+
+function Apply-ManifestRangesToBytes([byte[]]$TargetBytes, $Ranges, [byte[]]$RestoreFrom = $null) {
+    $out = New-Object 'byte[]' $TargetBytes.Length
+    [Buffer]::BlockCopy($TargetBytes, 0, $out, 0, $TargetBytes.Length)
+    foreach ($r in @($Ranges)) {
+        $off = [int]$r.offset
+        $len = [int]$r.length
+        if ($off -lt 0 -or $len -le 0 -or ($off + $len) -gt $out.Length) {
+            throw "Manifest 补丁范围越界：offset=$off, length=$len"
+        }
+        if ($null -ne $RestoreFrom) {
+            if (($off + $len) -gt $RestoreFrom.Length) {
+                throw "原版 Manifest 备份长度不匹配：offset=$off, length=$len"
+            }
+            [Buffer]::BlockCopy($RestoreFrom, $off, $out, $off, $len)
+        } else {
+            $patch = Convert-HexToBytes ([string]$r.target_hex)
+            if ($patch.Length -ne $len) {
+                throw "Manifest 补丁 hex 长度不匹配：offset=$off, length=$len"
+            }
+            [Buffer]::BlockCopy($patch, 0, $out, $off, $len)
+        }
+    }
+    return ,$out
+}
+
+function Get-ManifestHashBytes([string]$DataDir, [string]$ManifestRelative) {
+    $mfPath = Resolve-SafeChild $DataDir $ManifestRelative
+    if (-not [IO.File]::Exists($mfPath)) {
+        throw "缺少对应清单文件：$ManifestRelative"
+    }
+    $bytes = [IO.File]::ReadAllBytes($mfPath)
+    $md5 = [Security.Cryptography.MD5]::Create()
+    try {
+        $digest = $md5.ComputeHash($bytes)
+    } finally {
+        $md5.Dispose()
+    }
+    $hex = ([BitConverter]::ToString($digest) -replace '-', '').ToLowerInvariant()
+    return ,([Text.Encoding]::ASCII.GetBytes($hex))
+}
+
+function Test-BytesEqual([byte[]]$A, [byte[]]$B) {
+    if ($null -eq $A -or $null -eq $B -or $A.Length -ne $B.Length) { return $false }
+    for ($i = 0; $i -lt $A.Length; $i++) {
+        if ($A[$i] -ne $B[$i]) { return $false }
+    }
+    return $true
+}
+
+function Replace-BytesVerified([byte[]]$Content, [string]$Target, [string]$ExpectedSha = $null) {
+    $temp = $Target + '.crc-zhcn-stage-' + [Guid]::NewGuid().ToString('N')
+    try {
+        [IO.File]::WriteAllBytes($temp, $Content)
+        if ($ExpectedSha -and (Get-FileSha256 $temp) -ne $ExpectedSha) {
+            throw "暂存文件校验失败：$Target"
+        }
+        [IO.File]::Replace($temp, $Target, [System.Management.Automation.Language.NullString]::Value)
+    } finally {
+        if ([IO.File]::Exists($temp)) {
+            try { [IO.File]::Delete($temp) } catch {}
+        }
+    }
 }
 
 function Assert-GameResource([string]$Path, $Entry, [bool]$Patched) {
@@ -952,6 +1058,7 @@ function Get-RelocatedPackState([string]$Path, $Item) {
 }
 
 function Test-PreserveExternalGameResource($Entry, [string]$DataDir) {
+    if ((Test-HasManifestRanges $Entry) -or (Test-IsManifestHash $Entry)) { return $false }
     if (-not $Entry.preserve_external_changes) { return $false }
     $file = Resolve-SafeChild $DataDir $Entry.relative_path
     if (-not [IO.File]::Exists($file)) { return $false }
@@ -1241,7 +1348,14 @@ function Invoke-GameCRCZH {
             throw "补丁载荷目录不存在：$payloadRoot（请下载 Releases 完整包，勿直接下载源码 ZIP）"
         }
         foreach ($e in $plan.files) {
-            Assert-GameResource (Resolve-SafeChild $payloadRoot $e.relative_path) $e $true
+            $payFile = Resolve-SafeChild $payloadRoot $e.relative_path
+            Assert-GameResource $payFile $e $true
+            if (Test-HasManifestRanges $e) {
+                $payBytes = [IO.File]::ReadAllBytes($payFile)
+                if (-not (Test-ManifestRanges $payBytes $e.manifest_ranges)) {
+                    throw "Manifest 补丁范围校验失败：$($e.relative_path)"
+                }
+            }
             Write-Host ('载荷通过：' + $e.relative_path)
         }
         Write-Host '全部载荷通过：大小、SHA256、整包 CRC、全部段 CRC。' -ForegroundColor Green
@@ -1281,7 +1395,12 @@ function Invoke-GameCRCZH {
     Assert-NoReparse $root
     $data = Join-Path $root $Config.DataDirName
     Assert-NoReparse $data
-    $backup = Join-Path $root $Config.BackupDirName
+    $backupDirName = if (($plan.PSObject.Properties.Name -contains 'backup_dir') -and -not [string]::IsNullOrWhiteSpace([string]$plan.backup_dir)) {
+        [string]$plan.backup_dir
+    } else {
+        $Config.BackupDirName
+    }
+    $backup = Join-Path $root $backupDirName
 
     if ($Action -eq 'Menu') {
         Write-Host "$($Config.MenuTitle)`n$root"
@@ -1311,17 +1430,57 @@ function Invoke-GameCRCZH {
 
     & $assertGuards
 
+    $orderedItems = @(
+        @($ctx.Items | Where-Object { -not ($_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry)) }) +
+        @($ctx.Items | Where-Object { $_.Mode -eq 'ExactFile' -and (Test-IsManifestHash $_.Entry) })
+    )
+
     if ($Action -eq 'Verify') {
-        foreach ($item in $ctx.Items) {
+        $manifestStates = @{}
+        foreach ($item in $orderedItems) {
             if ($item.Mode -eq 'ExactFile') {
                 $e = $item.Entry
                 $p = Resolve-SafeChild $data $e.relative_path
                 if (-not [IO.File]::Exists($p)) { throw "文件缺失：$($e.relative_path)" }
-                $hash = Get-FileSha256 $p
-                if ($hash -eq $e.target_sha256) { Assert-GameResource $p $e $true; $state = '汉化' }
-                elseif ($hash -eq $e.source_sha256) { Assert-GameResource $p $e $false; $state = '原版' }
-                elseif ((Test-PreviousGameResourceHash $e $hash) -and (Get-Item -LiteralPath $p).Length -eq [long]$e.size) { $state = '旧版汉化（需更新）' }
-                else { throw "文件既非原版也非本版汉化：$($e.relative_path)" }
+                if (Test-HasManifestRanges $e) {
+                    if ((Get-Item -LiteralPath $p).Length -ne [long]$e.size) { throw "文件大小不匹配：$($e.relative_path)" }
+                    $bytes = [IO.File]::ReadAllBytes($p)
+                    $bk = Resolve-SafeChild $backup $e.relative_path
+                    if (Test-ManifestRanges $bytes $e.manifest_ranges) {
+                        $state = '汉化'
+                    } elseif ((Get-FileSha256 $p) -eq $e.source_sha256) {
+                        $state = '原版'
+                    } elseif ([IO.File]::Exists($bk)) {
+                        $bkBytes = [IO.File]::ReadAllBytes($bk)
+                        if ($bkBytes.Length -eq [long]$e.size -and (Test-ManifestRanges $bytes $e.manifest_ranges $bkBytes)) {
+                            $state = '原版'
+                        } else {
+                            throw "文件既非原版也非本版汉化：$($e.relative_path)"
+                        }
+                    } else {
+                        $state = '原版'
+                    }
+                    $manifestStates[$e.relative_path] = $state
+                } elseif (Test-IsManifestHash $e) {
+                    $expectedMd5 = Get-ManifestHashBytes $data ([string]$e.manifest_hash_for)
+                    $actualBytes = [IO.File]::ReadAllBytes($p)
+                    if (-not (Test-BytesEqual $actualBytes $expectedMd5)) {
+                        throw "文件既非原版也非本版汉化：$($e.relative_path)"
+                    }
+                    if ($manifestStates.ContainsKey([string]$e.manifest_hash_for)) {
+                        $state = $manifestStates[[string]$e.manifest_hash_for]
+                    } elseif ((Get-FileSha256 $p) -eq $e.source_sha256) {
+                        $state = '原版'
+                    } else {
+                        $state = '汉化'
+                    }
+                } else {
+                    $hash = Get-FileSha256 $p
+                    if ($hash -eq $e.target_sha256) { Assert-GameResource $p $e $true; $state = '汉化' }
+                    elseif ($hash -eq $e.source_sha256) { Assert-GameResource $p $e $false; $state = '原版' }
+                    elseif ((Test-PreviousGameResourceHash $e $hash) -and (Get-Item -LiteralPath $p).Length -eq [long]$e.size) { $state = '旧版汉化（需更新）' }
+                    else { throw "文件既非原版也非本版汉化：$($e.relative_path)" }
+                }
                 Write-Host ("通过 [$state] " + $e.relative_path)
             } else {
                 $p = Resolve-SafeChild $data $item.TargetRelativePath
@@ -1351,15 +1510,123 @@ function Invoke-GameCRCZH {
     $needBackupBytes = [long]0
     $maxSingleStageBytes = [long]0
     $needSnapBytes = [long]0
+    $plannedManifestTargets = @{}
 
-    foreach ($item in $ctx.Items) {
+    foreach ($item in $orderedItems) {
         if ($item.Mode -eq 'ExactFile') {
             $e = $item.Entry
             $p = Resolve-SafeChild $data $e.relative_path
             if (-not [IO.File]::Exists($p)) { throw "游戏文件缺失：$($e.relative_path)" }
             $h = Get-FileSha256 $p
             $bk = Resolve-SafeChild $backup $e.relative_path
-            $hasViEnBackup = ($Config.Region -eq 'jp' -and ($Config.BackupDirName -match '^\.(?:vi|en)-') -and [IO.File]::Exists($bk) -and ((Get-FileSha256 $bk) -eq $e.source_sha256))
+            if (Test-HasManifestRanges $e) {
+                $actualLen = (Get-Item -LiteralPath $p).Length
+                if ($actualLen -ne [long]$e.size) { throw "文件大小不匹配：$($e.relative_path)" }
+                $curBytes = [IO.File]::ReadAllBytes($p)
+                $inTarget = Test-ManifestRanges $curBytes $e.manifest_ranges
+                $bkBytes = $null
+                if ([IO.File]::Exists($bk)) {
+                    $bkBytes = [IO.File]::ReadAllBytes($bk)
+                    $bkOk = ($bkBytes.Length -eq [long]$e.size) -and (((Get-FileSha256 $bk) -eq $e.source_sha256) -or -not (Test-ManifestRanges $bkBytes $e.manifest_ranges))
+                    if (-not $bkOk) { throw "原版备份不匹配：$bk" }
+                }
+                $needsNewBackup = $false
+                if ($Action -eq 'Apply') {
+                    $src = Resolve-SafeChild $payloadRoot $e.relative_path
+                    Assert-GameResource $src $e $true
+                    if (-not [IO.File]::Exists($bk)) {
+                        if ($inTarget) { throw "缺少原版备份：$($e.relative_path)" }
+                        $needsNewBackup = $true
+                        $needBackupBytes += [long]$e.size
+                    } elseif (-not $inTarget -and -not (Test-ManifestRanges $curBytes $e.manifest_ranges $bkBytes)) {
+                        throw "文件版本不匹配：$($e.relative_path)"
+                    }
+                    if ($inTarget) { continue }
+                } else {
+                    if ($h -eq $e.source_sha256) { continue }
+                    if ([IO.File]::Exists($bk)) {
+                        if (Test-ManifestRanges $curBytes $e.manifest_ranges $bkBytes) { continue }
+                    } else {
+                        if (-not $inTarget) { continue }
+                        throw "缺少原版备份：$($e.relative_path)"
+                    }
+                    $src = $bk
+                }
+                if ([long]$e.size -gt $maxSingleStageBytes) { $maxSingleStageBytes = [long]$e.size }
+                $reuseBackupAsSnap = ($Action -eq 'Apply' -and $needsNewBackup)
+                if (-not $reuseBackupAsSnap) { $needSnapBytes += [long]$e.size }
+                $plannedManifestTargets[$e.relative_path] = $true
+                $todo.Add([PSCustomObject]@{
+                    WriteKind         = 'ManifestRanges'
+                    Item              = $item
+                    Entry             = $e
+                    RelativePath      = $e.relative_path
+                    Target            = $p
+                    Source            = $src
+                    Expected          = $null
+                    ExpectedBackupSha = $h
+                    Before            = $h
+                    Backup            = $bk
+                    NeedsNewBackup    = $needsNewBackup
+                    ReuseBackupAsSnap = $reuseBackupAsSnap
+                    Snap              = $null
+                    DonorPaths        = $null
+                    TargetOffsets     = $null
+                    DonorOffsets      = $null
+                    Sizes             = $null
+                    ExpectedState     = $null
+                })
+                continue
+            }
+            if (Test-IsManifestHash $e) {
+                $actualLen = (Get-Item -LiteralPath $p).Length
+                if ($actualLen -ne 32 -and $actualLen -ne [long]$e.size) { throw "文件大小不匹配：$($e.relative_path)" }
+                $needsNewBackup = $false
+                if ($Action -eq 'Apply') {
+                    $src = Resolve-SafeChild $payloadRoot $e.relative_path
+                    Assert-GameResource $src $e $true
+                    if (-not [IO.File]::Exists($bk)) {
+                        $needsNewBackup = $true
+                        $needBackupBytes += 32
+                    } elseif ((Get-Item -LiteralPath $bk).Length -ne 32) {
+                        throw "原版备份不匹配：$bk"
+                    }
+                } else {
+                    if ($h -eq $e.source_sha256 -and -not $plannedManifestTargets.ContainsKey([string]$e.manifest_hash_for)) { continue }
+                    $src = $bk
+                }
+                $needUpdate = $plannedManifestTargets.ContainsKey([string]$e.manifest_hash_for)
+                if (-not $needUpdate) {
+                    $curHashBytes = [IO.File]::ReadAllBytes($p)
+                    $expectedMd5 = Get-ManifestHashBytes $data ([string]$e.manifest_hash_for)
+                    if (Test-BytesEqual $curHashBytes $expectedMd5) { continue }
+                }
+                if (32 -gt $maxSingleStageBytes) { $maxSingleStageBytes = 32 }
+                $reuseBackupAsSnap = ($Action -eq 'Apply' -and $needsNewBackup)
+                if (-not $reuseBackupAsSnap) { $needSnapBytes += 32 }
+                $todo.Add([PSCustomObject]@{
+                    WriteKind         = 'ManifestHash'
+                    Item              = $item
+                    Entry             = $e
+                    RelativePath      = $e.relative_path
+                    Target            = $p
+                    Source            = $src
+                    Expected          = $null
+                    ExpectedBackupSha = $h
+                    Before            = $h
+                    Backup            = $bk
+                    NeedsNewBackup    = $needsNewBackup
+                    ReuseBackupAsSnap = $reuseBackupAsSnap
+                    Snap              = $null
+                    DonorPaths        = $null
+                    TargetOffsets     = $null
+                    DonorOffsets      = $null
+                    Sizes             = $null
+                    ExpectedState     = $null
+                })
+                continue
+            }
+            $hasViEnBackup = ($Config.Region -eq 'jp' -and ($backupDirName -match '^\.(?:vi|en)-') -and [IO.File]::Exists($bk) -and ((Get-FileSha256 $bk) -eq $e.source_sha256))
             if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256 -and -not $hasViEnBackup -and
                 -not ((Test-PreviousGameResourceHash $e $h) -and (Get-Item -LiteralPath $p).Length -eq [long]$e.size)) {
                 throw "文件版本不匹配：$($e.relative_path)"
@@ -1580,6 +1847,34 @@ function Invoke-GameCRCZH {
                     Replace-FileVerified $w.Source $w.Target $w.Expected
                     $done.Add($w)
                     Assert-GameResource $w.Target $w.Entry ($Action -eq 'Apply')
+                } elseif ($w.WriteKind -eq 'ManifestRanges') {
+                    $curTargetBytes = [IO.File]::ReadAllBytes($w.Target)
+                    if ($Action -eq 'Apply') {
+                        $mergedBytes = Apply-ManifestRangesToBytes $curTargetBytes $w.Entry.manifest_ranges
+                        Replace-BytesVerified $mergedBytes $w.Target
+                        $done.Add($w)
+                        $checkBytes = [IO.File]::ReadAllBytes($w.Target)
+                        if (-not (Test-ManifestRanges $checkBytes $w.Entry.manifest_ranges)) {
+                            throw "写入后 Manifest 范围校验失败：$($w.RelativePath)"
+                        }
+                    } else {
+                        $restoreBytes = [IO.File]::ReadAllBytes($w.Source)
+                        $mergedBytes = Apply-ManifestRangesToBytes $curTargetBytes $w.Entry.manifest_ranges $restoreBytes
+                        Replace-BytesVerified $mergedBytes $w.Target
+                        $done.Add($w)
+                        $checkBytes = [IO.File]::ReadAllBytes($w.Target)
+                        if (-not (Test-ManifestRanges $checkBytes $w.Entry.manifest_ranges $restoreBytes)) {
+                            throw "还原后 Manifest 范围校验失败：$($w.RelativePath)"
+                        }
+                    }
+                } elseif ($w.WriteKind -eq 'ManifestHash') {
+                    $expectedMd5 = Get-ManifestHashBytes $data ([string]$w.Entry.manifest_hash_for)
+                    Replace-BytesVerified $expectedMd5 $w.Target
+                    $done.Add($w)
+                    $checkBytes = [IO.File]::ReadAllBytes($w.Target)
+                    if (-not (Test-BytesEqual $checkBytes $expectedMd5)) {
+                        throw "写入后 Manifest Hash 校验失败：$($w.RelativePath)"
+                    }
                 } elseif ($w.WriteKind -eq 'RelocatedDirect') {
                     Replace-FileVerified $w.Source $w.Target $w.Expected
                     $done.Add($w)

@@ -175,13 +175,13 @@
     },
     {
       "path": "tools/Apply-TWDeblur.ps1",
-      "size": 1947,
-      "sha256": "c16e721a4e83da010faf7ef51c9632f5ee9140a63fe3b2bd0aea92dc6fdf6e29"
+      "size": 2296,
+      "sha256": "37067e145d08728d63e7b0dacb1438aba5624f71df068c2ee7210be4ad657cc8"
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 73672,
-      "sha256": "46d57c3ceb9a8ebf9388a982c131477ec2b734086b8cdf8114ec9066e513cb0a"
+      "size": 88922,
+      "sha256": "2694d0229e90c66aec154e3eead1f83e6b2275f642838ad4423ef0b6d0119bf0"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -190,13 +190,13 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 45629,
-      "sha256": "cef10476e37c8ad2d991e2c849e251e75b560d5b10f425c17d9eb04892a2f05e"
+      "size": 51675,
+      "sha256": "2a2aed83be5006822b6e33b98cd2804c89d1fb2dfdb1e97a88c907abc699bc7a"
     },
     {
       "path": "tools/jp-deblur-deployment.json",
-      "size": 1627,
-      "sha256": "ca34aa45cdd165e12288f0f9aa0bfc0799325ba009d1aacd24e871f0ff0d175d"
+      "size": 1997,
+      "sha256": "7d065a6f6b9c55b9b264a904174320970fc6b1c35e2e7ccbb7b9f98b24b234c6"
     },
     {
       "path": "tools/jp-deployment.json",
@@ -210,8 +210,8 @@
     },
     {
       "path": "tools/tw-deblur-deployment.json",
-      "size": 256031,
-      "sha256": "0e42efa0411210700b0d16ffbee37ebc5b89fe1ac78eaaf24942e695c2728d94"
+      "size": 247760,
+      "sha256": "0bc2329e4d673507241a7359c8b91b2c14535a6cf9a518227dd9fdb26a2fa33b"
     },
     {
       "path": "tools/tw-deployment.json",

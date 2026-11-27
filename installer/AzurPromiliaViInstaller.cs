@@ -22,11 +22,11 @@ using System.Windows.Media.Imaging;
 using WF = System.Windows.Forms;
 
 [assembly: AssemblyTitle("Azur Promilia VI Installer & Auto-Updater")]
-[assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
+[assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP & TW)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.14.0")]
-[assembly: AssemblyFileVersion("1.0.14.0")]
+[assembly: AssemblyVersion("1.0.15.0")]
+[assembly: AssemblyFileVersion("1.0.15.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -36,7 +36,7 @@ namespace AzurPromiliaVIInstaller
         public const string ReleaseLatestJsonUrl = "https://github.com/" + RepoSlug + "/releases/latest/download/latest-vi.json";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.14";
+        public const string CurrentInstallerVersion = "v1.0.15";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -48,9 +48,11 @@ namespace AzurPromiliaVIInstaller
 
     internal class InstallerState
     {
+        public string selected_server = "jp";
         public string installed_version = "";
         public string jp_game_path = "";
         public string jp_launcher_path = "";
+        public string tw_game_path = "";
         public bool auto_update_on_launch = true;
         public bool enable_bgm = true;
         public bool enable_video = true;
@@ -67,6 +69,11 @@ namespace AzurPromiliaVIInstaller
         public string full_zip_url = "";
         public string full_zip_sha256 = "";
         public long full_zip_size = 0;
+        public string tw_resource_version = "";
+        public string tw_zip_name = "";
+        public string tw_zip_url = "";
+        public string tw_zip_sha256 = "";
+        public long tw_zip_size = 0;
         public string installer_url = "";
         public string installer_sha256 = "";
         public string notes = "";
@@ -297,6 +304,50 @@ namespace AzurPromiliaVIInstaller
             return "";
         }
 
+        public static string FindTwGameRoot(string hint)
+        {
+            List<string> candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(hint))
+            {
+                try
+                {
+                    string h = Path.GetFullPath(hint.Trim().Trim('"'));
+                    if (File.Exists(h)) h = Path.GetDirectoryName(h);
+                    candidates.Add(h);
+                    if (string.Equals(Path.GetFileName(h), "AzurPromilia_Data", StringComparison.OrdinalIgnoreCase))
+                        candidates.Add(Path.GetDirectoryName(h));
+                    candidates.Add(Path.Combine(h, "AzurPromilia_TC"));
+                    candidates.Add(Path.Combine(h, "AzurPromilia_TC_game"));
+                    candidates.Add(Path.Combine(h, "AzurPromilia_TC", "AzurPromilia_TC_game"));
+                }
+                catch { }
+            }
+            foreach (DriveInfo d in DriveInfo.GetDrives())
+            {
+                if (d.DriveType != DriveType.Fixed && d.DriveType != DriveType.Removable) continue;
+                string root = d.RootDirectory.FullName;
+                candidates.Add(Path.Combine(root, "AzurPromilia_TC", "AzurPromilia_TC_game"));
+                candidates.Add(Path.Combine(root, "AzurPromilia_TC"));
+                candidates.Add(Path.Combine(root, "Games", "AzurPromilia_TC", "AzurPromilia_TC_game"));
+                candidates.Add(Path.Combine(root, "Games", "AzurPromilia_TC"));
+                candidates.Add(Path.Combine(root, "Game", "AzurPromilia_TC", "AzurPromilia_TC_game"));
+                candidates.Add(Path.Combine(root, "Game", "AzurPromilia_TC"));
+                candidates.Add(Path.Combine(root, "AzurPromilia_TC_game"));
+                candidates.Add(Path.Combine(root, "AzurPromilia"));
+            }
+            foreach (string c in candidates)
+            {
+                try
+                {
+                    if (File.Exists(Path.Combine(c, "AzurPromilia.exe")) &&
+                        Directory.Exists(Path.Combine(c, "AzurPromilia_Data")))
+                        return Path.GetFullPath(c);
+                }
+                catch { }
+            }
+            return "";
+        }
+
         public static string FindJpLauncherRoot(string hint, string gameRoot)
         {
             List<string> candidates = new List<string>();
@@ -368,7 +419,21 @@ namespace AzurPromiliaVIInstaller
             return "";
         }
 
-        public static string FindPayloadPackRoot(out string detectedVersion)
+        public static bool IsValidPackRoot(string dir, bool tw)
+        {
+            if (string.IsNullOrEmpty(dir)) return false;
+            if (tw)
+            {
+                return File.Exists(Path.Combine(dir, "tools", "Apply-CRCZH.ps1")) &&
+                       File.Exists(Path.Combine(dir, "tools", "tw-deployment-vi.json")) &&
+                       File.Exists(Path.Combine(dir, "payload-vi", "tw_game", "resources.assets"));
+            }
+            return File.Exists(Path.Combine(dir, "tools", "Apply-JPCRCZH.ps1")) &&
+                   File.Exists(Path.Combine(dir, "tools", "jp-deployment-vi.json")) &&
+                   File.Exists(Path.Combine(dir, "payload-vi", "jp_game", "resources.assets"));
+        }
+
+        public static string FindPayloadPackRoot(out string detectedVersion, bool tw = false)
         {
             detectedVersion = "";
             string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -388,9 +453,7 @@ namespace AzurPromiliaVIInstaller
             foreach (string c in candidates)
             {
                 if (string.IsNullOrEmpty(c)) continue;
-                if (File.Exists(Path.Combine(c, "tools", "Apply-JPCRCZH.ps1")) &&
-                    File.Exists(Path.Combine(c, "tools", "jp-deployment-vi.json")) &&
-                    File.Exists(Path.Combine(c, "payload-vi", "jp_game", "resources.assets")))
+                if (IsValidPackRoot(c, tw))
                 {
                     detectedVersion = DetectVersionInDir(c, exeDir);
                     return Path.GetFullPath(c);
@@ -399,8 +462,7 @@ namespace AzurPromiliaVIInstaller
                 {
                     foreach (string sub in Directory.GetDirectories(c))
                     {
-                        if (File.Exists(Path.Combine(sub, "tools", "Apply-JPCRCZH.ps1")) &&
-                            File.Exists(Path.Combine(sub, "payload-vi", "jp_game", "resources.assets")))
+                        if (IsValidPackRoot(sub, tw))
                         {
                             detectedVersion = DetectVersionInDir(sub, exeDir);
                             return Path.GetFullPath(sub);
@@ -412,39 +474,166 @@ namespace AzurPromiliaVIInstaller
             return "";
         }
 
-        public static string CheckGameStatus(string packRoot, string gameRoot)
+        private static byte[] HexToBytesCSharp(string hex)
         {
-            if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(Path.Combine(gameRoot, "AzurPromiliaJP_Data")))
+            if (string.IsNullOrEmpty(hex) || (hex.Length % 2) != 0) return null;
+            byte[] res = new byte[hex.Length / 2];
+            for (int i = 0; i < res.Length; i++)
+                res[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            return res;
+        }
+
+        private static bool TestManifestRangesCSharp(string filePath, IEnumerable ranges, string referencePath = null)
+        {
+            try
+            {
+                byte[] buf = File.ReadAllBytes(filePath);
+                byte[] refBuf = !string.IsNullOrEmpty(referencePath) && File.Exists(referencePath) ? File.ReadAllBytes(referencePath) : null;
+                if (refBuf != null && refBuf.Length != buf.Length) return false;
+                foreach (Dictionary<string, object> r in ranges)
+                {
+                    int off = Convert.ToInt32(r["offset"]);
+                    int len = Convert.ToInt32(r["length"]);
+                    if (off < 0 || len <= 0 || off + len > buf.Length) return false;
+                    if (refBuf != null)
+                    {
+                        for (int i = 0; i < len; i++)
+                            if (buf[off + i] != refBuf[off + i]) return false;
+                    }
+                    else
+                    {
+                        byte[] exp = HexToBytesCSharp(Convert.ToString(r["target_hex"]));
+                        if (exp == null || exp.Length != len) return false;
+                        for (int i = 0; i < len; i++)
+                            if (buf[off + i] != exp[i]) return false;
+                    }
+                }
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private static bool TestManifestHashCSharp(string dataRoot, string hashPath, string manifestRel)
+        {
+            try
+            {
+                string mfPath = Path.Combine(dataRoot, manifestRel.Replace('/', '\\'));
+                if (!File.Exists(mfPath) || !File.Exists(hashPath)) return false;
+                byte[] mfBytes = File.ReadAllBytes(mfPath);
+                string hex;
+                using (MD5 md5 = MD5.Create())
+                {
+                    byte[] dig = md5.ComputeHash(mfBytes);
+                    StringBuilder sb = new StringBuilder(32);
+                    for (int i = 0; i < dig.Length; i++) sb.Append(dig[i].ToString("x2"));
+                    hex = sb.ToString();
+                }
+                string actual = File.ReadAllText(hashPath, Encoding.ASCII).Trim();
+                return string.Equals(actual, hex, StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
+        }
+
+        public static string CheckGameStatus(string packRoot, string gameRoot, bool tw = false)
+        {
+            string dataDirName = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+            string planName = tw ? "tw-deployment-vi.json" : "jp-deployment-vi.json";
+            string defaultBk = tw ? ".vi-tw-3273850-backup" : ".vi-jp-crc-readonly-3219598-backup";
+            string origLabel = tw ? "Bản gốc Đài (Chưa Việt hóa)" : "Bản gốc Nhật (Chưa Việt hóa)";
+
+            if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(Path.Combine(gameRoot, dataDirName)))
                 return "Chưa tìm thấy";
-            if (string.IsNullOrEmpty(packRoot) || !File.Exists(Path.Combine(packRoot, "tools", "jp-deployment-vi.json")))
+            if (string.IsNullOrEmpty(packRoot) || !File.Exists(Path.Combine(packRoot, "tools", planName)))
                 return "Đã nhận diện thư mục (chưa có gói kiểm tra)";
             try
             {
                 var plan = Json.Deserialize<Dictionary<string, object>>(
-                    File.ReadAllText(Path.Combine(packRoot, "tools", "jp-deployment-vi.json"), Encoding.UTF8)
+                    File.ReadAllText(Path.Combine(packRoot, "tools", planName), Encoding.UTF8)
                 );
-                string dataRoot = Path.Combine(gameRoot, "AzurPromiliaJP_Data");
+                string dataRoot = Path.Combine(gameRoot, dataDirName);
+                string backupDirName = plan.ContainsKey("backup_dir") && !string.IsNullOrWhiteSpace(Convert.ToString(plan["backup_dir"]))
+                    ? Convert.ToString(plan["backup_dir"])
+                    : defaultBk;
+                string backupRoot = Path.Combine(gameRoot, backupDirName);
+
                 var guards = (IEnumerable)plan["readonly_files"];
                 foreach (Dictionary<string, object> g in guards)
                 {
+                    if (g.ContainsKey("skip_validation") && Convert.ToBoolean(g["skip_validation"])) continue;
                     string p = Path.Combine(dataRoot, ((string)g["relative_path"]).Replace('/', '\\'));
                     if (!File.Exists(p)) return "Thiếu file dữ liệu gốc";
                     if (!string.Equals(Sha256File(p), (string)g["sha256"], StringComparison.OrdinalIgnoreCase))
                         return "Game đã cập nhật phiên bản mới (chờ patch mới)";
                 }
                 var files = (ICollection)plan["files"];
-                int loc = 0, orig = 0;
+                var nonHash = new List<Dictionary<string, object>>();
+                var hashes = new List<Dictionary<string, object>>();
                 foreach (Dictionary<string, object> f in files)
                 {
-                    string p = Path.Combine(dataRoot, ((string)f["relative_path"]).Replace('/', '\\'));
-                    if (!File.Exists(p)) return "Thiếu file " + (string)f["relative_path"];
-                    string h = Sha256File(p);
-                    if (string.Equals(h, (string)f["target_sha256"], StringComparison.OrdinalIgnoreCase)) loc++;
-                    else if (string.Equals(h, (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase)) orig++;
-                    else return "File không khớp (" + Path.GetFileName(p) + ")";
+                    if (f.ContainsKey("manifest_hash_for") && !string.IsNullOrWhiteSpace(Convert.ToString(f["manifest_hash_for"])))
+                        hashes.Add(f);
+                    else
+                        nonHash.Add(f);
                 }
-                if (loc == files.Count) return "Đã cài Việt hóa (11/11)";
-                if (orig == files.Count) return "Bản gốc Nhật (Chưa Việt hóa)";
+                var ordered = new List<Dictionary<string, object>>(nonHash);
+                ordered.AddRange(hashes);
+                var rangeStates = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+                int loc = 0, orig = 0;
+                foreach (Dictionary<string, object> f in ordered)
+                {
+                    string rel = (string)f["relative_path"];
+                    string p = Path.Combine(dataRoot, rel.Replace('/', '\\'));
+                    if (!File.Exists(p)) return "Thiếu file " + rel;
+
+                    if (f.ContainsKey("manifest_ranges") && f["manifest_ranges"] is IEnumerable)
+                    {
+                        long expSize = Convert.ToInt64(f["size"]);
+                        if (new FileInfo(p).Length != expSize) return "File không khớp (" + Path.GetFileName(p) + ")";
+                        if (TestManifestRangesCSharp(p, (IEnumerable)f["manifest_ranges"]))
+                        {
+                            loc++;
+                            rangeStates[rel] = true;
+                        }
+                        else if (f.ContainsKey("source_sha256") && string.Equals(Sha256File(p), (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase))
+                        {
+                            orig++;
+                            rangeStates[rel] = false;
+                        }
+                        else
+                        {
+                            string bkPath = Path.Combine(backupRoot, rel.Replace('/', '\\'));
+                            if (File.Exists(bkPath) && !TestManifestRangesCSharp(p, (IEnumerable)f["manifest_ranges"], bkPath))
+                                return "File không khớp (" + Path.GetFileName(p) + ")";
+                            orig++;
+                            rangeStates[rel] = false;
+                        }
+                    }
+                    else if (f.ContainsKey("manifest_hash_for") && !string.IsNullOrWhiteSpace(Convert.ToString(f["manifest_hash_for"])))
+                    {
+                        string mfFor = Convert.ToString(f["manifest_hash_for"]);
+                        if (!TestManifestHashCSharp(dataRoot, p, mfFor))
+                            return "File không khớp (" + Path.GetFileName(p) + ")";
+                        bool isLoc;
+                        if (rangeStates.TryGetValue(mfFor, out isLoc))
+                        {
+                            if (isLoc) loc++; else orig++;
+                        }
+                        else if (f.ContainsKey("source_sha256") && string.Equals(Sha256File(p), (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase))
+                            orig++;
+                        else
+                            loc++;
+                    }
+                    else
+                    {
+                        string h = Sha256File(p);
+                        if (string.Equals(h, (string)f["target_sha256"], StringComparison.OrdinalIgnoreCase)) loc++;
+                        else if (string.Equals(h, (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase)) orig++;
+                        else return "File không khớp (" + Path.GetFileName(p) + ")";
+                    }
+                }
+                if (loc == files.Count) return string.Format("Đã cài Việt hóa ({0}/{1})", loc, files.Count);
+                if (orig == files.Count) return origLabel;
                 return string.Format("Cài dở dang ({0}/{1})", loc, files.Count);
             }
             catch (Exception ex)
@@ -494,56 +683,132 @@ namespace AzurPromiliaVIInstaller
             new[] { @".res\default_package\BundleFiles\35uofy8njbg1s8dfdjtvq.r", "c49e2051a93b43e064c2ff6f585f914a4152d7b564d9f0ac4b3ff904d14b3630", "cf3048e1cf461425bc2481bcbe887aaab219dc0cc4945e642b27559c48626b34" },
             new[] { @"StreamingAssets\.res\default_package\6ffhq8vxxcxhajv2smenba.r", "a6d16f6bf54574079699057abe500a394cd6d7f8cfef70c8a7ca9978ed07d5d6", "8f1e44219c451af2d16ac7aa14b5c1fb98d693bbe07e5b3668ad601523c516f1" },
             new[] { @"StreamingAssets\.res\default_package\f4izs5z5g3dowxewfbsww.r", "dfca7050aa65e6370ff22b2edb7005e28328d50b400b0854cd91032a8220cda1", "1773f99f4a9861f6fa412622664192c158b461242bacfd4c5d83c21da6e5673f" },
-            new[] { @"StreamingAssets\.res\default_package\vrvljtvqpritdz11tc6eg.r", "d0a8b601a4ea6d59c04e288ae66be25de533e8c65b97ce9c7398fe6ff9a934b1", "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac" }
+            new[] { @"StreamingAssets\.res\default_package\vrvljtvqpritdz11tc6eg.r", "d0a8b601a4ea6d59c04e288ae66be25de533e8c65b97ce9c7398fe6ff9a934b1", "0114ad665f64052168c7e5a733179cb80976aafb86f6f520f130773dc4232fac" },
+            new[] { @".res\default_package\BundleFiles\7uawq1k6nfczmxtdtothxg.r", "0f87ba9aefad3cd4204b8cdf58d941b8b1c8d4a48c720ec7d5b81221f827255e", "2934328cf14a5fe3a66d061f55024bf96acb06e3e97e01b6d513738137ccdbf1" }
         };
 
-        public static bool HasDeblurPayload(string packRoot)
+        public static bool HasDeblurPayload(string packRoot, bool tw = false)
         {
             if (string.IsNullOrEmpty(packRoot)) return false;
+            if (tw)
+            {
+                if (!File.Exists(Path.Combine(packRoot, "tools", "Apply-TWDeblur.ps1"))) return false;
+                if (!File.Exists(Path.Combine(packRoot, "tools", "tw-deblur-deployment.json"))) return false;
+                return File.Exists(Path.Combine(packRoot, "payload-vi", "tw_deblur", ".res", "default_package", "BundleFiles", "d3svzxgozq953wetzjanua.r"))
+                    || File.Exists(Path.Combine(packRoot, "payload", "tw_deblur", ".res", "default_package", "BundleFiles", "d3svzxgozq953wetzjanua.r"));
+            }
             if (!File.Exists(Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1"))) return false;
             if (!File.Exists(Path.Combine(packRoot, "tools", "jp-deblur-deployment.json"))) return false;
             return File.Exists(Path.Combine(packRoot, "payload-vi", "jp_deblur", ".res", "default_package", "BundleFiles", "35uofy8njbg1s8dfdjtvq.r"))
                 || File.Exists(Path.Combine(packRoot, "payload", "jp_deblur", ".res", "default_package", "BundleFiles", "35uofy8njbg1s8dfdjtvq.r"));
         }
 
-        public static string CheckDeblurStatus(string packRoot, string gameRoot)
+        public static string CheckDeblurStatus(string packRoot, string gameRoot, bool tw = false)
         {
-            if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(Path.Combine(gameRoot, "AzurPromiliaJP_Data")))
+            string dataDirName = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+            string planName = tw ? "tw-deblur-deployment.json" : "jp-deblur-deployment.json";
+            string defaultBk = tw ? ".tw-deblur-3273850-backup" : ".jp-deblur-1.0.2-backup";
+
+            if (string.IsNullOrEmpty(gameRoot) || !Directory.Exists(Path.Combine(gameRoot, dataDirName)))
                 return "Chưa tìm thấy";
             try
             {
-                string dataRoot = Path.Combine(gameRoot, "AzurPromiliaJP_Data");
-                var entries = new List<string[]>();
-                string planPath = !string.IsNullOrEmpty(packRoot) ? Path.Combine(packRoot, "tools", "jp-deblur-deployment.json") : "";
+                string dataRoot = Path.Combine(gameRoot, dataDirName);
+                string planPath = !string.IsNullOrEmpty(packRoot) ? Path.Combine(packRoot, "tools", planName) : "";
                 if (!string.IsNullOrEmpty(planPath) && File.Exists(planPath))
                 {
                     var plan = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(planPath, Encoding.UTF8));
-                    foreach (Dictionary<string, object> f in (IEnumerable)plan["files"])
+                    string backupDirName = plan.ContainsKey("backup_dir") && !string.IsNullOrWhiteSpace(Convert.ToString(plan["backup_dir"]))
+                        ? Convert.ToString(plan["backup_dir"])
+                        : defaultBk;
+                    string backupRoot = Path.Combine(gameRoot, backupDirName);
+
+                    var rawFiles = (ICollection)plan["files"];
+                    var nonHash = new List<Dictionary<string, object>>();
+                    var hashes = new List<Dictionary<string, object>>();
+                    foreach (Dictionary<string, object> f in rawFiles)
                     {
-                        entries.Add(new[] {
-                            ((string)f["relative_path"]).Replace('/', '\\'),
-                            (string)f["source_sha256"],
-                            (string)f["target_sha256"]
-                        });
+                        if (f.ContainsKey("manifest_hash_for") && !string.IsNullOrWhiteSpace(Convert.ToString(f["manifest_hash_for"])))
+                            hashes.Add(f);
+                        else
+                            nonHash.Add(f);
                     }
+                    var ordered = new List<Dictionary<string, object>>(nonHash);
+                    ordered.AddRange(hashes);
+                    var rangeStates = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+                    int on = 0, off = 0;
+                    foreach (Dictionary<string, object> f in ordered)
+                    {
+                        string rel = (string)f["relative_path"];
+                        string p = Path.Combine(dataRoot, rel.Replace('/', '\\'));
+                        if (!File.Exists(p)) return "Thiếu file " + Path.GetFileName(p);
+
+                        if (f.ContainsKey("manifest_ranges") && f["manifest_ranges"] is IEnumerable)
+                        {
+                            long expSize = Convert.ToInt64(f["size"]);
+                            if (new FileInfo(p).Length != expSize) return "File khác (" + Path.GetFileName(p) + ")";
+                            if (TestManifestRangesCSharp(p, (IEnumerable)f["manifest_ranges"]))
+                            {
+                                on++;
+                                rangeStates[rel] = true;
+                            }
+                            else if (f.ContainsKey("source_sha256") && string.Equals(Sha256File(p), (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase))
+                            {
+                                off++;
+                                rangeStates[rel] = false;
+                            }
+                            else
+                            {
+                                string bkPath = Path.Combine(backupRoot, rel.Replace('/', '\\'));
+                                if (File.Exists(bkPath) && !TestManifestRangesCSharp(p, (IEnumerable)f["manifest_ranges"], bkPath))
+                                    return "File khác (" + Path.GetFileName(p) + ")";
+                                off++;
+                                rangeStates[rel] = false;
+                            }
+                        }
+                        else if (f.ContainsKey("manifest_hash_for") && !string.IsNullOrWhiteSpace(Convert.ToString(f["manifest_hash_for"])))
+                        {
+                            string mfFor = Convert.ToString(f["manifest_hash_for"]);
+                            if (!TestManifestHashCSharp(dataRoot, p, mfFor))
+                                return "File khác (" + Path.GetFileName(p) + ")";
+                            bool isOn;
+                            if (rangeStates.TryGetValue(mfFor, out isOn))
+                            {
+                                if (isOn) on++; else off++;
+                            }
+                            else if (f.ContainsKey("source_sha256") && string.Equals(Sha256File(p), (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase))
+                                off++;
+                            else
+                                on++;
+                        }
+                        else
+                        {
+                            string h = Sha256File(p);
+                            if (string.Equals(h, (string)f["target_sha256"], StringComparison.OrdinalIgnoreCase)) on++;
+                            else if (string.Equals(h, (string)f["source_sha256"], StringComparison.OrdinalIgnoreCase)) off++;
+                            else return "File khác (" + Path.GetFileName(p) + ")";
+                        }
+                    }
+                    if (on == rawFiles.Count) return string.Format("Đang BẬT ({0}/{1})", on, rawFiles.Count);
+                    if (off == rawFiles.Count) return string.Format("Đang TẮT ({0}/{1})", off, rawFiles.Count);
+                    return string.Format("Bật dở dang ({0}/{1})", on, rawFiles.Count);
                 }
-                else
-                {
-                    entries.AddRange(FallbackDeblurEntries);
-                }
-                int on = 0, off = 0;
-                foreach (string[] e in entries)
+
+                if (tw) return "Chờ tải gói TW";
+                int fOn = 0, fOff = 0;
+                foreach (string[] e in FallbackDeblurEntries)
                 {
                     string p = Path.Combine(dataRoot, e[0]);
                     if (!File.Exists(p)) return "Thiếu file " + Path.GetFileName(p);
                     string h = Sha256File(p);
-                    if (string.Equals(h, e[2], StringComparison.OrdinalIgnoreCase)) on++;
-                    else if (string.Equals(h, e[1], StringComparison.OrdinalIgnoreCase)) off++;
+                    if (string.Equals(h, e[2], StringComparison.OrdinalIgnoreCase)) fOn++;
+                    else if (string.Equals(h, e[1], StringComparison.OrdinalIgnoreCase)) fOff++;
                     else return "File khác (" + Path.GetFileName(p) + ")";
                 }
-                if (on == entries.Count) return string.Format("Đang BẬT ({0}/{1})", on, entries.Count);
-                if (off == entries.Count) return string.Format("Đang TẮT ({0}/{1})", off, entries.Count);
-                return string.Format("Bật dở dang ({0}/{1})", on, entries.Count);
+                if (fOn == FallbackDeblurEntries.Length) return string.Format("Đang BẬT ({0}/{1})", fOn, FallbackDeblurEntries.Length);
+                if (fOff == FallbackDeblurEntries.Length) return string.Format("Đang TẮT ({0}/{1})", fOff, FallbackDeblurEntries.Length);
+                return string.Format("Bật dở dang ({0}/{1})", fOn, FallbackDeblurEntries.Length);
             }
             catch (Exception ex)
             {
@@ -568,6 +833,15 @@ namespace AzurPromiliaVIInstaller
                 notes = doc.ContainsKey("notes") ? Convert.ToString(doc["notes"]) : "",
                 source = sourceLabel
             };
+            if (doc.ContainsKey("tw_package") && doc["tw_package"] is Dictionary<string, object>)
+            {
+                var twp = (Dictionary<string, object>)doc["tw_package"];
+                rr.tw_resource_version = twp.ContainsKey("resource_version") ? Convert.ToString(twp["resource_version"]) : "3273850";
+                rr.tw_zip_name = twp.ContainsKey("filename") ? Convert.ToString(twp["filename"]) : "";
+                rr.tw_zip_url = twp.ContainsKey("url") ? Convert.ToString(twp["url"]) : "";
+                rr.tw_zip_sha256 = twp.ContainsKey("sha256") ? Convert.ToString(twp["sha256"]) : "";
+                rr.tw_zip_size = twp.ContainsKey("size") ? Convert.ToInt64(twp["size"]) : 0;
+            }
             if (doc.ContainsKey("installer") && doc["installer"] is Dictionary<string, object>)
             {
                 var inst = (Dictionary<string, object>)doc["installer"];
@@ -619,6 +893,13 @@ namespace AzurPromiliaVIInstaller
                         res.full_zip_url = url;
                         res.full_zip_size = Convert.ToInt64(a["size"]);
                     }
+                    else if (name.IndexOf("-TW-vi-", StringComparison.OrdinalIgnoreCase) >= 0 && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    {
+                        res.tw_zip_name = name;
+                        res.tw_zip_url = url;
+                        res.tw_zip_size = Convert.ToInt64(a["size"]);
+                        res.tw_resource_version = "3273850";
+                    }
                     else if (string.Equals(name, "AzurPromilia-VI-Setup.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         res.installer_url = url;
@@ -631,8 +912,13 @@ namespace AzurPromiliaVIInstaller
                             foreach (string line in sums.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                             {
                                 string[] parts = line.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                                if (parts.Length >= 2 && parts[1].IndexOf("-Full-vi-", StringComparison.OrdinalIgnoreCase) >= 0)
-                                    res.full_zip_sha256 = parts[0].ToLowerInvariant();
+                                if (parts.Length >= 2)
+                                {
+                                    if (parts[1].IndexOf("-Full-vi-", StringComparison.OrdinalIgnoreCase) >= 0)
+                                        res.full_zip_sha256 = parts[0].ToLowerInvariant();
+                                    else if (parts[1].IndexOf("-TW-vi-", StringComparison.OrdinalIgnoreCase) >= 0)
+                                        res.tw_zip_sha256 = parts[0].ToLowerInvariant();
+                                }
                             }
                         }
                         catch { }
@@ -683,21 +969,21 @@ namespace AzurPromiliaVIInstaller
             File.Move(temp, destPath);
         }
 
-        public static string ExtractPackageZip(string zipPath, string versionTag)
+        public static string ExtractPackageZip(string zipPath, string versionTag, bool tw = false)
         {
             string safeTag = string.IsNullOrWhiteSpace(versionTag) ? "latest" : versionTag.Replace('/', '_').Replace('\\', '_');
-            string dest = Path.Combine(Config.CacheRoot, safeTag);
+            string dest = Path.Combine(Config.CacheRoot, (tw ? "tw-" : "") + safeTag);
             if (Directory.Exists(dest)) Directory.Delete(dest, true);
             Directory.CreateDirectory(dest);
             ZipFile.ExtractToDirectory(zipPath, dest);
-            if (File.Exists(Path.Combine(dest, "tools", "Apply-JPCRCZH.ps1")))
+            if (IsValidPackRoot(dest, tw))
             {
                 File.WriteAllText(Path.Combine(dest, "VERSION.txt"), safeTag, Encoding.UTF8);
                 return dest;
             }
             foreach (string sub in Directory.GetDirectories(dest))
             {
-                if (File.Exists(Path.Combine(sub, "tools", "Apply-JPCRCZH.ps1")))
+                if (IsValidPackRoot(sub, tw))
                 {
                     File.WriteAllText(Path.Combine(sub, "VERSION.txt"), safeTag, Encoding.UTF8);
                     return sub;
@@ -889,10 +1175,15 @@ namespace AzurPromiliaVIInstaller
 
         private TextBox _txtGamePath;
         private TextBox _txtLauncherPath;
+        private TextBlock _lblGameLabel;
         private TextBlock _lblGameStatus;
         private TextBlock _lblLauncherStatus;
         private TextBlock _lblDeblurStatus;
         private TextBlock _lblVersionInfo;
+        private Grid _launcherLabelRow;
+        private Grid _launcherInputRow;
+        private Button _btnServerJp;
+        private Button _btnServerTw;
         private CheckBox _chkShortcut;
         private CheckBox _chkAutoLaunch;
         private Border _progressTrack;
@@ -914,6 +1205,11 @@ namespace AzurPromiliaVIInstaller
         private RemoteRelease _remote;
         private bool _busy = false;
         private double _progressPct = 0;
+
+        private bool IsTwMode
+        {
+            get { return _state != null && string.Equals(_state.selected_server, "tw", StringComparison.OrdinalIgnoreCase); }
+        }
 
         public LauncherWindow()
         {
@@ -1144,17 +1440,54 @@ namespace AzurPromiliaVIInstaller
             for (int i = 0; i < 7; i++)
                 cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Game Path Row
-            cardGrid.Children.Add(BuildLabelStatusRow("Thư mục Game JP (AZUPRO_JP):", out _lblGameStatus, 0));
+            // Server + Game Path Row
+            Grid gameLblRow = new Grid { Margin = new Thickness(0, 0, 0, 3) };
+            gameLblRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            gameLblRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            StackPanel srvLeft = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            _btnServerJp = MakeButton("JP (3273853)", 88, 22,
+                Color.FromRgb(42, 138, 245), Color.FromRgb(25, 96, 198), Color.FromArgb(120, 135, 215, 255), true);
+            _btnServerJp.FontSize = 11;
+            _btnServerJp.Margin = new Thickness(0, 0, 5, 0);
+            _btnServerJp.Click += (s, e) => SwitchServer("jp");
+            _btnServerTw = MakeButton("TW (3273850)", 88, 22,
+                Color.FromRgb(44, 52, 72), Color.FromRgb(34, 41, 58), Color.FromArgb(75, 255, 255, 255), false);
+            _btnServerTw.FontSize = 11;
+            _btnServerTw.Margin = new Thickness(0, 0, 10, 0);
+            _btnServerTw.Click += (s, e) => SwitchServer("tw");
+            _lblGameLabel = new TextBlock
+            {
+                Text = "Thư mục Game JP (AZUPRO_JP):",
+                Foreground = new SolidColorBrush(Color.FromRgb(190, 204, 228)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            srvLeft.Children.Add(_btnServerJp);
+            srvLeft.Children.Add(_btnServerTw);
+            srvLeft.Children.Add(_lblGameLabel);
+            _lblGameStatus = new TextBlock
+            {
+                Text = "...",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(120, 230, 160))
+            };
+            Grid.SetColumn(srvLeft, 0);
+            Grid.SetColumn(_lblGameStatus, 1);
+            gameLblRow.Children.Add(srvLeft);
+            gameLblRow.Children.Add(_lblGameStatus);
+            Grid.SetRow(gameLblRow, 0);
+            cardGrid.Children.Add(gameLblRow);
+
             Grid gameInputRow = BuildPathInputRow(out _txtGamePath, true, 1);
             cardGrid.Children.Add(gameInputRow);
 
             // Launcher Path Row
-            Grid l2Row = BuildLabelStatusRow("Thư mục Launcher JP (AZUPRO_JP_Gamelauncher):", out _lblLauncherStatus, 2);
-            l2Row.Margin = new Thickness(0, 8, 0, 3);
-            cardGrid.Children.Add(l2Row);
-            Grid launcherInputRow = BuildPathInputRow(out _txtLauncherPath, false, 3);
-            cardGrid.Children.Add(launcherInputRow);
+            _launcherLabelRow = BuildLabelStatusRow("Thư mục Launcher JP (AZUPRO_JP_Gamelauncher):", out _lblLauncherStatus, 2);
+            _launcherLabelRow.Margin = new Thickness(0, 8, 0, 3);
+            cardGrid.Children.Add(_launcherLabelRow);
+            _launcherInputRow = BuildPathInputRow(out _txtLauncherPath, false, 3);
+            cardGrid.Children.Add(_launcherInputRow);
 
             // Options Checkboxes
             Grid optRow = new Grid { Margin = new Thickness(0, 8, 0, 6) };
@@ -1573,12 +1906,16 @@ namespace AzurPromiliaVIInstaller
         {
             using (WF.FolderBrowserDialog dlg = new WF.FolderBrowserDialog())
             {
-                dlg.Description = isGame ? "Chọn thư mục AZUPRO_JP" : "Chọn thư mục AZUPRO_JP_Gamelauncher";
+                dlg.Description = isGame
+                    ? (IsTwMode ? "Chọn thư mục Game TW (AzurPromilia_TC)" : "Chọn thư mục AZUPRO_JP")
+                    : "Chọn thư mục AZUPRO_JP_Gamelauncher";
                 if (Directory.Exists(target.Text)) dlg.SelectedPath = target.Text;
                 if (dlg.ShowDialog() == WF.DialogResult.OK)
                 {
                     target.Text = isGame
-                        ? (Helpers.FindJpGameRoot(dlg.SelectedPath) != "" ? Helpers.FindJpGameRoot(dlg.SelectedPath) : dlg.SelectedPath)
+                        ? (IsTwMode
+                            ? (Helpers.FindTwGameRoot(dlg.SelectedPath) != "" ? Helpers.FindTwGameRoot(dlg.SelectedPath) : dlg.SelectedPath)
+                            : (Helpers.FindJpGameRoot(dlg.SelectedPath) != "" ? Helpers.FindJpGameRoot(dlg.SelectedPath) : dlg.SelectedPath))
                         : (Helpers.FindJpLauncherRoot(dlg.SelectedPath, _txtGamePath.Text) != "" ? Helpers.FindJpLauncherRoot(dlg.SelectedPath, _txtGamePath.Text) : dlg.SelectedPath);
                     RefreshLocalStatuses();
                     SyncLocalVersionFromStatus(null);
@@ -1624,17 +1961,79 @@ namespace AzurPromiliaVIInstaller
                 _btnCheckUpdate.IsEnabled = !busy;
                 _btnLaunch.IsEnabled = !busy;
                 _btnDeblurToggle.IsEnabled = !busy;
+                if (_btnServerJp != null) _btnServerJp.IsEnabled = !busy;
+                if (_btnServerTw != null) _btnServerTw.IsEnabled = !busy;
                 if (!string.IsNullOrEmpty(status)) _lblProgress.Text = status;
             });
         }
 
+        private void ApplyServerButtonStyles()
+        {
+            if (_btnServerJp == null || _btnServerTw == null) return;
+            bool tw = IsTwMode;
+            Action<Button, bool> styleBtn = (btn, active) =>
+            {
+                LinearGradientBrush g = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+                if (active)
+                {
+                    g.GradientStops.Add(new GradientStop(Color.FromRgb(42, 138, 245), 0.0));
+                    g.GradientStops.Add(new GradientStop(Color.FromRgb(25, 96, 198), 1.0));
+                    btn.BorderBrush = new SolidColorBrush(Color.FromArgb(145, 145, 220, 255));
+                    btn.FontWeight = FontWeights.Bold;
+                }
+                else
+                {
+                    g.GradientStops.Add(new GradientStop(Color.FromRgb(44, 52, 72), 0.0));
+                    g.GradientStops.Add(new GradientStop(Color.FromRgb(34, 41, 58), 1.0));
+                    btn.BorderBrush = new SolidColorBrush(Color.FromArgb(75, 255, 255, 255));
+                    btn.FontWeight = FontWeights.SemiBold;
+                }
+                btn.Background = g;
+            };
+            styleBtn(_btnServerJp, !tw);
+            styleBtn(_btnServerTw, tw);
+            _lblGameLabel.Text = tw ? "Thư mục Game TW (AzurPromilia_TC):" : "Thư mục Game JP (AZUPRO_JP):";
+            _launcherInputRow.IsEnabled = !tw;
+            _launcherLabelRow.Opacity = tw ? 0.55 : 1.0;
+            _btnLaunch.Content = tw ? "Mở Game (TW)" : "Mở Launcher";
+        }
+
+        private void SwitchServer(string server)
+        {
+            if (_busy) return;
+            string next = string.Equals(server, "tw", StringComparison.OrdinalIgnoreCase) ? "tw" : "jp";
+            if (IsTwMode) _state.tw_game_path = _txtGamePath.Text.Trim();
+            else
+            {
+                _state.jp_game_path = _txtGamePath.Text.Trim();
+                _state.jp_launcher_path = _txtLauncherPath.Text.Trim();
+            }
+            _state.selected_server = next;
+            Helpers.SaveState(_state);
+
+            ApplyServerButtonStyles();
+            bool tw = IsTwMode;
+            _txtGamePath.Text = tw
+                ? Helpers.FindTwGameRoot(_state.tw_game_path)
+                : Helpers.FindJpGameRoot(_state.jp_game_path);
+            if (!tw && string.IsNullOrEmpty(_txtLauncherPath.Text))
+                _txtLauncherPath.Text = Helpers.FindJpLauncherRoot(_state.jp_launcher_path, _txtGamePath.Text);
+
+            string detectedVer;
+            _packRoot = Helpers.FindPayloadPackRoot(out detectedVer, tw);
+            RefreshLocalStatuses();
+            SyncLocalVersionFromStatus(!string.IsNullOrEmpty(detectedVer) ? detectedVer : Config.CurrentInstallerVersion);
+            Log("Đã chuyển sang Server " + (tw ? "Đài Loan TW (Resource 3273850)." : "Nhật Bản JP (Resource 3273853)."));
+        }
+
         private void RefreshLocalStatuses()
         {
+            bool tw = IsTwMode;
             string g = _txtGamePath.Text.Trim();
             string l = _txtLauncherPath.Text.Trim();
-            string gs = Helpers.CheckGameStatus(_packRoot, g);
-            string ls = Helpers.CheckLauncherStatus(_packRoot, l);
-            string ds = Helpers.CheckDeblurStatus(_packRoot, g);
+            string gs = Helpers.CheckGameStatus(_packRoot, g, tw);
+            string ls = tw ? "Không cần (chạy thẳng AzurPromilia.exe)" : Helpers.CheckLauncherStatus(_packRoot, l);
+            string ds = Helpers.CheckDeblurStatus(_packRoot, g, tw);
             _lblGameStatus.Text = gs;
             _lblGameStatus.Foreground = new SolidColorBrush(
                 gs.IndexOf("Đã cài") >= 0 ? Color.FromRgb(110, 235, 160) :
@@ -1664,7 +2063,7 @@ namespace AzurPromiliaVIInstaller
                 else if (string.IsNullOrEmpty(_localVersion))
                 {
                     string tmpVer;
-                    Helpers.FindPayloadPackRoot(out tmpVer);
+                    Helpers.FindPayloadPackRoot(out tmpVer, IsTwMode);
                     _localVersion = !string.IsNullOrEmpty(tmpVer)
                         ? tmpVer
                         : (!string.IsNullOrEmpty(_state.installed_version) ? _state.installed_version : Config.CurrentInstallerVersion);
@@ -1732,12 +2131,14 @@ namespace AzurPromiliaVIInstaller
 
         private void RefreshStateAndCheckAsync(bool fetchOnline)
         {
+            bool tw = IsTwMode;
+            ApplyServerButtonStyles();
             string detectedVer;
-            _packRoot = Helpers.FindPayloadPackRoot(out detectedVer);
+            _packRoot = Helpers.FindPayloadPackRoot(out detectedVer, tw);
             Helpers.SyncInstalledExe(_packRoot);
             if (string.IsNullOrEmpty(_txtGamePath.Text))
-                _txtGamePath.Text = Helpers.FindJpGameRoot(_state.jp_game_path);
-            if (string.IsNullOrEmpty(_txtLauncherPath.Text))
+                _txtGamePath.Text = tw ? Helpers.FindTwGameRoot(_state.tw_game_path) : Helpers.FindJpGameRoot(_state.jp_game_path);
+            if (!tw && string.IsNullOrEmpty(_txtLauncherPath.Text))
                 _txtLauncherPath.Text = Helpers.FindJpLauncherRoot(_state.jp_launcher_path, _txtGamePath.Text);
             RefreshLocalStatuses();
             SyncLocalVersionFromStatus(!string.IsNullOrEmpty(detectedVer) ? detectedVer : Config.CurrentInstallerVersion);
@@ -1753,7 +2154,8 @@ namespace AzurPromiliaVIInstaller
                     {
                         UpdateHeaderLabel(_lblGameStatus.Text);
                         Log("Đã kiểm tra GitHub (" + rr.source + "): bản mới nhất = " + rr.version +
-                            (string.IsNullOrEmpty(rr.jp_resource_version) ? "" : " (Client JP #" + rr.jp_resource_version + ")"));
+                            (string.IsNullOrEmpty(rr.jp_resource_version) ? "" : " (JP #" + rr.jp_resource_version +
+                            (string.IsNullOrEmpty(rr.tw_resource_version) ? ")" : ", TW #" + rr.tw_resource_version + ")")));
                     });
                 }
                 catch (Exception ex)
@@ -1768,18 +2170,20 @@ namespace AzurPromiliaVIInstaller
             });
         }
 
-        private string EnsurePackageAvailable(bool requireDeblur)
+        private string EnsurePackageAvailable(bool requireDeblur, bool tw)
         {
             string localVer;
-            string localRoot = Helpers.FindPayloadPackRoot(out localVer);
+            string localRoot = Helpers.FindPayloadPackRoot(out localVer, tw);
             bool needDownload = string.IsNullOrEmpty(localRoot);
 
-            if (requireDeblur && !string.IsNullOrEmpty(localRoot) && !Helpers.HasDeblurPayload(localRoot))
+            if (requireDeblur && !string.IsNullOrEmpty(localRoot) && !Helpers.HasDeblurPayload(localRoot, tw))
                 needDownload = true;
 
-            if (_remote != null && !string.IsNullOrEmpty(_remote.full_zip_url) && !string.IsNullOrEmpty(_remote.version))
+            if (_remote != null && !string.IsNullOrEmpty(_remote.version))
             {
-                if (string.IsNullOrEmpty(localRoot) || (!string.IsNullOrEmpty(localVer) && Helpers.CompareVersions(_remote.version, localVer) > 0))
+                string rUrl = tw ? _remote.tw_zip_url : _remote.full_zip_url;
+                if (!string.IsNullOrEmpty(rUrl) &&
+                    (string.IsNullOrEmpty(localRoot) || (!string.IsNullOrEmpty(localVer) && Helpers.CompareVersions(_remote.version, localVer) > 0)))
                     needDownload = true;
             }
 
@@ -1794,7 +2198,7 @@ namespace AzurPromiliaVIInstaller
                 try { _remote = Helpers.FetchLatestRelease(12000); }
                 catch (Exception ex)
                 {
-                    if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot)))
+                    if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot, tw)))
                     {
                         Log("Lỗi tải online (" + ex.Message + "), quay lại dùng gói cục bộ.");
                         return localRoot;
@@ -1803,32 +2207,37 @@ namespace AzurPromiliaVIInstaller
                 }
             }
 
-            if (string.IsNullOrEmpty(_remote.full_zip_url))
+            string dlUrl = tw ? _remote.tw_zip_url : _remote.full_zip_url;
+            string dlName = tw ? _remote.tw_zip_name : _remote.full_zip_name;
+            long dlSize = tw ? _remote.tw_zip_size : _remote.full_zip_size;
+            string dlSha = tw ? _remote.tw_zip_sha256 : _remote.full_zip_sha256;
+
+            if (string.IsNullOrEmpty(dlUrl))
             {
-                if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot))) return localRoot;
-                throw new Exception("GitHub Release chưa có asset gói Full-vi-*.zip.");
+                if (!string.IsNullOrEmpty(localRoot) && (!requireDeblur || Helpers.HasDeblurPayload(localRoot, tw))) return localRoot;
+                throw new Exception(tw ? "GitHub Release chưa có asset gói TW-vi-*.zip." : "GitHub Release chưa có asset gói Full-vi-*.zip.");
             }
 
-            string zipPath = Path.Combine(Config.CacheRoot, _remote.full_zip_name);
-            Log("Đang tải " + _remote.full_zip_name + " (" + (_remote.full_zip_size / 1048576.0).ToString("0.0") + " MB)...");
-            Helpers.DownloadFileWithProgress(_remote.full_zip_url, zipPath, (rec, tot) =>
+            string zipPath = Path.Combine(Config.CacheRoot, dlName);
+            Log("Đang tải " + dlName + " (" + (dlSize / 1048576.0).ToString("0.0") + " MB)...");
+            Helpers.DownloadFileWithProgress(dlUrl, zipPath, (rec, tot) =>
             {
                 int pct = tot > 0 ? (int)Math.Min(100, rec * 100 / tot) : 0;
                 SetProgress(pct, string.Format("Đang tải gói Việt hóa... {0}% ({1:0.0} / {2:0.0} MB)",
                     pct, rec / 1048576.0, Math.Max(tot, rec) / 1048576.0));
             });
 
-            if (!string.IsNullOrEmpty(_remote.full_zip_sha256))
+            if (!string.IsNullOrEmpty(dlSha))
             {
                 Log("Đang kiểm tra SHA256 file tải về...");
                 string got = Helpers.Sha256File(zipPath);
-                if (!string.Equals(got, _remote.full_zip_sha256, StringComparison.OrdinalIgnoreCase))
-                    throw new Exception("File tải về bị hỏng SHA256! Mong đợi " + _remote.full_zip_sha256 + ", nhận được " + got);
+                if (!string.Equals(got, dlSha, StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("File tải về bị hỏng SHA256! Mong đợi " + dlSha + ", nhận được " + got);
                 Log("SHA256 khớp 100%.");
             }
 
             SetProgress(92, "Đang giải nén gói Việt hóa...");
-            string extracted = Helpers.ExtractPackageZip(zipPath, _remote.version);
+            string extracted = Helpers.ExtractPackageZip(zipPath, _remote.version, tw);
             _packRoot = extracted;
             _localVersion = _remote.version;
             return extracted;
@@ -1837,22 +2246,30 @@ namespace AzurPromiliaVIInstaller
         private void ToggleDeblurAsync()
         {
             if (_busy) return;
+            bool tw = IsTwMode;
+            string dataDirName = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+            string procName = tw ? "AzurPromilia" : "AzurPromiliaJP";
+            string scriptName = tw ? "Apply-TWDeblur.ps1" : "Apply-JPDeblur.ps1";
+            string planName = tw ? "tw-deblur-deployment.json" : "jp-deblur-deployment.json";
+            string srvTag = tw ? "TW" : "JP";
+            string fileCntStr = tw ? "7" : "5";
+
             string gameDir = _txtGamePath.Text.Trim();
-            if (string.IsNullOrEmpty(gameDir) || !Directory.Exists(Path.Combine(gameDir, "AzurPromiliaJP_Data")))
+            if (string.IsNullOrEmpty(gameDir) || !Directory.Exists(Path.Combine(gameDir, dataDirName)))
             {
-                MessageBox.Show(this, "Chưa tìm thấy thư mục AZUPRO_JP để bật/tắt Bỏ làm mờ!", "Thiếu đường dẫn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "Chưa tìm thấy thư mục Game " + srvTag + " để bật/tắt Bỏ làm mờ!", "Thiếu đường dẫn", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            string curStatus = Helpers.CheckDeblurStatus(_packRoot, gameDir);
+            string curStatus = Helpers.CheckDeblurStatus(_packRoot, gameDir, tw);
             bool currentlyOn = curStatus.IndexOf("Đang BẬT") >= 0;
 
             if (!currentlyOn)
             {
                 if (MessageBox.Show(this,
-                    "Bật tính năng Bỏ làm mờ (Deblur) cho Azur Promilia JP?\n\n" +
-                    "• Tắt hiệu ứng làm mờ/ẩn nhân vật khi zoom sát hoặc xoay góc camera từ dưới lên (4 file .r, giữ nguyên dung lượng & CRC32).\n" +
-                    "• Tính năng này mặc định TẮT để an toàn tối đa; bạn có thể bấm nút 'Tắt Bỏ làm mờ' bất kỳ lúc nào để khôi phục 4 file gốc.",
+                    "Bật tính năng Bỏ làm mờ (Deblur) cho Azur Promilia " + srvTag + "?\n\n" +
+                    "• Tắt hiệu ứng làm mờ/ẩn nhân vật khi zoom sát hoặc xoay góc camera từ dưới lên (" + fileCntStr + " file).\n" +
+                    "• Tính năng này mặc định TẮT để an toàn tối đa; bạn có thể bấm nút 'Tắt Bỏ làm mờ' bất kỳ lúc nào để khôi phục nguyên bản.",
                     "Xác nhận Bật Bỏ làm mờ (Deblur)", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     return;
@@ -1861,15 +2278,15 @@ namespace AzurPromiliaVIInstaller
             else
             {
                 if (MessageBox.Show(this,
-                    "Tắt Bỏ làm mờ (Deblur) và khôi phục lại 4 file gốc của JP Game?",
+                    "Tắt Bỏ làm mờ (Deblur) và khôi phục nguyên bản cho " + srvTag + " Game?",
                     "Xác nhận Tắt Bỏ làm mờ", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     return;
                 }
             }
 
-            SetBusy(true, currentlyOn ? "Đang tắt Bỏ làm mờ (khôi phục 4 file gốc)..." : "Đang bật Bỏ làm mờ (Deblur)...");
-            if (!EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe"))
+            SetBusy(true, currentlyOn ? "Đang tắt Bỏ làm mờ (khôi phục nguyên bản)..." : "Đang bật Bỏ làm mờ (Deblur)...");
+            if (!EnsureTargetProcessClosed(procName, "Game " + procName + ".exe"))
             {
                 SetBusy(false, "Đã hủy thao tác Bỏ làm mờ.");
                 return;
@@ -1881,31 +2298,31 @@ namespace AzurPromiliaVIInstaller
                 try
                 {
                     bool hasScriptOnly = !string.IsNullOrEmpty(_packRoot)
-                        && File.Exists(Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1"))
-                        && File.Exists(Path.Combine(_packRoot, "tools", "jp-deblur-deployment.json"));
-                    string packRoot = (currentlyOn && hasScriptOnly) ? _packRoot : EnsurePackageAvailable(true);
-                    string deblurScript = Path.Combine(packRoot, "tools", "Apply-JPDeblur.ps1");
+                        && File.Exists(Path.Combine(_packRoot, "tools", scriptName))
+                        && File.Exists(Path.Combine(_packRoot, "tools", planName));
+                    string packRoot = (currentlyOn && hasScriptOnly) ? _packRoot : EnsurePackageAvailable(true, tw);
+                    string deblurScript = Path.Combine(packRoot, "tools", scriptName);
                     if (!File.Exists(deblurScript))
-                        throw new Exception("Gói Việt hóa hiện tại không chứa Apply-JPDeblur.ps1. Vui lòng cập nhật lên bản mới nhất.");
+                        throw new Exception("Gói Việt hóa hiện tại không chứa " + scriptName + ". Vui lòng cập nhật lên bản mới nhất.");
 
-                    bool needAdmin = !Helpers.CanWriteDir(Path.Combine(gameDir, "AzurPromiliaJP_Data"));
+                    bool needAdmin = !Helpers.CanWriteDir(Path.Combine(gameDir, dataDirName));
                     if (needAdmin && !Helpers.IsAdmin())
                         Log("Thư mục game cần quyền Quản trị viên (UAC)...");
 
                     string act = currentlyOn ? "Restore" : "Apply";
-                    Log((currentlyOn ? "Đang TẮT" : "Đang BẬT") + " Bỏ làm mờ (Apply-JPDeblur.ps1 -Action " + act + ")...");
+                    Log((currentlyOn ? "Đang TẮT" : "Đang BẬT") + " Bỏ làm mờ (" + scriptName + " -Action " + act + ")...");
                     int rc = Helpers.RunPsScript(
                         deblurScript,
                         "-Action " + act + " -Language vi -Hint \"" + gameDir + "\"",
                         Log, needAdmin && !Helpers.IsAdmin()
                     );
-                    if (rc != 0) throw new Exception("Apply-JPDeblur.ps1 thất bại với mã " + rc);
+                    if (rc != 0) throw new Exception(scriptName + " thất bại với mã " + rc);
 
                     RunOnUi(() =>
                     {
                         SetProgress(100, null);
                         RefreshLocalStatuses();
-                        string msg = currentlyOn ? "Đã TẮT Bỏ làm mờ (khôi phục 4 file gốc)!" : "Đã BẬT Bỏ làm mờ (Deblur) thành công!";
+                        string msg = currentlyOn ? "Đã TẮT Bỏ làm mờ (khôi phục nguyên bản)!" : "Đã BẬT Bỏ làm mờ (Deblur) thành công!";
                         SetBusy(false, msg);
                         MessageBox.Show(this, msg, "Hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
                     });
@@ -1976,20 +2393,26 @@ namespace AzurPromiliaVIInstaller
         private void StartInstallOrUpdate()
         {
             if (_busy) return;
+            bool tw = IsTwMode;
+            string dataDirName = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+            string procName = tw ? "AzurPromilia" : "AzurPromiliaJP";
+            string applyScript = tw ? "Apply-CRCZH.ps1" : "Apply-JPCRCZH.ps1";
+            string srvLabel = tw ? "TW Game" : "JP Game";
+
             string gameDir = _txtGamePath.Text.Trim();
-            string launcherDir = _txtLauncherPath.Text.Trim();
+            string launcherDir = tw ? "" : _txtLauncherPath.Text.Trim();
             bool createShortcut = _chkShortcut.IsChecked == true;
             bool autoLaunch = _chkAutoLaunch.IsChecked == true;
             if (string.IsNullOrEmpty(gameDir) && string.IsNullOrEmpty(launcherDir))
             {
-                MessageBox.Show(this, "Chưa chọn thư mục AZUPRO_JP hoặc AZUPRO_JP_Gamelauncher!", "Thiếu đường dẫn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, tw ? "Chưa chọn thư mục Game TW (AzurPromilia_TC)!" : "Chưa chọn thư mục AZUPRO_JP hoặc AZUPRO_JP_Gamelauncher!", "Thiếu đường dẫn", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            if (!string.IsNullOrEmpty(gameDir) && Helpers.CheckGameStatus(_packRoot, gameDir).IndexOf("Đã cài") < 0)
+            if (!string.IsNullOrEmpty(gameDir) && Helpers.CheckGameStatus(_packRoot, gameDir, tw).IndexOf("Đã cài") < 0)
             {
-                if (!EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe")) return;
+                if (!EnsureTargetProcessClosed(procName, "Game " + procName + ".exe")) return;
             }
-            if (!string.IsNullOrEmpty(launcherDir) && Helpers.CheckLauncherStatus(_packRoot, launcherDir).IndexOf("Đã cài") < 0)
+            if (!tw && !string.IsNullOrEmpty(launcherDir) && Helpers.CheckLauncherStatus(_packRoot, launcherDir).IndexOf("Đã cài") < 0)
             {
                 if (!EnsureTargetProcessClosed("AZUPRO_JP_Gamelauncher", "Launcher gốc (AZUPRO_JP_Gamelauncher.exe)")) return;
             }
@@ -2000,22 +2423,22 @@ namespace AzurPromiliaVIInstaller
             {
                 try
                 {
-                    string packRoot = EnsurePackageAvailable(false);
-                    bool needAdmin = (!string.IsNullOrEmpty(gameDir) && !Helpers.CanWriteDir(Path.Combine(gameDir, "AzurPromiliaJP_Data"))) ||
+                    string packRoot = EnsurePackageAvailable(false, tw);
+                    bool needAdmin = (!string.IsNullOrEmpty(gameDir) && !Helpers.CanWriteDir(Path.Combine(gameDir, dataDirName))) ||
                                      (!string.IsNullOrEmpty(launcherDir) && !Helpers.CanWriteDir(Path.Combine(launcherDir, "resources")));
                     if (needAdmin && !Helpers.IsAdmin())
                         Log("Thư mục game cần quyền Quản trị viên (UAC), hệ thống sẽ hỏi xác nhận...");
 
                     if (!string.IsNullOrEmpty(gameDir))
                     {
-                        SetProgress(94, "Đang cài Việt hóa vào JP Game...");
-                        Log("Đang áp dụng bản Việt hóa cho JP Game (kiểm tra size + SHA256 + CRC32)...");
+                        SetProgress(94, "Đang cài Việt hóa vào " + srvLabel + "...");
+                        Log("Đang áp dụng bản Việt hóa cho " + srvLabel + " (kiểm tra size + SHA256 + CRC32)...");
                         int rc = Helpers.RunPsScript(
-                            Path.Combine(packRoot, "tools", "Apply-JPCRCZH.ps1"),
+                            Path.Combine(packRoot, "tools", applyScript),
                             "-Action Apply -Language vi -Hint \"" + gameDir + "\"",
                             Log, needAdmin && !Helpers.IsAdmin()
                         );
-                        if (rc != 0) throw new Exception("Apply-JPCRCZH.ps1 thất bại với mã " + rc);
+                        if (rc != 0) throw new Exception(applyScript + " thất bại với mã " + rc);
                     }
                     if (!string.IsNullOrEmpty(launcherDir))
                     {
@@ -2036,8 +2459,12 @@ namespace AzurPromiliaVIInstaller
 
                     _localVersion = appliedVer;
                     _state.installed_version = appliedVer;
-                    _state.jp_game_path = gameDir;
-                    _state.jp_launcher_path = launcherDir;
+                    if (tw) _state.tw_game_path = gameDir;
+                    else
+                    {
+                        _state.jp_game_path = gameDir;
+                        _state.jp_launcher_path = launcherDir;
+                    }
                     _state.auto_update_on_launch = autoLaunch;
                     _state.last_checked_utc = DateTime.UtcNow.ToString("o");
                     Helpers.SaveState(_state);
@@ -2076,28 +2503,34 @@ namespace AzurPromiliaVIInstaller
                 MessageBox.Show(this, "Cần có thư mục tools/ hoặc gói Việt hóa để chạy Khôi phục an toàn.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
+            bool tw = IsTwMode;
+            string dataDirName = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+            string procName = tw ? "AzurPromilia" : "AzurPromiliaJP";
+            string applyScript = tw ? "Apply-CRCZH.ps1" : "Apply-JPCRCZH.ps1";
+            string deblurScriptName = tw ? "Apply-TWDeblur.ps1" : "Apply-JPDeblur.ps1";
+
             string gameDir = _txtGamePath.Text.Trim();
-            string launcherDir = _txtLauncherPath.Text.Trim();
-            if (!string.IsNullOrEmpty(gameDir) && !EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe")) return;
-            if (!string.IsNullOrEmpty(launcherDir) && !EnsureTargetProcessClosed("AZUPRO_JP_Gamelauncher", "Launcher gốc (AZUPRO_JP_Gamelauncher.exe)")) return;
+            string launcherDir = tw ? "" : _txtLauncherPath.Text.Trim();
+            if (!string.IsNullOrEmpty(gameDir) && !EnsureTargetProcessClosed(procName, "Game " + procName + ".exe")) return;
+            if (!tw && !string.IsNullOrEmpty(launcherDir) && !EnsureTargetProcessClosed("AZUPRO_JP_Gamelauncher", "Launcher gốc (AZUPRO_JP_Gamelauncher.exe)")) return;
             SetBusy(true, "Đang khôi phục bản gốc...");
             SetProgress(35, "Đang khôi phục bản gốc...");
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 try
                 {
-                    bool needAdmin = (!string.IsNullOrEmpty(gameDir) && !Helpers.CanWriteDir(Path.Combine(gameDir, "AzurPromiliaJP_Data"))) ||
+                    bool needAdmin = (!string.IsNullOrEmpty(gameDir) && !Helpers.CanWriteDir(Path.Combine(gameDir, dataDirName))) ||
                                      (!string.IsNullOrEmpty(launcherDir) && !Helpers.CanWriteDir(Path.Combine(launcherDir, "resources")));
                     if (!string.IsNullOrEmpty(gameDir))
                     {
-                        int rc = Helpers.RunPsScript(Path.Combine(_packRoot, "tools", "Apply-JPCRCZH.ps1"),
+                        int rc = Helpers.RunPsScript(Path.Combine(_packRoot, "tools", applyScript),
                             "-Action Restore -Language vi -Hint \"" + gameDir + "\"", Log, needAdmin && !Helpers.IsAdmin());
-                        if (rc != 0) throw new Exception("Restore JP Game lỗi mã " + rc);
+                        if (rc != 0) throw new Exception("Restore Game lỗi mã " + rc);
 
-                        string deblurScript = Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1");
-                        if (File.Exists(deblurScript) && Helpers.CheckDeblurStatus(_packRoot, gameDir).IndexOf("Đang TẮT") < 0)
+                        string deblurScript = Path.Combine(_packRoot, "tools", deblurScriptName);
+                        if (File.Exists(deblurScript) && Helpers.CheckDeblurStatus(_packRoot, gameDir, tw).IndexOf("Đang TẮT") < 0)
                         {
-                            Log("Đang khôi phục 4 file Bỏ làm mờ (nếu có)...");
+                            Log("Đang khôi phục các file Bỏ làm mờ (nếu có)...");
                             Helpers.RunPsScript(deblurScript, "-Action Restore -Language vi -Hint \"" + gameDir + "\"", Log, needAdmin && !Helpers.IsAdmin());
                         }
                     }
@@ -2134,8 +2567,11 @@ namespace AzurPromiliaVIInstaller
                 SyncLocalVersionFromStatus(null);
                 return;
             }
+            bool tw = IsTwMode;
+            string applyScript = tw ? "Apply-CRCZH.ps1" : "Apply-JPCRCZH.ps1";
+            string deblurScriptName = tw ? "Apply-TWDeblur.ps1" : "Apply-JPDeblur.ps1";
             string gameDir = _txtGamePath.Text.Trim();
-            string launcherDir = _txtLauncherPath.Text.Trim();
+            string launcherDir = tw ? "" : _txtLauncherPath.Text.Trim();
             SetBusy(true, "Đang kiểm tra toàn bộ CRC32 & SHA256...");
             SetProgress(35, "Đang kiểm tra toàn bộ CRC32 & SHA256...");
             ThreadPool.QueueUserWorkItem(_ =>
@@ -2144,9 +2580,9 @@ namespace AzurPromiliaVIInstaller
                 {
                     if (!string.IsNullOrEmpty(gameDir))
                     {
-                        Helpers.RunPsScript(Path.Combine(_packRoot, "tools", "Apply-JPCRCZH.ps1"),
+                        Helpers.RunPsScript(Path.Combine(_packRoot, "tools", applyScript),
                             "-Action Verify -Language vi -Hint \"" + gameDir + "\"", Log, false);
-                        string deblurScript = Path.Combine(_packRoot, "tools", "Apply-JPDeblur.ps1");
+                        string deblurScript = Path.Combine(_packRoot, "tools", deblurScriptName);
                         if (File.Exists(deblurScript))
                             Helpers.RunPsScript(deblurScript, "-Action Verify -Language vi -Hint \"" + gameDir + "\"", Log, false);
                     }
@@ -2171,13 +2607,45 @@ namespace AzurPromiliaVIInstaller
 
         private void LaunchGame()
         {
+            bool tw = IsTwMode;
+            _state.auto_update_on_launch = _chkAutoLaunch.IsChecked == true;
+            if (tw)
+            {
+                string gameDir = _txtGamePath.Text.Trim();
+                if (string.IsNullOrEmpty(gameDir) || !File.Exists(Path.Combine(gameDir, "AzurPromilia.exe")))
+                {
+                    MessageBox.Show(this, "Không tìm thấy AzurPromilia.exe trong thư mục TW!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                _state.tw_game_path = gameDir;
+                Helpers.SaveState(_state);
+
+                if (_state.auto_update_on_launch && _remote != null && !string.IsNullOrEmpty(_remote.version)
+                    && !string.IsNullOrEmpty(_localVersion) && Helpers.CompareVersions(_remote.version, _localVersion) > 0)
+                {
+                    if (MessageBox.Show(this, "Có bản cập nhật Việt hóa mới (" + _remote.version + "). Cập nhật ngay trước khi mở Game TW?",
+                        "Cập nhật Việt hóa", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                    {
+                        StartInstallOrUpdate();
+                        return;
+                    }
+                }
+                PauseBgmForGameLaunch();
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = Path.Combine(gameDir, "AzurPromilia.exe"),
+                    WorkingDirectory = gameDir,
+                    UseShellExecute = true
+                });
+                return;
+            }
+
             string launcherDir = _txtLauncherPath.Text.Trim();
             if (string.IsNullOrEmpty(launcherDir) || !File.Exists(Path.Combine(launcherDir, "AZUPRO_JP_Gamelauncher.exe")))
             {
                 MessageBox.Show(this, "Không tìm thấy AZUPRO_JP_Gamelauncher.exe!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            _state.auto_update_on_launch = _chkAutoLaunch.IsChecked == true;
             _state.jp_game_path = _txtGamePath.Text.Trim();
             _state.jp_launcher_path = launcherDir;
             Helpers.SaveState(_state);
@@ -2224,13 +2692,18 @@ namespace AzurPromiliaVIInstaller
             {
                 InstallerState st = Helpers.LoadState();
                 string ver;
-                string pr = Helpers.FindPayloadPackRoot(out ver);
+                string pr = Helpers.FindPayloadPackRoot(out ver, false);
+                string verTw;
+                string prTw = Helpers.FindPayloadPackRoot(out verTw, true);
                 string g = Helpers.FindJpGameRoot(st.jp_game_path);
                 string l = Helpers.FindJpLauncherRoot(st.jp_launcher_path, g);
+                string gt = Helpers.FindTwGameRoot(st.tw_game_path);
                 Console.WriteLine("PACK_ROOT=" + pr);
                 Console.WriteLine("PACK_VER=" + ver);
-                Console.WriteLine("JP_GAME=" + g + " | " + Helpers.CheckGameStatus(pr, g));
+                Console.WriteLine("JP_GAME=" + g + " | " + Helpers.CheckGameStatus(pr, g, false));
                 Console.WriteLine("JP_LAUNCHER=" + l + " | " + Helpers.CheckLauncherStatus(pr, l));
+                Console.WriteLine("TW_PACK_ROOT=" + prTw);
+                Console.WriteLine("TW_GAME=" + gt + " | " + Helpers.CheckGameStatus(prTw, gt, true));
                 return 0;
             }
 
@@ -2247,10 +2720,11 @@ namespace AzurPromiliaVIInstaller
         private static void RunAutoUpdateThenLaunch()
         {
             InstallerState st = Helpers.LoadState();
+            bool tw = string.Equals(st.selected_server, "tw", StringComparison.OrdinalIgnoreCase);
             string ver;
-            string pr = Helpers.FindPayloadPackRoot(out ver);
-            string g = Helpers.FindJpGameRoot(st.jp_game_path);
-            string l = Helpers.FindJpLauncherRoot(st.jp_launcher_path, g);
+            string pr = Helpers.FindPayloadPackRoot(out ver, tw);
+            string g = tw ? Helpers.FindTwGameRoot(st.tw_game_path) : Helpers.FindJpGameRoot(st.jp_game_path);
+            string l = tw ? "" : Helpers.FindJpLauncherRoot(st.jp_launcher_path, g);
 
             try
             {
@@ -2258,20 +2732,25 @@ namespace AzurPromiliaVIInstaller
                 {
                     RemoteRelease rr = Helpers.FetchLatestRelease(3500);
                     string cur = string.IsNullOrEmpty(ver) ? st.installed_version : ver;
-                    if (!string.IsNullOrEmpty(rr.version) && Helpers.CompareVersions(rr.version, cur) > 0 && !string.IsNullOrEmpty(rr.full_zip_url))
+                    string dlUrl = tw ? rr.tw_zip_url : rr.full_zip_url;
+                    string dlName = tw ? rr.tw_zip_name : rr.full_zip_name;
+                    string dlSha = tw ? rr.tw_zip_sha256 : rr.full_zip_sha256;
+                    if (!string.IsNullOrEmpty(rr.version) && Helpers.CompareVersions(rr.version, cur) > 0 && !string.IsNullOrEmpty(dlUrl))
                     {
-                        string zipPath = Path.Combine(Config.CacheRoot, rr.full_zip_name);
-                        Helpers.DownloadFileWithProgress(rr.full_zip_url, zipPath, null);
-                        if (string.IsNullOrEmpty(rr.full_zip_sha256) ||
-                            string.Equals(Helpers.Sha256File(zipPath), rr.full_zip_sha256, StringComparison.OrdinalIgnoreCase))
+                        string zipPath = Path.Combine(Config.CacheRoot, dlName);
+                        Helpers.DownloadFileWithProgress(dlUrl, zipPath, null);
+                        if (string.IsNullOrEmpty(dlSha) ||
+                            string.Equals(Helpers.Sha256File(zipPath), dlSha, StringComparison.OrdinalIgnoreCase))
                         {
-                            string newPack = Helpers.ExtractPackageZip(zipPath, rr.version);
-                            bool needAdmin = (!string.IsNullOrEmpty(g) && !Helpers.CanWriteDir(Path.Combine(g, "AzurPromiliaJP_Data"))) ||
+                            string newPack = Helpers.ExtractPackageZip(zipPath, rr.version, tw);
+                            string dataDir = tw ? "AzurPromilia_Data" : "AzurPromiliaJP_Data";
+                            string applyPs = tw ? "Apply-CRCZH.ps1" : "Apply-JPCRCZH.ps1";
+                            bool needAdmin = (!string.IsNullOrEmpty(g) && !Helpers.CanWriteDir(Path.Combine(g, dataDir))) ||
                                              (!string.IsNullOrEmpty(l) && !Helpers.CanWriteDir(Path.Combine(l, "resources")));
                             if (!string.IsNullOrEmpty(g))
-                                Helpers.RunPsScript(Path.Combine(newPack, "tools", "Apply-JPCRCZH.ps1"),
+                                Helpers.RunPsScript(Path.Combine(newPack, "tools", applyPs),
                                     "-Action Apply -Language vi -Hint \"" + g + "\"", null, needAdmin && !Helpers.IsAdmin());
-                            if (!string.IsNullOrEmpty(l))
+                            if (!tw && !string.IsNullOrEmpty(l))
                                 Helpers.RunPsScript(Path.Combine(newPack, "tools", "Apply-Launchers.ps1"),
                                     "-Action Apply -Target jp_launcher -Language vi -Hint \"" + l + "\"", null, needAdmin && !Helpers.IsAdmin());
                             Helpers.SyncInstalledExe(newPack);
@@ -2284,7 +2763,16 @@ namespace AzurPromiliaVIInstaller
             }
             catch { /* Never block launching the game when offline */ }
 
-            if (!string.IsNullOrEmpty(l) && File.Exists(Path.Combine(l, "AZUPRO_JP_Gamelauncher.exe")))
+            if (tw && !string.IsNullOrEmpty(g) && File.Exists(Path.Combine(g, "AzurPromilia.exe")))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = Path.Combine(g, "AzurPromilia.exe"),
+                    WorkingDirectory = g,
+                    UseShellExecute = true
+                });
+            }
+            else if (!tw && !string.IsNullOrEmpty(l) && File.Exists(Path.Combine(l, "AZUPRO_JP_Gamelauncher.exe")))
             {
                 Process.Start(new ProcessStartInfo
                 {

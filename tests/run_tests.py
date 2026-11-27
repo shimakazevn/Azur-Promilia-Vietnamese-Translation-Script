@@ -1548,9 +1548,11 @@ def load_tests(loader, tests, pattern):
     from test_jp_deblur import TestJPDeblur
     from test_tw_deblur import TestTWDeblur
     from test_android_perf import TestAndroidPerf
+    from test_tw_vi_merge import TestTWViAndDeblurMerge
     tests.addTests(loader.loadTestsFromTestCase(TestJPDeblur))
     tests.addTests(loader.loadTestsFromTestCase(TestTWDeblur))
     tests.addTests(loader.loadTestsFromTestCase(TestAndroidPerf))
+    tests.addTests(loader.loadTestsFromTestCase(TestTWViAndDeblurMerge))
     return tests
 
 

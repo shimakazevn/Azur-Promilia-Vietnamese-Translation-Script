@@ -1,6 +1,7 @@
 ﻿param(
     [ValidateSet('Menu','Apply','Restore','Verify','ValidatePayload')][string]$Action = 'Menu',
-    [string]$Hint = ''
+    [string]$Hint = '',
+    [ValidateSet('vi','en','zhcn')][string]$Language = 'zhcn'
 )
 $ErrorActionPreference = 'Stop'
 $script:HintExplicit = $PSBoundParameters.ContainsKey('Hint')
@@ -18,6 +19,14 @@ if (-not [IO.File]::Exists($commonPath)) {
 . $commonPath
 
 $PackRoot = Split-Path $PSScriptRoot -Parent
+$payloadSubdir = 'payload/tw_deblur'
+if ($Language -ne 'zhcn') {
+    $langDir = Join-Path $PackRoot ("payload-$Language\tw_deblur")
+    if ([IO.Directory]::Exists($langDir)) {
+        $payloadSubdir = "payload-$Language/tw_deblur"
+    }
+}
+
 $config = @{
     Region                 = 'tw'
     RegionLabel            = '台服'
@@ -27,10 +36,10 @@ $config = @{
     DataDirName            = 'AzurPromilia_Data'
     GameProcName           = 'AzurPromilia'
     BackupDirName          = '.tw-deblur-3221746-backup'
-    PayloadSubdir          = 'payload/tw_deblur'
+    PayloadSubdir          = $payloadSubdir
     SearchRelatives        = @('AzurPromilia_TC\AzurPromilia_TC_game', 'Games\AzurPromilia_TC\AzurPromilia_TC_game', 'Game\AzurPromilia_TC\AzurPromilia_TC_game', 'AzurPromilia_TC_game')
     HintRelatives          = @('AzurPromilia_TC_game', 'AzurPromilia_TC\AzurPromilia_TC_game')
-    MenuTitle              = '台服反虚化'
+    MenuTitle              = '台服反虚化 / Bỏ làm mờ TW (Mặc định tắt)'
     NotFoundMsg            = '没有找到台服游戏。请把游戏文件夹拖到 BAT 上，或使用 -Hint 指定安装目录。'
 }
 

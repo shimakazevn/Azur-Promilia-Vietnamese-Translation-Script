@@ -366,6 +366,91 @@ def main():
                 if m_vn:
                     apk_ver_name = m_vn.group(1)
 
+        tw_obj = None
+        tw_plan_path = ROOT / 'tools' / 'tw-deployment-vi.json'
+        tw_payload_dir = ROOT / 'payload-vi' / 'tw_game'
+        if tw_plan_path.is_file() and tw_payload_dir.is_dir():
+            tw_plan = json.loads(tw_plan_path.read_text('utf-8-sig'))
+            if tw_plan.get('status') == 'ready':
+                tw_entries = {}
+                for item in tw_plan['files']:
+                    rel = item['relative_path']
+                    p = child(tw_payload_dir, rel)
+                    if p.stat().st_size != item['size'] or sha256(p) != item['target_sha256']:
+                        raise ValueError(f'TW payload verify failed: {rel}')
+                    tw_entries[f'payload-vi/tw_game/{rel}'] = p
+
+                tw_deblur_plan_path = ROOT / 'tools' / 'tw-deblur-deployment.json'
+                tw_deblur_dir = ROOT / 'payload-vi' / 'tw_deblur'
+                tw_deblur_ok = False
+                if tw_deblur_plan_path.is_file() and tw_deblur_dir.is_dir():
+                    tdeb_plan = json.loads(tw_deblur_plan_path.read_text('utf-8-sig'))
+                    for fitem in tdeb_plan['files']:
+                        drel = fitem['relative_path']
+                        dsrc = child(tw_deblur_dir, drel)
+                        if 'size' in fitem and dsrc.stat().st_size != fitem['size']:
+                            raise ValueError(f'TW Deblur payload size mismatch: {drel}')
+                        if 'target_sha256' in fitem and sha256(dsrc) != fitem['target_sha256']:
+                            raise ValueError(f'TW Deblur payload SHA mismatch: {drel}')
+                        tw_entries[f'payload-vi/tw_deblur/{drel}'] = dsrc
+                    tw_deblur_ok = True
+
+                for rel in (
+                    'tools/Apply-CRCZH.ps1',
+                    'tools/Apply-TWDeblur.ps1',
+                    'tools/Localization-Common.ps1',
+                    'tools/Locate-Installations.ps1',
+                    'tools/Manage-Localization.ps1',
+                    'tools/tw-deployment-vi.json',
+                    'tools/tw-deblur-deployment.json',
+                    'tools/language.json',
+                    '使用说明.txt',
+                    '双击运行.bat',
+                ):
+                    if (ROOT / rel).is_file():
+                        src = child(ROOT, rel)
+                        check_text_encoding(src, rel)
+                        tw_entries[rel] = src
+
+                tw_cat = {
+                    'format': 1,
+                    'hash': 'SHA256',
+                    'language': 'vi',
+                    'region': 'tw',
+                    'status': 'ready',
+                    'files': [
+                        {'path': k, 'size': tw_entries[k].stat().st_size, 'sha256': sha256(tw_entries[k])}
+                        for k in sorted(tw_entries)
+                    ],
+                }
+                tw_cat_tmp = output / 'package-files-vi.tw.tmp.json'
+                tw_cat_tmp.write_bytes(
+                    (json.dumps(tw_cat, ensure_ascii=False, indent=2) + '\n').replace('\n', '\r\n').encode('utf-8')
+                )
+                if setup_exe.is_file():
+                    tw_entries['AzurPromilia-VI-Setup.exe'] = setup_exe
+
+                tw_zip = output / f'AzurPromilia-Localization-TW-vi-{args.version}.zip'
+                if tw_zip.exists():
+                    tw_zip.unlink()
+                tw_archive_entries = [(path, name) for name, path in sorted(tw_entries.items())]
+                tw_archive_entries.append((tw_cat_tmp, 'tools/package-files-vi.json'))
+                try:
+                    archive(tw_zip, tw_archive_entries, 'AzurPromilia-VietHoa-TW')
+                finally:
+                    if tw_cat_tmp.exists():
+                        tw_cat_tmp.unlink()
+                sums_items.append(tw_zip)
+                tw_obj = {
+                    'region': 'tw',
+                    'resource_version': tw_plan.get('resource_version', '3273850'),
+                    'deblur_supported': tw_deblur_ok,
+                    'filename': tw_zip.name,
+                    'size': tw_zip.stat().st_size,
+                    'sha256': sha256(tw_zip),
+                    'url': f'{base_dl}/{tw_zip.name}',
+                }
+
             payload_rows = sorted(
                 f"{item['relative_path'].replace(chr(92), '/')}:{item['target_sha256'].lower()}\n"
                 for item in android_plan['files']
@@ -454,8 +539,10 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Cập nhật Việt hóa cho bản game mới JP PC (3273853) & Android (3273851) kèm 2.172 chuỗi dịch mới, Bỏ làm mờ PC mới (35uofy...) & Mod Đồ Họa Performance Mobile mới (siybjb...); rà soát vá triệt để lỗi lọt mã game/thẻ màu/JSON/dấu tách hội thoại trong bản dịch; sửa lỗi nhận diện nâng cấp resource trên Android và tương thích engine v6.',
+            'notes': f'{args.version}: Tích hợp Việt hóa PC Đài Loan TW (3273850) + Bỏ làm mờ TW (từ baseline v6.1 + font Việt hóa), bổ sung file thứ 5 Bỏ làm mờ PC Nhật (7uawq...), hỗ trợ chuyển Server JP/TW ngay trên AzurPromilia-VI-Setup.exe, giữ nguyên JP PC (3273853) & Android (3273851).',
         }
+        if tw_obj:
+            latest['tw_package'] = tw_obj
         if android_obj:
             latest['android'] = android_obj
         latest_txt = json.dumps(latest, indent=2, ensure_ascii=False) + '\n'

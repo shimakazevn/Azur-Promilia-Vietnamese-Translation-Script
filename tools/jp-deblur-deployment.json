@@ -35,6 +35,14 @@
       "size": 4744960,
       "crc32": 4132850739,
       "segments": []
+    },
+    {
+      "relative_path": ".res/default_package/BundleFiles/7uawq1k6nfczmxtdtothxg.r",
+      "kind": "bundle_container",
+      "size": 5195939,
+      "source_sha256": "0f87ba9aefad3cd4204b8cdf58d941b8b1c8d4a48c720ec7d5b81221f827255e",
+      "target_sha256": "2934328cf14a5fe3a66d061f55024bf96acb06e3e97e01b6d513738137ccdbf1",
+      "crc32": 2153824689
     }
   ],
   "readonly_files": [],

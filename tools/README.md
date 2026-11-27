@@ -7,12 +7,12 @@
 | `Localization-Common.ps1` | 公共校验、备份、还原及进程检查 |
 | `Apply-CRCZH.ps1` | 台服游戏备份、替换、校验与还原 (hỗ trợ `-Language`) |
 | `Apply-JPCRCZH.ps1` | 日服游戏备份、替换、校验与还原 (hỗ trợ `-Language`) |
-| `Apply-JPDeblur.ps1` | 日服反虚化 (Bỏ làm mờ JP `1.0.2` — mặc định tắt) |
-| `Apply-TWDeblur.ps1` | 台服反虚化 (Bỏ làm mờ TW `3221746`) |
+| `Apply-JPDeblur.ps1` | 日服反虚化 (Bỏ làm mờ JP `3273853` / 5 file — mặc định tắt) |
+| `Apply-TWDeblur.ps1` | 台服反虚化 (Bỏ làm mờ TW `3273850` / 7 file — hỗ trợ `-Language`) |
 | `Apply-Launchers.ps1` | 两服启动器备份、汉化与还原 (hỗ trợ `-Language`) |
 | `Apply-AndroidVI.ps1` | [fork] Cài đặt / khôi phục / verify gói Việt hóa Android (`3273851`) qua ADB |
 | `tw-deployment.json` / `jp-deployment.json` / `launcher-deployment.json` | Bản gốc tiếng Trung (`zhcn`) |
-| `jp-deployment-vi.json` / `launcher-deployment-vi.json` / `android-deployment-vi.json` | [fork] Bảng triển khai tiếng Việt (`vi`) cho JP PC (`3273853`) & Android (`3273851`) |
+| `tw-deployment-vi.json` / `jp-deployment-vi.json` / `launcher-deployment-vi.json` / `android-deployment-vi.json` | [fork] Bảng triển khai tiếng Việt (`vi`) cho JP PC (`3273853`), TW PC (`3273850`) & Android (`3273851`) |
 | `jp-deblur-deployment.json` / `tw-deblur-deployment.json` | 清单 bỏ làm mờ (Deblur) |
 | `package-files.json` / `package-files-vi.json` | 安装包文件校验清单 (`zhcn` / `vi`) |
 | `language.json` | [fork] Cấu hình ngôn ngữ cho chế độ tương tác |

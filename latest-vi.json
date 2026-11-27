@@ -1,44 +1,53 @@
 {
   "schema_version": 1,
   "language": "vi",
-  "version": "v1.0.14",
-  "published_at": "2026-11-27T15:43:30Z",
+  "version": "v1.0.15",
+  "published_at": "2026-11-27T17:03:07Z",
   "repo": "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script",
   "jp_resource_version": "3273853",
   "jp_builtin_version": "3075915",
   "jp_launcher_version": "1.8.1",
   "deblur_supported": true,
   "full_package": {
-    "filename": "AzurPromilia-Localization-Full-vi-v1.0.14.zip",
-    "size": 289852521,
-    "sha256": "7614732bbb0d826cfb9766a5ce557acce575c828f0fd1f24ce87880e5e85a2e5",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.14/AzurPromilia-Localization-Full-vi-v1.0.14.zip"
+    "filename": "AzurPromilia-Localization-Full-vi-v1.0.15.zip",
+    "size": 294517798,
+    "sha256": "603b1ed670b10b3cc4f6335d19813b8d5abfd74b0ca97276b2649668936508f2",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-Localization-Full-vi-v1.0.15.zip"
   },
   "installer": {
     "filename": "AzurPromilia-VI-Setup.exe",
-    "size": 5492224,
-    "sha256": "a487515e6cffa8b00a5d34d2f85a654dc4158883fe18aa170a50d16a9ec29a33",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.14/AzurPromilia-VI-Setup.exe"
+    "size": 5503488,
+    "sha256": "1aef35c0f55436bc11c201d89038efa97f034e01bc2e6a091ed57e7e07f74da3",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-VI-Setup.exe"
   },
-  "notes": "v1.0.14: Cập nhật Việt hóa cho bản game mới JP PC (3273853) & Android (3273851) kèm 2.172 chuỗi dịch mới, Bỏ làm mờ PC mới (35uofy...) & Mod Đồ Họa Performance Mobile mới (siybjb...); rà soát vá triệt để lỗi lọt mã game/thẻ màu/JSON/dấu tách hội thoại trong bản dịch; sửa lỗi nhận diện nâng cấp resource trên Android và tương thích engine v6.",
+  "notes": "v1.0.15: Tích hợp Việt hóa PC Đài Loan TW (3273850) + Bỏ làm mờ TW (từ baseline v6.1 + font Việt hóa), bổ sung file thứ 5 Bỏ làm mờ PC Nhật (7uawq...), hỗ trợ chuyển Server JP/TW ngay trên AzurPromilia-VI-Setup.exe, giữ nguyên JP PC (3273853) & Android (3273851).",
+  "tw_package": {
+    "region": "tw",
+    "resource_version": "3273850",
+    "deblur_supported": true,
+    "filename": "AzurPromilia-Localization-TW-vi-v1.0.15.zip",
+    "size": 308064421,
+    "sha256": "21a79ba0d7117e08362228c9d12d617a1bd42d850b55f4eeded6bd12828e2a4d",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-Localization-TW-vi-v1.0.15.zip"
+  },
   "android": {
     "package_name": "com.Yostar.AzurpromiliaJP",
     "resource_version": "3273851",
     "payload_hash": "db24a1c15e05cd39b10b21f635fa928834a1006199932cf3065d7539a50cb700",
-    "filename": "AzurPromilia-Localization-Android-vi-v1.0.14.zip",
+    "filename": "AzurPromilia-Localization-Android-vi-v1.0.15.zip",
     "size": 163251344,
     "sha256": "869374eb41302e0be253291134f1e89b540b51cc90f25258e56d51f6f4f9f84e",
-    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.14/AzurPromilia-Localization-Android-vi-v1.0.14.zip",
+    "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-Localization-Android-vi-v1.0.15.zip",
     "perf": {
       "relative_path": "raw_streaming_package/BundleFiles/siybjb4yevdjs7yv6iiw.r",
       "source_sha256": "5084c7e411f06213e0c139d31aedb300726553ba3c77b35872d81e9f38422e9b",
       "base_vi_sha256": "517f88b32057b938f4b54f9d1e30ad5c0045215896f32d2b62156d58e2bf354b",
       "perf_target_sha256": "32b5028d0aa5dcb644a64dd74860cf250e686db9dfb7cc0254eb79cd4ec6bc53",
       "size": 28840130,
-      "filename": "AzurPromilia-Localization-Android-Perf-vi-v1.0.14.zip",
+      "filename": "AzurPromilia-Localization-Android-Perf-vi-v1.0.15.zip",
       "zip_size": 24369066,
       "sha256": "8f3de8dedb0fd84892f23ced65075fafd8b0e09f215186c737b70a303d030434",
-      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.14/AzurPromilia-Localization-Android-Perf-vi-v1.0.14.zip"
+      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-Localization-Android-Perf-vi-v1.0.15.zip"
     },
     "apk": {
       "version": "v1.0.14",
@@ -46,7 +55,7 @@
       "filename": "AzurPromilia-VI-Mobile.apk",
       "size": 1577964,
       "sha256": "b96cc5473fa2524e3c4ca128a0d394a843520f532610afc9a8693354dfda6f97",
-      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.14/AzurPromilia-VI-Mobile.apk"
+      "url": "https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Translation-Script/releases/download/v1.0.15/AzurPromilia-VI-Mobile.apk"
     }
   }
 }
