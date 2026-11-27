@@ -25,8 +25,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.9.0")]
-[assembly: AssemblyFileVersion("1.0.9.0")]
+[assembly: AssemblyVersion("1.0.10.0")]
+[assembly: AssemblyFileVersion("1.0.10.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -36,7 +36,7 @@ namespace AzurPromiliaVIInstaller
         public const string ReleaseLatestJsonUrl = "https://github.com/" + RepoSlug + "/releases/latest/download/latest-vi.json";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.9";
+        public const string CurrentInstallerVersion = "v1.0.10";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -473,6 +473,15 @@ namespace AzurPromiliaVIInstaller
                         return "Đã cài Việt hóa";
                     if (string.Equals(h, (string)item["source_sha256"], StringComparison.OrdinalIgnoreCase))
                         return "Bản gốc Nhật (Chưa Việt hóa)";
+                    object prevObj;
+                    if (item.TryGetValue("previous_sha256", out prevObj) && prevObj is IEnumerable)
+                    {
+                        foreach (object pv in (IEnumerable)prevObj)
+                        {
+                            if (string.Equals(h, Convert.ToString(pv), StringComparison.OrdinalIgnoreCase))
+                                return "Bản Việt hóa cũ (Cần cập nhật)";
+                        }
+                    }
                     return "Phiên bản Launcher khác";
                 }
             }
@@ -697,6 +706,75 @@ namespace AzurPromiliaVIInstaller
             throw new InvalidDataException("Goi tai ve khong dung cau truc payload-vi/tools.");
         }
 
+        private static readonly string[][] PsLogMap = new[]
+        {
+            new[] { "通过 [原版定位] ", "Đạt [Bản gốc - Hotfix] " },
+            new[] { "通过 [已汉化定位] ", "Đạt [Đã Việt hóa - Hotfix] " },
+            new[] { "通过 [原版] ", "Đạt [Bản gốc] " },
+            new[] { "通过 [已汉化] ", "Đạt [Đã Việt hóa] " },
+            new[] { "通过 ", "Đạt " },
+            new[] { "已写入并校验：", "Đã ghi & kiểm tra CRC/SHA256: " },
+            new[] { "已写入并校验:", "Đã ghi & kiểm tra CRC/SHA256: " },
+            new[] { "完整校验通过，所有只读基线保持原字节。", "Kiểm tra toàn vẹn đạt 100%: toàn bộ file baseline chỉ-đọc đều giữ nguyên từng byte gốc." },
+            new[] { "所有文件均已处于目标状态，无需修改。", "Tất cả file đã ở đúng trạng thái mục tiêu, không cần ghi đè." },
+            new[] { "Apply 完成。资源大小、段 CRC、整包 CRC 和只读基线均通过。", "Cài đặt hoàn tất: dung lượng, CRC từng đoạn, CRC toàn gói và baseline chỉ-đọc đều đạt." },
+            new[] { "Restore 完成。资源大小、段 CRC、整包 CRC 和只读基线均通过。", "Khôi phục hoàn tất: dung lượng, CRC từng đoạn, CRC toàn gói và baseline chỉ-đọc đều đạt." },
+            new[] { "载荷通过：", "Gói file hợp lệ: " },
+            new[] { "全部载荷通过：大小、SHA256、整包 CRC、全部段 CRC。", "Toàn bộ file Việt hóa đạt chuẩn: dung lượng, SHA-256, CRC toàn file và CRC từng đoạn." },
+            new[] { "写入目标目录需要管理员权限，正在请求……", "Cần quyền Quản trị viên (UAC) để ghi thư mục game, đang xin cấp quyền..." },
+            new[] { "请先完全退出游戏主程序或启动器：", "Vui lòng đóng hoàn toàn game hoặc Launcher đang chạy: " },
+            new[] { "请先完全退出启动器：", "Vui lòng đóng hoàn toàn Launcher đang chạy: " },
+            new[] { "请先完全退出游戏主程序：", "Vui lòng đóng hoàn toàn game đang chạy: " },
+            new[] { "检测到同名进程 ", "Phát hiện tiến trình trùng tên " },
+            new[] { " 但无法读取其路径，将继续执行；若文件被占用将自动回滚。", " nhưng không đọc được đường dẫn; sẽ thử chạy tiếp và tự khôi phục nếu file bị khóa." },
+            new[] { "游戏资源版本低于补丁基线：", "Phiên bản tài nguyên game cũ hơn bản nền của patch: " },
+            new[] { "文件缺失：", "Thiếu file: " },
+            new[] { "游戏文件缺失：", "Thiếu file game: " },
+            new[] { "缺少原版备份：", "Thiếu file sao lưu bản gốc: " },
+            new[] { "原版备份不匹配：", "File sao lưu bản gốc không khớp: " },
+            new[] { "原版只读基线不匹配：", "Game đã cập nhật hoặc file baseline chỉ-đọc không khớp: " },
+            new[] { "原版只读基线版本过低：", "Phiên bản game quá cũ so với baseline: " },
+            new[] { "原版只读基线缺失：", "Thiếu file baseline chỉ-đọc: " },
+            new[] { "文件大小不匹配：", "Dung lượng file không khớp: " },
+            new[] { "文件版本不匹配：", "Phiên bản file không khớp: " },
+            new[] { "文件既非原版也非本版汉化：", "File không khớp cả bản gốc lẫn bản Việt hóa hiện tại: " },
+            new[] { "整包 CRC 不匹配：", "CRC toàn file không khớp: " },
+            new[] { "段 CRC 不匹配：", "CRC từng đoạn không khớp: " },
+            new[] { "SHA256 不匹配：", "Mã SHA-256 không khớp: " },
+            new[] { "目标磁盘剩余空间不足", "Dung lượng trống ổ đĩa không đủ" },
+            new[] { "已回滚到操作前：", "Đã tự hoàn tác về trạng thái trước khi sửa: " },
+            new[] { "操作失败：", "Thao tác thất bại: " },
+            new[] { "补丁载荷目录不存在：", "Không tìm thấy thư mục gói Việt hóa: " },
+            new[] { "（请下载 Releases 完整包，勿直接下载源码 ZIP）", " (vui lòng tải bản Full ZIP trong Releases, không tải Source ZIP)." }
+        };
+
+        public static string TranslatePsLogLine(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return raw;
+            string s = raw;
+            if (s.StartsWith("ORIGINAL ", StringComparison.Ordinal))
+                return "Launcher đang ở bản gốc Nhật (" + s.Substring("ORIGINAL ".Length).Trim() + ")";
+            if (s.StartsWith("LOCALIZED ", StringComparison.Ordinal))
+                return "Launcher đã cài Việt hóa (" + s.Substring("LOCALIZED ".Length).Trim() + ")";
+            if (s.StartsWith("ALREADY_ORIGINAL ", StringComparison.Ordinal))
+                return "Launcher đã ở nguyên bản Nhật, không cần khôi phục.";
+            if (s.StartsWith("ALREADY_CURRENT ", StringComparison.Ordinal))
+                return "Launcher đã ở bản Việt hóa mới nhất.";
+            if (s.StartsWith("APPLY_OK ", StringComparison.Ordinal))
+                return "Đã cài Việt hóa Launcher thành công (" + s.Substring("APPLY_OK ".Length).Trim() + ").";
+            if (s.StartsWith("RESTORE_OK ", StringComparison.Ordinal))
+                return "Đã khôi phục Launcher về bản gốc thành công (" + s.Substring("RESTORE_OK ".Length).Trim() + ").";
+            if (s.StartsWith("PAYLOAD_OK ", StringComparison.Ordinal))
+                return "Gói Launcher hợp lệ (" + s.Substring("PAYLOAD_OK ".Length).Trim() + ").";
+
+            for (int i = 0; i < PsLogMap.Length; i++)
+            {
+                if (s.IndexOf(PsLogMap[i][0], StringComparison.Ordinal) >= 0)
+                    s = s.Replace(PsLogMap[i][0], PsLogMap[i][1]);
+            }
+            return s;
+        }
+
         public static int RunPsScript(string scriptPath, string args, Action<string> onLog, bool elevateIfNeeded)
         {
             string ps = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),
@@ -716,8 +794,8 @@ namespace AzurPromiliaVIInstaller
                 psi.StandardErrorEncoding = Encoding.UTF8;
                 using (Process p = Process.Start(psi))
                 {
-                    p.OutputDataReceived += (s, e) => { if (e.Data != null && onLog != null) onLog(e.Data); };
-                    p.ErrorDataReceived += (s, e) => { if (e.Data != null && onLog != null) onLog("[ERR] " + e.Data); };
+                    p.OutputDataReceived += (s, e) => { if (e.Data != null && onLog != null) onLog(TranslatePsLogLine(e.Data)); };
+                    p.ErrorDataReceived += (s, e) => { if (e.Data != null && onLog != null) onLog("[ERR] " + TranslatePsLogLine(e.Data)); };
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
                     p.WaitForExit();

@@ -430,7 +430,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Sửa lỗi hiển thị trạng thái game/đã đồng bộ trên Android Companion sau khi kết nối Shizuku (fix key res_exists) & đồng bộ toàn bộ PC/Mobile lên v1.0.9.',
+            'notes': f'{args.version}: Việt hóa 4 nút bấm & toàn bộ giao diện Yostar Launcher (TRANG CHỦ, BẮT ĐẦU), Việt hóa toàn bộ nhật ký (log) PC Setup, đồng bộ v1.0.10.',
         }
         if android_obj:
             latest['android'] = android_obj

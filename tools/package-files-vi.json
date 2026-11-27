@@ -87,8 +87,8 @@
     },
     {
       "path": "payload-vi/jp_launcher/resources/app.asar",
-      "size": 71391046,
-      "sha256": "bfd088bf6e4fef4c16d13159a5ac1d42d97b939c24c3a766909ee67872a3ba5b"
+      "size": 71392288,
+      "sha256": "0bc8030e834acf621c49f3e2c13f358fb4ead48159d3a1a72970549eeb2dab81"
     },
     {
       "path": "tools/Apply-CRCZH.ps1",
@@ -147,8 +147,8 @@
     },
     {
       "path": "tools/launcher-deployment-vi.json",
-      "size": 1674,
-      "sha256": "76b13f206e903a740d09918d35614b4eba39e22a553b2020423b2b604445f78d"
+      "size": 1758,
+      "sha256": "eb58ca4975de2a69a91f8a5345d4959f180c75523d805acac39c368163a5d36e"
     },
     {
       "path": "tools/tw-deblur-deployment.json",

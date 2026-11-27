@@ -33,10 +33,12 @@
         "AZUPRO_JP_Gamelauncher",
         "YostarGames"
       ],
-      "target_sha256": "bfd088bf6e4fef4c16d13159a5ac1d42d97b939c24c3a766909ee67872a3ba5b",
-      "previous_sha256": [],
+      "target_sha256": "0bc8030e834acf621c49f3e2c13f358fb4ead48159d3a1a72970549eeb2dab81",
+      "previous_sha256": [
+        "bfd088bf6e4fef4c16d13159a5ac1d42d97b939c24c3a766909ee67872a3ba5b"
+      ],
       "payload_dir": "jp_launcher",
-      "size": 71391046
+      "size": 71392288
     }
   ],
   "language": "vi",
