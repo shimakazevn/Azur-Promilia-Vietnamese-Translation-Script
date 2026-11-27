@@ -20,7 +20,7 @@ Truy cập [Releases](https://github.com/shimakazevn/Azur-Promilia-Vietnamese-Tr
 - **Cách 1 (Khuyên dùng — Web Installer + Auto-Update)**: Tải **`AzurPromilia-VI-Setup.exe`** (~5.2 MB) → Mở lên → Chọn **Cài đặt / Cập nhật Việt hóa**.
   - Giao diện Launcher kèm ảnh động & nhạc nền chính thức Azur Promilia (có nút bật/tắt ngay trên thanh tiêu đề), tự nhận diện `AZUPRO_JP` & `AZUPRO_JP_Gamelauncher`, tải gói từ GitHub Releases, kiểm tra SHA-256 + CRC32, tạo shortcut Desktop tự cập nhật khi mở game.
   - **Tùy chọn Bỏ làm mờ (Deblur — Tắt làm mờ nhân vật khi zoom gần / ngước camera):** **Mặc định TẮT** để an toàn tối đa. Bạn có thể bật/tắt bất kỳ lúc nào bằng nút **`Bật / Tắt Bỏ làm mờ`** ngay trong giao diện GUI cài đặt.
-- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.13.zip`** (~288 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
+- **Cách 2 (Bản Full Offline)**: Tải **`AzurPromilia-Localization-Full-vi-v1.0.13.zip`** (~276 MB, kèm cả gói Bỏ làm mờ), giải nén rồi chạy `AzurPromilia-VI-Setup.exe` hoặc `双击运行.bat`.
 
 ### B. Trên Android Mobile (`com.Yostar.AzurpromiliaJP` — Resource `3219596`, Không cần Root)
 

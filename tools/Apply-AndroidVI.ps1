@@ -50,7 +50,10 @@ function Get-RemoteSha([string]$RemotePath) {
 if ($Action -eq 'Verify') {
     foreach ($f in $Plan.files) {
         $sha = Get-RemoteSha "$RemoteRes/$($f.relative_path)"
+        $perfProp = $f.PSObject.Properties['perf_target_sha256']
+        $perfSha = if ($perfProp) { [string]$perfProp.Value } else { '' }
         if ($sha -eq $f.target_sha256) { Write-Host "[VIET HOA] $($f.relative_path)" -ForegroundColor Green }
+        elseif ($perfSha -and $sha -eq $perfSha) { Write-Host "[VIET HOA + MOD DO HOA] $($f.relative_path)" -ForegroundColor Cyan }
         elseif ($sha -eq $f.source_sha256) { Write-Host "[BAN GOC]  $($f.relative_path)" -ForegroundColor Yellow }
         else { Write-Host "[KHAC/LOI] $($f.relative_path) ($sha)" -ForegroundColor Red }
     }
@@ -70,6 +73,8 @@ if ($Action -eq 'Apply') {
     foreach ($f in $Plan.files) {
         $rp = "$RemoteRes/$($f.relative_path)"
         $bp = "$RemoteBak/$($f.relative_path)"
+        $perfProp = $f.PSObject.Properties['perf_target_sha256']
+        $perfSha = if ($perfProp) { ([string]$perfProp.Value).ToLowerInvariant() } else { '' }
         $cur = Get-RemoteSha $rp
         if ($cur -eq $f.source_sha256) {
             $bcur = Get-RemoteSha $bp
@@ -78,7 +83,10 @@ if ($Action -eq 'Apply') {
                 & $Adb shell "mkdir -p '$bdir' && cp -f '$rp' '$bp'" | Out-Null
                 if ((Get-RemoteSha $bp) -ne $f.source_sha256) { throw "Backup that bai: $($f.relative_path)" }
             }
-        } elseif ($cur -ne $f.target_sha256) {
+        } elseif ($cur -eq $f.target_sha256) {
+            Write-Host "[SKIP] Da o ban Viet hoa: $($f.relative_path)" -ForegroundColor DarkGray
+            continue
+        } elseif (-not ($perfSha -and $cur -eq $perfSha)) {
             throw "File tren dien thoai khong khop goc/VI: $($f.relative_path)"
         }
         $local = Join-Path $PayloadDir ($f.relative_path -replace '/','\')

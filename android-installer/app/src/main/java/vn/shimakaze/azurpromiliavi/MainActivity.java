@@ -888,6 +888,9 @@ public class MainActivity extends Activity {
                 "4️⃣ Quay lại app này:\n" +
                 "   • Bấm 'Cấp quyền' Shizuku (chọn Cho phép).\n" +
                 "   • Bấm 'Tải & Cài Đặt Việt Hóa (GitHub)' → đợi 15-30s là xong!\n\n" +
+                "5️⃣ Mục (3) Mod Đồ Họa & Hiệu Năng (Tùy chọn):\n" +
+                "   • Máy yếu: Dùng 'Mod Mở Khóa Đồ Họa In-Game' để hạ Tỷ lệ kết xuất xuống 50% + tắt SSAA/GI/AO; hoặc dùng Preset 'Máy yếu (0.60×)' (nếu máy dùng WM hạ phân giải màn hình, nhớ bấm 'Về mặc định' sau khi chơi xong).\n" +
+                "   • Máy Gaming / Android 15+: Preset 'Gaming Max' mở khóa giới hạn nhiệt (Thermal Unlock) & giới hạn 60Hz mặc định, hỗ trợ lên tới 120 FPS.\n\n" +
                 "ℹ️ Lưu ý (Infinix XOS 16 / Xiaomi HyperOS / Realme / Oppo / Android 16):\n" +
                 "   • Nếu bị kẹt kết nối Shizuku: vào Tùy chọn nhà phát triển bật 'Tắt theo dõi quyền' (Disable permission monitoring) hoặc 'Gỡ lỗi USB (Cài đặt bảo mật)', đặt Pin cho Shizuku thành 'Không hạn chế' và cho phép chạy nền.\n" +
                 "   • App sẽ tự động chuyển sang chế độ Shizuku Shell trực tiếp sau 3 giây nếu ROM chặn UserService.\n" +
@@ -1976,8 +1979,12 @@ public class MainActivity extends Activity {
             if (currentPlanJson.isEmpty()) throw new RuntimeException("Gói ZIP thiếu android-deployment-vi.json!");
             extractedManifest = currentPlanJson;
         } else {
+            extractedManifest = mergePerfHashesIfMissing(extractedManifest, currentPlanJson);
             currentPlanJson = extractedManifest;
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putString(KEY_CACHED_PLAN, extractedManifest).apply();
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putString(KEY_CACHED_PLAN, extractedManifest)
+                    .putLong(KEY_CACHED_PLAN_APK_VER, BuildConfig.VERSION_CODE)
+                    .apply();
         }
 
         log("Đang đóng game nếu còn chạy ngầm...");
@@ -2081,6 +2088,49 @@ public class MainActivity extends Activity {
             startActivity(launch);
         } else {
             toast("Không tìm thấy Azur Promilia JP trên máy.");
+        }
+    }
+
+    private static String mergePerfHashesIfMissing(String manifestJson, String fallbackJson) {
+        if (manifestJson == null || fallbackJson == null || fallbackJson.trim().isEmpty()) {
+            return manifestJson;
+        }
+        if (manifestJson.contains("perf_target_sha256")) {
+            return manifestJson;
+        }
+        try {
+            JSONObject cur = new JSONObject(manifestJson);
+            JSONObject fb = new JSONObject(fallbackJson);
+            if (!cur.optString("resource_version", "").equals(fb.optString("resource_version", ""))) {
+                return manifestJson;
+            }
+            JSONArray fbArr = fb.optJSONArray("files");
+            JSONArray curArr = cur.optJSONArray("files");
+            if (fbArr == null || curArr == null) return manifestJson;
+
+            java.util.Map<String, String> perfMap = new java.util.HashMap<>();
+            for (int i = 0; i < fbArr.length(); i++) {
+                JSONObject it = fbArr.getJSONObject(i);
+                String p = it.optString("perf_target_sha256", "");
+                if (!p.isEmpty()) {
+                    perfMap.put(it.getString("relative_path").replace('\\', '/'), p);
+                }
+            }
+            if (perfMap.isEmpty()) return manifestJson;
+
+            boolean changed = false;
+            for (int i = 0; i < curArr.length(); i++) {
+                JSONObject it = curArr.getJSONObject(i);
+                String rel = it.getString("relative_path").replace('\\', '/');
+                String p = perfMap.get(rel);
+                if (p != null && it.optString("perf_target_sha256", "").isEmpty()) {
+                    it.put("perf_target_sha256", p);
+                    changed = true;
+                }
+            }
+            return changed ? cur.toString() : manifestJson;
+        } catch (Throwable ignored) {
+            return manifestJson;
         }
     }
 
