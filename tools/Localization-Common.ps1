@@ -1318,10 +1318,11 @@ function Invoke-GameCRCZH {
             $p = Resolve-SafeChild $data $e.relative_path
             if (-not [IO.File]::Exists($p)) { throw "游戏文件缺失：$($e.relative_path)" }
             $h = Get-FileSha256 $p
-            if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256) {
+            $bk = Resolve-SafeChild $backup $e.relative_path
+            $hasViEnBackup = ($Config.Region -eq 'jp' -and ($Config.BackupDirName -match '^\.(?:vi|en)-') -and [IO.File]::Exists($bk) -and ((Get-FileSha256 $bk) -eq $e.source_sha256))
+            if ($h -ne $e.source_sha256 -and $h -ne $e.target_sha256 -and -not $hasViEnBackup) {
                 throw "文件版本不匹配：$($e.relative_path)"
             }
-            $bk = Resolve-SafeChild $backup $e.relative_path
             $needsNewBackup = $false
             if ($Action -eq 'Apply') {
                 $src = Resolve-SafeChild $payloadRoot $e.relative_path

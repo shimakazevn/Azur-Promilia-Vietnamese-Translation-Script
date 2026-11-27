@@ -84,6 +84,7 @@ function Is-ModuleReady($Def) {
             $ent = @($lp.launchers | Where-Object { $_.id -eq $Def.Id })
             if ($ent.Count -ne 1) { return $false }
             if (($ent[0].PSObject.Properties.Name -contains 'status') -and $ent[0].status -eq 'placeholder-no-payload') { return $false }
+            if ($ent[0].target_sha256 -match '^0+$') { return $false }
             return $true
         } catch { return $false }
     }

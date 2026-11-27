@@ -18,8 +18,8 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.5.0")]
-[assembly: AssemblyFileVersion("1.0.5.0")]
+[assembly: AssemblyVersion("1.0.6.0")]
+[assembly: AssemblyFileVersion("1.0.6.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -28,7 +28,7 @@ namespace AzurPromiliaVIInstaller
         public const string RepoSlug = "shimakazevn/Azur-Promilia-Vietnamese-Translation-Script";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.5";
+        public const string CurrentInstallerVersion = "v1.0.6";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -227,6 +227,31 @@ namespace AzurPromiliaVIInstaller
             return "";
         }
 
+        public static string DetectVersionInDir(string dir, string exeDir)
+        {
+            if (string.IsNullOrEmpty(dir)) return "";
+            string verFile = Path.Combine(dir, "VERSION.txt");
+            if (File.Exists(verFile))
+                return File.ReadAllText(verFile, Encoding.UTF8).Trim();
+            string latestFile = Path.Combine(dir, "latest-vi.json");
+            if (File.Exists(latestFile))
+            {
+                try
+                {
+                    var doc = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(latestFile, Encoding.UTF8));
+                    if (doc != null && doc.ContainsKey("version"))
+                    {
+                        string v = Convert.ToString(doc["version"]);
+                        if (!string.IsNullOrWhiteSpace(v)) return v.Trim();
+                    }
+                }
+                catch { }
+            }
+            if (!string.IsNullOrEmpty(exeDir) && string.Equals(Path.GetFullPath(dir), Path.GetFullPath(exeDir), StringComparison.OrdinalIgnoreCase))
+                return Config.CurrentInstallerVersion;
+            return "";
+        }
+
         public static string FindPayloadPackRoot(out string detectedVersion)
         {
             detectedVersion = "";
@@ -251,9 +276,7 @@ namespace AzurPromiliaVIInstaller
                     File.Exists(Path.Combine(c, "tools", "jp-deployment-vi.json")) &&
                     File.Exists(Path.Combine(c, "payload-vi", "jp_game", "resources.assets")))
                 {
-                    string verFile = Path.Combine(c, "VERSION.txt");
-                    if (File.Exists(verFile))
-                        detectedVersion = File.ReadAllText(verFile, Encoding.UTF8).Trim();
+                    detectedVersion = DetectVersionInDir(c, exeDir);
                     return Path.GetFullPath(c);
                 }
                 // Check one nested folder (from Zip extraction prefix)
@@ -264,9 +287,7 @@ namespace AzurPromiliaVIInstaller
                         if (File.Exists(Path.Combine(sub, "tools", "Apply-JPCRCZH.ps1")) &&
                             File.Exists(Path.Combine(sub, "payload-vi", "jp_game", "resources.assets")))
                         {
-                            string verFile = Path.Combine(sub, "VERSION.txt");
-                            if (File.Exists(verFile))
-                                detectedVersion = File.ReadAllText(verFile, Encoding.UTF8).Trim();
+                            detectedVersion = DetectVersionInDir(sub, exeDir);
                             return Path.GetFullPath(sub);
                         }
                     }
@@ -612,6 +633,44 @@ namespace AzurPromiliaVIInstaller
                 CreateNoWindow = true
             }).WaitForExit();
         }
+
+        public static string SyncInstalledExe(string packRoot)
+        {
+            Directory.CreateDirectory(Config.AppDataDir);
+            string installedExe = Path.Combine(Config.AppDataDir, "AzurPromilia-VI-Setup.exe");
+            string selfExe = Path.GetFullPath(Assembly.GetExecutingAssembly().Location);
+            string preferred = selfExe;
+            if (!string.IsNullOrEmpty(packRoot))
+            {
+                string cand = Path.Combine(packRoot, "AzurPromilia-VI-Setup.exe");
+                if (File.Exists(cand)) preferred = Path.GetFullPath(cand);
+            }
+            string destFull = Path.GetFullPath(installedExe);
+            if (!string.Equals(selfExe, destFull, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (!File.Exists(destFull) || !string.Equals(Sha256File(preferred), Sha256File(destFull), StringComparison.OrdinalIgnoreCase))
+                        File.Copy(preferred, destFull, true);
+                }
+                catch { }
+            }
+            else if (!string.Equals(preferred, selfExe, StringComparison.OrdinalIgnoreCase) && File.Exists(preferred))
+            {
+                try
+                {
+                    if (!string.Equals(Sha256File(preferred), Sha256File(selfExe), StringComparison.OrdinalIgnoreCase))
+                    {
+                        string staged = destFull + ".new";
+                        File.Copy(preferred, staged, true);
+                        string cmd = "/c ping -n 2 127.0.0.1 >nul & move /y \"" + staged + "\" \"" + destFull + "\"";
+                        Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = cmd, UseShellExecute = false, CreateNoWindow = true });
+                    }
+                }
+                catch { }
+            }
+            return installedExe;
+        }
     }
 
     internal class MainForm : Form
@@ -650,7 +709,7 @@ namespace AzurPromiliaVIInstaller
 
         private void InitializeUi()
         {
-            Text = "Azur Promilia — Cài đặt & Tự động cập nhật Việt hóa";
+            Text = "Azur Promilia — Cài đặt & Tự động cập nhật Việt hóa (" + Config.CurrentInstallerVersion + ")";
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -661,7 +720,7 @@ namespace AzurPromiliaVIInstaller
 
             Label lblTitle = new Label
             {
-                Text = "AZUR PROMILIA — VIỆT HÓA TIẾNG VIỆT (JP CLIENT)",
+                Text = "AZUR PROMILIA — VIỆT HÓA TIẾNG VIỆT (JP CLIENT) · " + Config.CurrentInstallerVersion,
                 Font = new Font("Segoe UI", 13.5f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(110, 200, 255),
                 Location = new Point(22, 16),
@@ -671,7 +730,7 @@ namespace AzurPromiliaVIInstaller
 
             lblVersionInfo = new Label
             {
-                Text = "Đang kiểm tra trạng thái gói Việt hóa & GitHub Releases...",
+                Text = "App Setup: " + Config.CurrentInstallerVersion + "  |  Đang kiểm tra trạng thái & GitHub...",
                 ForeColor = Color.FromArgb(190, 200, 220),
                 Location = new Point(22, 48),
                 Size = new Size(560, 22)
@@ -864,16 +923,65 @@ namespace AzurPromiliaVIInstaller
             btnDeblurToggle.BackColor = deblurOn ? Color.FromArgb(175, 98, 38) : Color.FromArgb(52, 62, 84);
         }
 
+        private void UpdateHeaderLabel(string gameStatus)
+        {
+            string gameVerDesc;
+            if (!string.IsNullOrEmpty(gameStatus) && gameStatus.IndexOf("Đã cài") >= 0)
+            {
+                gameVerDesc = !string.IsNullOrEmpty(_localVersion) ? _localVersion : Config.CurrentInstallerVersion;
+            }
+            else if (!string.IsNullOrEmpty(gameStatus) && (gameStatus.IndexOf("File không khớp") >= 0 || gameStatus.IndexOf("Cài dở dang") >= 0))
+            {
+                gameVerDesc = string.IsNullOrEmpty(_state.installed_version)
+                    ? "bản cũ (cần cập nhật)"
+                    : (_state.installed_version + " (cần cập nhật)");
+            }
+            else
+            {
+                gameVerDesc = "chưa cài";
+            }
+
+            if (_remote != null && !string.IsNullOrEmpty(_remote.version))
+            {
+                bool upToDate = (!string.IsNullOrEmpty(gameStatus) && gameStatus.IndexOf("Đã cài") >= 0)
+                                && _localVersion == _remote.version
+                                && Config.CurrentInstallerVersion == _remote.version;
+                string updateNote = upToDate ? " (Đã mới nhất)" : " (CÓ BẢN MỚI!)";
+                lblVersionInfo.Text = string.Format("App: {0}  |  Trong game: {1}  |  GitHub: {2}{3}",
+                    Config.CurrentInstallerVersion, gameVerDesc, _remote.version, updateNote);
+            }
+            else
+            {
+                lblVersionInfo.Text = string.Format("App: {0}  |  Trong game: {1}  |  Đang check GitHub...",
+                    Config.CurrentInstallerVersion, gameVerDesc);
+            }
+        }
+
         private void RefreshStateAndCheckAsync(bool fetchOnline)
         {
             string detectedVer;
             _packRoot = Helpers.FindPayloadPackRoot(out detectedVer);
-            _localVersion = string.IsNullOrEmpty(detectedVer) ? _state.installed_version : detectedVer;
+            Helpers.SyncInstalledExe(_packRoot);
             if (string.IsNullOrEmpty(txtGamePath.Text))
                 txtGamePath.Text = Helpers.FindJpGameRoot(_state.jp_game_path);
             if (string.IsNullOrEmpty(txtLauncherPath.Text))
                 txtLauncherPath.Text = Helpers.FindJpLauncherRoot(_state.jp_launcher_path, txtGamePath.Text);
             RefreshLocalStatuses();
+
+            if (lblGameStatus.Text.IndexOf("Đã cài") >= 0)
+            {
+                _localVersion = !string.IsNullOrEmpty(detectedVer) ? detectedVer : Config.CurrentInstallerVersion;
+                if (_state.installed_version != _localVersion)
+                {
+                    _state.installed_version = _localVersion;
+                    Helpers.SaveState(_state);
+                }
+            }
+            else
+            {
+                _localVersion = "";
+            }
+            UpdateHeaderLabel(lblGameStatus.Text);
 
             if (!fetchOnline) return;
             ThreadPool.QueueUserWorkItem(_ =>
@@ -884,11 +992,7 @@ namespace AzurPromiliaVIInstaller
                     _remote = rr;
                     BeginInvoke(new Action(() =>
                     {
-                        string localTxt = string.IsNullOrEmpty(_localVersion) ? "chưa ghi nhận" : _localVersion;
-                        string updateNote = (!string.IsNullOrEmpty(rr.version) && rr.version != _localVersion)
-                            ? " (CÓ BẢN MỚI!)" : " (Đã mới nhất)";
-                        lblVersionInfo.Text = string.Format("Bản đang có: {0}  |  GitHub mới nhất: {1}{2}",
-                            localTxt, string.IsNullOrEmpty(rr.version) ? "?" : rr.version, updateNote);
+                        UpdateHeaderLabel(lblGameStatus.Text);
                         Log("Đã kiểm tra GitHub (" + rr.source + "): bản mới nhất = " + rr.version +
                             (string.IsNullOrEmpty(rr.jp_resource_version) ? "" : " (Client JP #" + rr.jp_resource_version + ")"));
                     }));
@@ -898,7 +1002,7 @@ namespace AzurPromiliaVIInstaller
                     BeginInvoke(new Action(() =>
                     {
                         string localTxt = string.IsNullOrEmpty(_packRoot) ? "Chưa có payload" : "Payload cục bộ sẵn sàng";
-                        lblVersionInfo.Text = localTxt + "  |  Không kết nối được GitHub (Offline mode)";
+                        lblVersionInfo.Text = string.Format("App: {0}  |  {1} (Offline)", Config.CurrentInstallerVersion, localTxt);
                         Log("Không kiểm tra được GitHub (sẽ dùng gói cục bộ nếu có): " + ex.Message);
                     }));
                 }
@@ -1124,14 +1228,13 @@ namespace AzurPromiliaVIInstaller
                         if (rc != 0) throw new Exception("Apply-Launchers.ps1 thất bại với mã " + rc);
                     }
 
-                    // Copy self to AppData so desktop shortcut & auto-updater persist cleanly
-                    Directory.CreateDirectory(Config.AppDataDir);
-                    string selfExe = Assembly.GetExecutingAssembly().Location;
-                    string installedExe = Path.Combine(Config.AppDataDir, "AzurPromilia-VI-Setup.exe");
-                    if (!string.Equals(Path.GetFullPath(selfExe), Path.GetFullPath(installedExe), StringComparison.OrdinalIgnoreCase))
-                        File.Copy(selfExe, installedExe, true);
+                    string installedExe = Helpers.SyncInstalledExe(packRoot);
+                    string packVer = Helpers.DetectVersionInDir(packRoot, Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+                    string appliedVer = !string.IsNullOrEmpty(packVer) ? packVer
+                        : (_remote != null && !string.IsNullOrEmpty(_remote.version) ? _remote.version : Config.CurrentInstallerVersion);
 
-                    _state.installed_version = !string.IsNullOrEmpty(_localVersion) ? _localVersion : Config.CurrentInstallerVersion;
+                    _localVersion = appliedVer;
+                    _state.installed_version = appliedVer;
                     _state.jp_game_path = gameDir;
                     _state.jp_launcher_path = launcherDir;
                     _state.auto_update_on_launch = chkAutoLaunch.Checked;
@@ -1148,6 +1251,7 @@ namespace AzurPromiliaVIInstaller
                     {
                         progressBar.Value = 100;
                         RefreshLocalStatuses();
+                        UpdateHeaderLabel(lblGameStatus.Text);
                         SetBusy(false, "Cài đặt Việt hóa thành công!");
                         MessageBox.Show("Cài đặt / Cập nhật Việt hóa hoàn tất!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }));
@@ -1199,9 +1303,13 @@ namespace AzurPromiliaVIInstaller
                             "-Action Restore -Target jp_launcher -Language vi -Hint \"" + launcherDir + "\"", Log, needAdmin && !Helpers.IsAdmin());
                         if (rc != 0) throw new Exception("Restore JP Launcher lỗi mã " + rc);
                     }
+                    _localVersion = "";
+                    _state.installed_version = "";
+                    Helpers.SaveState(_state);
                     BeginInvoke(new Action(() =>
                     {
                         RefreshLocalStatuses();
+                        UpdateHeaderLabel(lblGameStatus.Text);
                         SetBusy(false, "Đã khôi phục nguyên bản!");
                     }));
                 }
@@ -1351,6 +1459,7 @@ namespace AzurPromiliaVIInstaller
                             if (!string.IsNullOrEmpty(l))
                                 Helpers.RunPsScript(Path.Combine(newPack, "tools", "Apply-Launchers.ps1"),
                                     "-Action Apply -Target jp_launcher -Language vi -Hint \"" + l + "\"", null, needAdmin && !Helpers.IsAdmin());
+                            Helpers.SyncInstalledExe(newPack);
                             st.installed_version = rr.version;
                             st.last_checked_utc = DateTime.UtcNow.ToString("o");
                             Helpers.SaveState(st);

@@ -14,6 +14,7 @@
         "AzurPromilia_TC"
       ],
       "target_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "placeholder-no-payload",
       "previous_sha256": [],
       "payload_dir": "tw_launcher",
       "size": 29481035,

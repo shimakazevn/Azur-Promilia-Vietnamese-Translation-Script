@@ -117,8 +117,8 @@
     },
     {
       "path": "tools/Localization-Common.ps1",
-      "size": 71040,
-      "sha256": "f2a10e1fba2bdbe5508155c20a598a0524acdececa1d81d8443638d7154cce34"
+      "size": 71250,
+      "sha256": "353ec32668f1a7e0ff48ed5b1dd4a78e5e9c27b577306025a731e1854ba64bf1"
     },
     {
       "path": "tools/Locate-Installations.ps1",
@@ -127,8 +127,8 @@
     },
     {
       "path": "tools/Manage-Localization.ps1",
-      "size": 45557,
-      "sha256": "cc782a5ee47d07b63c1e68765fd13f255f89396633401489cb78cf08528ff565"
+      "size": 45629,
+      "sha256": "cef10476e37c8ad2d991e2c849e251e75b560d5b10f425c17d9eb04892a2f05e"
     },
     {
       "path": "tools/jp-deblur-deployment.json",
@@ -147,8 +147,8 @@
     },
     {
       "path": "tools/launcher-deployment-vi.json",
-      "size": 1631,
-      "sha256": "3c0c4acb22a8418b54025df7a78fc10039847fe79f754f454a97895896a6d5f7"
+      "size": 1674,
+      "sha256": "76b13f206e903a740d09918d35614b4eba39e22a553b2020423b2b604445f78d"
     },
     {
       "path": "tools/tw-deblur-deployment.json",

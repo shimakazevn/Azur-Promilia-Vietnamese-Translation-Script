@@ -429,7 +429,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Đồng bộ upstream v5 (hỗ trợ hotfix manifest + lưu đường dẫn cài đặt) & thêm tùy chọn Bỏ làm mờ (Deblur - mặc định tắt) ngay trong GUI cài đặt. Hỗ trợ đầy đủ PC (3219598) và Android Shizuku/ADB (3219596).',
+            'notes': f'{args.version}: Sửa lỗi hiển thị/lưu phiên bản cũ trên app Windows, hỗ trợ nâng cấp thẳng từ bản cũ (v1.0.0/v1.0.1) & giữ tùy chọn Bỏ làm mờ (Deblur - mặc định tắt).',
         }
         if android_obj:
             latest['android'] = android_obj
