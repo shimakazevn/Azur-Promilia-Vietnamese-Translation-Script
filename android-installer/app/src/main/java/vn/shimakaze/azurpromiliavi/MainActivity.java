@@ -593,7 +593,7 @@ public class MainActivity extends Activity {
     }
 
     private void updateGameStatusText(JSONObject obj) {
-        if (obj == null || !obj.optBoolean("installed", false) || !obj.optBoolean("has_res_dir", false)) {
+        if (obj == null || !isPackageInstalled(GAME_PKG) || obj.has("error") || !obj.optBoolean("res_exists", false)) {
             return;
         }
         String det = obj.optString("detected_version", "");

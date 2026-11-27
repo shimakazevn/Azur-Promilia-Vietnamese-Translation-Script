@@ -25,8 +25,8 @@ using WF = System.Windows.Forms;
 [assembly: AssemblyDescription("Bo cai dat & tu dong cap nhat Viet hoa Azur Promilia (JP)")]
 [assembly: AssemblyCompany("shimakazevn")]
 [assembly: AssemblyProduct("AzurPromilia-VI-Setup")]
-[assembly: AssemblyVersion("1.0.8.0")]
-[assembly: AssemblyFileVersion("1.0.8.0")]
+[assembly: AssemblyVersion("1.0.9.0")]
+[assembly: AssemblyFileVersion("1.0.9.0")]
 
 namespace AzurPromiliaVIInstaller
 {
@@ -36,7 +36,7 @@ namespace AzurPromiliaVIInstaller
         public const string ReleaseLatestJsonUrl = "https://github.com/" + RepoSlug + "/releases/latest/download/latest-vi.json";
         public const string LatestJsonUrl = "https://raw.githubusercontent.com/" + RepoSlug + "/main/latest-vi.json";
         public const string ReleasesApiUrl = "https://api.github.com/repos/" + RepoSlug + "/releases/latest";
-        public const string CurrentInstallerVersion = "v1.0.8";
+        public const string CurrentInstallerVersion = "v1.0.9";
         public static readonly string AppDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "AzurPromiliaVI"
@@ -1791,6 +1791,11 @@ namespace AzurPromiliaVIInstaller
             }
 
             SetBusy(true, currentlyOn ? "Đang tắt Bỏ làm mờ (khôi phục 4 file gốc)..." : "Đang bật Bỏ làm mờ (Deblur)...");
+            if (!EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe"))
+            {
+                SetBusy(false, "Đã hủy thao tác Bỏ làm mờ.");
+                return;
+            }
             SetProgress(0, null);
 
             ThreadPool.QueueUserWorkItem(_ =>
@@ -1840,6 +1845,56 @@ namespace AzurPromiliaVIInstaller
             });
         }
 
+        private bool EnsureTargetProcessClosed(string procName, string displayLabel)
+        {
+            Process[] procs = Process.GetProcessesByName(procName);
+            if (procs == null || procs.Length == 0) return true;
+            try
+            {
+                if (MessageBox.Show(this,
+                    displayLabel + " vẫn đang chạy (có thể đang thu gọn ở khay hệ thống nên khóa file).\n\n" +
+                    "Bạn có muốn đóng hoàn toàn " + displayLabel + " ngay bây giờ để tiếp tục không?",
+                    "Đóng tiến trình đang chạy", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return false;
+                }
+                foreach (Process p in procs)
+                {
+                    try
+                    {
+                        if (!p.HasExited)
+                        {
+                            p.Kill();
+                            p.WaitForExit(3000);
+                        }
+                    }
+                    catch { }
+                }
+            }
+            finally
+            {
+                foreach (Process p in procs)
+                {
+                    try { p.Dispose(); } catch { }
+                }
+            }
+            Thread.Sleep(250);
+            Process[] left = Process.GetProcessesByName(procName);
+            int remaining = left != null ? left.Length : 0;
+            if (left != null)
+            {
+                foreach (Process p in left) { try { p.Dispose(); } catch { } }
+            }
+            if (remaining > 0)
+            {
+                MessageBox.Show(this,
+                    "Không thể tự đóng " + displayLabel + " (có thể đang chạy với quyền Administrator). Vui lòng tắt thủ công rồi thử lại.",
+                    "Không thể đóng tiến trình", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            return true;
+        }
+
         private void StartInstallOrUpdate()
         {
             if (_busy) return;
@@ -1851,6 +1906,14 @@ namespace AzurPromiliaVIInstaller
             {
                 MessageBox.Show(this, "Chưa chọn thư mục AZUPRO_JP hoặc AZUPRO_JP_Gamelauncher!", "Thiếu đường dẫn", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
+            }
+            if (!string.IsNullOrEmpty(gameDir) && Helpers.CheckGameStatus(_packRoot, gameDir).IndexOf("Đã cài") < 0)
+            {
+                if (!EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe")) return;
+            }
+            if (!string.IsNullOrEmpty(launcherDir) && Helpers.CheckLauncherStatus(_packRoot, launcherDir).IndexOf("Đã cài") < 0)
+            {
+                if (!EnsureTargetProcessClosed("AZUPRO_JP_Gamelauncher", "Launcher gốc (AZUPRO_JP_Gamelauncher.exe)")) return;
             }
             SetBusy(true, "Đang chuẩn bị cài đặt...");
             SetProgress(0, null);
@@ -1937,6 +2000,8 @@ namespace AzurPromiliaVIInstaller
             }
             string gameDir = _txtGamePath.Text.Trim();
             string launcherDir = _txtLauncherPath.Text.Trim();
+            if (!string.IsNullOrEmpty(gameDir) && !EnsureTargetProcessClosed("AzurPromiliaJP", "Game AzurPromiliaJP.exe")) return;
+            if (!string.IsNullOrEmpty(launcherDir) && !EnsureTargetProcessClosed("AZUPRO_JP_Gamelauncher", "Launcher gốc (AZUPRO_JP_Gamelauncher.exe)")) return;
             SetBusy(true, "Đang khôi phục bản gốc...");
             SetProgress(35, "Đang khôi phục bản gốc...");
             ThreadPool.QueueUserWorkItem(_ =>

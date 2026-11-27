@@ -430,7 +430,7 @@ def main():
                 'sha256': sha256(setup_exe) if setup_exe.is_file() else '',
                 'url': f'{base_dl}/AzurPromilia-VI-Setup.exe',
             },
-            'notes': f'{args.version}: Giao diện PC Launcher mới (nền ảnh động & nhạc nền chính thức Azur Promilia, nút tắt/mở nhạc & nền động), kiểm tra cập nhật tức thì qua GitHub Release (không trễ cache 5 phút) & so sánh phiên bản chuẩn.',
+            'notes': f'{args.version}: Sửa lỗi hiển thị trạng thái game/đã đồng bộ trên Android Companion sau khi kết nối Shizuku (fix key res_exists) & đồng bộ toàn bộ PC/Mobile lên v1.0.9.',
         }
         if android_obj:
             latest['android'] = android_obj
